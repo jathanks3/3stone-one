@@ -1,0 +1,9 @@
+<!-- Primary lockup - light/white background version, for use on light
+     surfaces (documents, email signatures, partner co-branding). -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 620 150">
+  <polygon points="15,10 185,10 165,34 35,34" fill="#050505" />
+  <polygon points="15,46 88,46 104,69 15,69" fill="#050505" />
+  <polygon points="15,81 104,81 120,104 15,104" fill="#050505" />
+  <polygon points="112,46 112,104 180,75" fill="#050505" />
+  <text x="220" y="100" font-family="Inter, -apple-system, sans-serif" font-weight="800" font-size="76" fill="#050505" letter-spacing="-2">3Stone AI</text>
+</svg>

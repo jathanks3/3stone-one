@@ -1,0 +1,92 @@
+import type { KnowledgeArticle } from "@/types";
+
+export const DEMO_ARTICLES: KnowledgeArticle[] = [
+  {
+    id: "kb_1",
+    title: "Job Site Safety Check-in Process",
+    category: "sop",
+    author: "Sam Okafor",
+    updatedAt: "2026-07-01",
+    body: "All field staff must check in via the site log at the start and end of every shift, noting crew present, equipment on site, and any hazards observed. Site leads review the log weekly. Non-compliance is flagged to the department lead.",
+  },
+  {
+    id: "kb_2",
+    title: "Client Onboarding Checklist",
+    category: "process",
+    author: "Jane Dorsey",
+    updatedAt: "2026-06-18",
+    body: "1. Send welcome email within 24 hours of contract signing. 2. Schedule kickoff walkthrough within 5 business days. 3. Confirm site access, gate codes, and point of contact. 4. Share project timeline and milestone schedule. 5. Add client to the shared communications channel.",
+  },
+  {
+    id: "kb_3",
+    title: "Invoice Collection Process",
+    category: "process",
+    author: "Morgan Lee",
+    updatedAt: "2026-05-22",
+    body: "Invoices are sent upon milestone completion. A reminder is sent 3 days before due date, and again on the due date if unpaid. Invoices over 7 days overdue are escalated to the account owner for a personal follow-up call.",
+  },
+  {
+    id: "kb_4",
+    title: "Employee Handbook — PTO Policy",
+    category: "policy",
+    author: "Sam Okafor",
+    updatedAt: "2026-01-10",
+    body: "Full-time employees accrue 1.5 days of PTO per month, up to a maximum of 18 days per year. PTO requests should be submitted at least 2 weeks in advance via the Employee Portal where possible.",
+  },
+  {
+    id: "kb_5",
+    title: "Equipment & Tool Purchase Requests",
+    category: "process",
+    author: "Morgan Lee",
+    updatedAt: "2026-06-30",
+    body: "Purchases under $500 can be approved by a department lead. Purchases over $500 require Owner approval through the Finance module's Purchase Requests queue. All requests should include a brief justification.",
+  },
+  {
+    id: "kb_6",
+    title: "New Hire Onboarding — Field Staff",
+    category: "training",
+    author: "Sam Okafor",
+    updatedAt: "2026-04-02",
+    body: "New field hires complete a 2-day safety orientation before their first job site visit, including PPE fitting, equipment training, and a site safety walkthrough with their assigned mentor.",
+  },
+  {
+    id: "kb_7",
+    title: "Change Order Approval Process",
+    category: "process",
+    author: "Priya Shah",
+    updatedAt: "2026-06-10",
+    body: "Any scope change over $1,000 requires a written change order signed by the client before work proceeds. Estimating drafts the change order; the Project Manager obtains signature and files it with the job's documents.",
+  },
+  {
+    id: "kb_8",
+    title: "Using the Estimating Template",
+    category: "training",
+    author: "Priya Shah",
+    updatedAt: "2026-03-15",
+    body: "Walkthrough video covering how to build a bid using the standard estimating template, including materials markup, labor rates by role, and contingency guidelines.",
+  },
+  {
+    id: "kb_9",
+    title: "Vendor Code of Conduct",
+    category: "policy",
+    author: "Sam Okafor",
+    updatedAt: "2026-02-08",
+    body: "All vendors and subcontractors are expected to carry current insurance, follow job site safety protocols, and adhere to the project schedule. Violations should be reported to the Office Manager.",
+  },
+  {
+    id: "kb_10",
+    title: "Site Safety Orientation (Video)",
+    category: "video",
+    author: "Sam Okafor",
+    updatedAt: "2026-01-20",
+    body: "12-minute orientation video covering PPE requirements, equipment operation basics, and emergency procedures. Required viewing for all new field hires before their first site visit.",
+  },
+];
+
+export const KNOWLEDGE_CATEGORY_LABEL: Record<KnowledgeArticle["category"], string> = {
+  policy: "Policies",
+  training: "Training",
+  process: "Processes",
+  sop: "SOPs",
+  video: "Videos",
+};
