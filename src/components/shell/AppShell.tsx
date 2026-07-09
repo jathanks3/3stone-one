@@ -6,6 +6,7 @@ import { TopBar } from "./TopBar";
 import { Sidebar } from "./Sidebar";
 import { MobileNav } from "./MobileNav";
 import { CommandPalette } from "./CommandPalette";
+import { AiAssistant } from "@/components/assistant/AiAssistant";
 import type { SessionUser, Workspace } from "@/types";
 
 export function AppShell({
@@ -38,10 +39,11 @@ export function AppShell({
             <Sidebar />
           </div>
         </aside>
-        <main className="flex-1 overflow-y-auto bg-bg">{children}</main>
+        <main className="flex-1 overflow-y-auto bg-bg pb-24 lg:pb-6">{children}</main>
       </div>
       <MobileNav open={mobileNavOpen} onClose={() => setMobileNavOpen(false)} />
       <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} />
+      <AiAssistant />
     </div>
   );
 }

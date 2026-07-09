@@ -9,10 +9,16 @@ const ORDINAL_COLORS = [
   "var(--chart-ordinal-4)",
 ];
 
-export function JobStatusChart({ data }: { data: { label: string; count: number }[] }) {
+export function JobStatusChart({
+  data,
+  title = "Job status breakdown",
+}: {
+  data: { label: string; count: number }[];
+  title?: string;
+}) {
   return (
     <div className="rounded-2xl border border-line bg-surface p-5">
-      <h2 className="text-[13px] font-semibold text-ink-2">Job status breakdown</h2>
+      <h2 className="text-[13px] font-semibold text-ink-2">{title}</h2>
       <div className="mt-4 h-[220px]">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart

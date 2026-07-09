@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import dynamic from "next/dynamic";
 import { Download, FileBarChart } from "lucide-react";
 import { Tabs } from "@/ui/Tabs";
 import { Card } from "@/ui/Card";
@@ -8,9 +9,9 @@ import { DataTable, type Column } from "@/ui/DataTable";
 import { SearchInput } from "@/ui/SearchInput";
 import { AiAction, AiActionRow } from "@/ui/AiAction";
 import { Button } from "@/ui/Button";
+import { ChartSkeleton } from "@/ui/ChartSkeleton";
 import { useToast } from "@/lib/toast";
 import { formatCurrency } from "@/lib/utils";
-import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import {
   DEMO_DEALS,
   DEMO_EMPLOYEES,
@@ -20,6 +21,13 @@ import {
   PIPELINE_STAGES,
 } from "@/server/mock-data";
 import { explainPerformanceChange, forecastRevenue, suggestImprovements } from "@/server/ai/capabilities";
+import { useIndustry } from "@/lib/industry";
+import { getIndustryDataset } from "@/server/mock-data/industries";
+
+const AnalyticsOverviewCharts = dynamic(
+  () => import("./AnalyticsOverviewCharts").then((m) => m.AnalyticsOverviewCharts),
+  { ssr: false, loading: () => <div className="grid grid-cols-1 gap-4 lg:grid-cols-2"><ChartSkeleton height={200} /><ChartSkeleton height={200} /></div> }
+);
 
 interface EntityConfig {
   data: Record<string, unknown>[];
@@ -62,6 +70,8 @@ export function AnalyticsClient() {
 }
 
 function OverviewTab() {
+  const { profile } = useIndustry();
+  const dataset = getIndustryDataset(profile.key);
   const pipelineData = PIPELINE_STAGES.filter((s) => s.key !== "won" && s.key !== "lost").map((s) => ({
     label: s.label,
     count: DEMO_DEALS.filter((d) => d.stage === s.key).length,
@@ -75,50 +85,18 @@ function OverviewTab() {
 
   return (
     <div className="flex flex-col gap-5">
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <Card className="p-5">
-          <p className="mb-4 text-[13px] font-semibold text-ink-2">Open pipeline by stage</p>
-          <div className="h-[200px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={pipelineData} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
-                <CartesianGrid vertical={false} stroke="var(--line)" />
-                <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fill: "var(--ink-3)", fontSize: 11.5 }} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fill: "var(--ink-3)", fontSize: 12 }} width={28} allowDecimals={false} />
-                <Tooltip
-                  cursor={{ fill: "var(--surface-raised)" }}
-                  contentStyle={{ background: "var(--surface)", border: "1px solid var(--line)", borderRadius: 10, fontSize: 12.5, color: "var(--ink-1)" }}
-                />
-                <Bar dataKey="count" fill="var(--accent)" radius={[4, 4, 0, 0]} maxBarSize={36} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </Card>
-        <Card className="p-5">
-          <p className="mb-4 text-[13px] font-semibold text-ink-2">Job status breakdown</p>
-          <div className="h-[200px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={jobStatusData} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
-                <CartesianGrid vertical={false} stroke="var(--line)" />
-                <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fill: "var(--ink-3)", fontSize: 11.5 }} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fill: "var(--ink-3)", fontSize: 12 }} width={28} allowDecimals={false} />
-                <Tooltip
-                  cursor={{ fill: "var(--surface-raised)" }}
-                  contentStyle={{ background: "var(--surface)", border: "1px solid var(--line)", borderRadius: 10, fontSize: 12.5, color: "var(--ink-1)" }}
-                />
-                <Bar dataKey="count" fill="var(--chart-ordinal-3)" radius={[4, 4, 0, 0]} maxBarSize={36} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-          <p className="mt-2 text-[12.5px] text-ink-3">{completionRate}% of jobs completed on record.</p>
-        </Card>
-      </div>
+      <AnalyticsOverviewCharts
+        pipelineData={pipelineData}
+        jobStatusData={jobStatusData}
+        completionRate={completionRate}
+      />
 
       <Card className="p-5">
         <p className="mb-2 text-[12px] font-semibold uppercase tracking-wide text-ink-3">AI actions</p>
         <AiActionRow>
-          <AiAction label="Explain performance change" run={explainPerformanceChange} />
-          <AiAction label="Forecast revenue" run={forecastRevenue} />
-          <AiAction label="Suggest improvements" run={suggestImprovements} />
+          <AiAction label="Explain performance change" run={() => explainPerformanceChange(dataset)} />
+          <AiAction label="Forecast revenue" run={() => forecastRevenue(dataset)} />
+          <AiAction label="Suggest improvements" run={() => suggestImprovements(dataset)} />
         </AiActionRow>
       </Card>
     </div>

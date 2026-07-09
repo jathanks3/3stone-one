@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import dynamic from "next/dynamic";
 import { CheckCircle2, FileWarning, Landmark, XCircle } from "lucide-react";
 import { Tabs } from "@/ui/Tabs";
 import { Card } from "@/ui/Card";
@@ -10,23 +11,27 @@ import { DataTable, type Column } from "@/ui/DataTable";
 import { Button } from "@/ui/Button";
 import { EmptyState } from "@/ui/EmptyState";
 import { AiAction, AiActionRow } from "@/ui/AiAction";
+import { ChartSkeleton } from "@/ui/ChartSkeleton";
 import { useToast } from "@/lib/toast";
 import { cn, formatCurrency } from "@/lib/utils";
-import { RevenueExpenseChart } from "@/components/dashboard/RevenueExpenseChart";
-import { VendorExpenseChart } from "./VendorExpenseChart";
+
+const RevenueExpenseChart = dynamic(
+  () => import("@/components/dashboard/RevenueExpenseChart").then((m) => m.RevenueExpenseChart),
+  { ssr: false, loading: () => <ChartSkeleton /> }
+);
+const VendorExpenseChart = dynamic(
+  () => import("./VendorExpenseChart").then((m) => m.VendorExpenseChart),
+  { ssr: false, loading: () => <ChartSkeleton /> }
+);
 import {
   BUDGETS,
-  CASH_FLOW_MONTHLY,
-  CASH_RUNWAY_DAYS,
-  DEMO_INVOICES,
-  MONTHLY_FINANCIALS,
   PENDING_PURCHASE_REQUESTS,
-  PROFIT_MTD,
-  REVENUE_DELTA_PCT,
-  REVENUE_MTD,
   VENDOR_EXPENSES,
 } from "@/server/mock-data";
 import { cashFlowWarning, explainRevenueTrend, invoiceInsights } from "@/server/ai/capabilities";
+import { useIndustry } from "@/lib/industry";
+import { getIndustryDataset } from "@/server/mock-data/industries";
+import { KpiTile } from "@/ui/KpiTile";
 import type { Invoice, InvoiceStatus, PurchaseRequest } from "@/types";
 
 const INVOICE_TONE: Record<InvoiceStatus, "good" | "accent" | "critical"> = {
@@ -88,26 +93,52 @@ export function FinanceClient() {
 }
 
 function OverviewTab() {
-  const outstanding = DEMO_INVOICES.filter((i) => i.status !== "paid").reduce((s, i) => s + i.amount, 0);
+  const { profile } = useIndustry();
+  const dataset = getIndustryDataset(profile.key);
+  const outstanding = dataset.invoices.filter((i) => i.status !== "paid").reduce((s, i) => s + i.amount, 0);
+  const months = dataset.monthlyChart.months;
+  const latest = months[months.length - 1];
+  const prior = months[months.length - 2];
+  const revenuePct = prior && prior.primary > 0 ? Math.round(((latest.primary - prior.primary) / prior.primary) * 100) : 0;
+  const profit = latest.primary - latest.secondary;
+  const priorProfit = prior ? prior.primary - prior.secondary : 0;
+  const profitPct = priorProfit > 0 ? Math.round(((profit - priorProfit) / priorProfit) * 100) : 0;
+  const signatureKpi = dataset.kpis[2];
 
   return (
     <div className="flex flex-col gap-5">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatTile label="Revenue (MTD)" value={formatCurrency(REVENUE_MTD, { compact: true })} deltaPct={REVENUE_DELTA_PCT} direction="up" deltaTone="good" />
-        <StatTile label="Profit (MTD)" value={formatCurrency(PROFIT_MTD, { compact: true })} deltaPct={8} direction="up" deltaTone="good" />
-        <StatTile label="Cash Flow" value={`+${formatCurrency(CASH_FLOW_MONTHLY, { compact: true })}/mo`} />
+        <StatTile
+          label={`${dataset.monthlyChart.primaryLabel} (MTD)`}
+          value={formatCurrency(latest.primary, { compact: true })}
+          deltaPct={Math.abs(revenuePct)}
+          direction={revenuePct >= 0 ? "up" : "down"}
+          deltaTone={revenuePct >= 0 ? "good" : "critical"}
+        />
+        <StatTile
+          label="Profit (MTD)"
+          value={formatCurrency(profit, { compact: true })}
+          deltaPct={Math.abs(profitPct)}
+          direction={profitPct >= 0 ? "up" : "down"}
+          deltaTone={profitPct >= 0 ? "good" : "critical"}
+        />
+        <KpiTile label={signatureKpi.label} value={signatureKpi.value} deltaLabel={signatureKpi.deltaLabel} tone={signatureKpi.tone} />
         <StatTile label="Outstanding" value={formatCurrency(outstanding, { compact: true })} />
       </div>
-      <p className="text-[12.5px] text-ink-3">{CASH_RUNWAY_DAYS} days of runway at the current burn rate.</p>
 
-      <RevenueExpenseChart data={MONTHLY_FINANCIALS} />
+      <RevenueExpenseChart
+        data={months.map((m) => ({ month: m.month, revenue: m.primary, expenses: m.secondary }))}
+        title={dataset.monthlyChart.title}
+        primaryLabel={dataset.monthlyChart.primaryLabel}
+        secondaryLabel={dataset.monthlyChart.secondaryLabel}
+      />
 
       <Card className="p-5">
         <p className="mb-2 text-[12px] font-semibold uppercase tracking-wide text-ink-3">AI actions</p>
         <AiActionRow>
-          <AiAction label="Explain trend" run={explainRevenueTrend} />
-          <AiAction label="Cash-flow warning" run={cashFlowWarning} />
-          <AiAction label="Invoice insights" run={invoiceInsights} />
+          <AiAction label="Explain trend" run={() => explainRevenueTrend(dataset)} />
+          <AiAction label="Cash-flow warning" run={() => cashFlowWarning(dataset)} />
+          <AiAction label="Invoice insights" run={() => invoiceInsights(dataset)} />
         </AiActionRow>
       </Card>
     </div>
@@ -115,7 +146,9 @@ function OverviewTab() {
 }
 
 function InvoicesTab() {
-  const [invoices, setInvoices] = useState<Invoice[]>(DEMO_INVOICES);
+  const { profile } = useIndustry();
+  const dataset = getIndustryDataset(profile.key);
+  const [invoices, setInvoices] = useState<Invoice[]>(dataset.invoices);
   const [filter, setFilter] = useState<InvoiceStatus | "all">("all");
   const { showToast } = useToast();
   const filtered = invoices.filter((i) => filter === "all" || i.status === filter);
@@ -124,6 +157,18 @@ function InvoicesTab() {
     { key: "number", header: "Invoice", render: (i) => <span className="font-medium text-ink-1">{i.number}</span> },
     { key: "client", header: "Client", render: (i) => i.client },
     { key: "amount", header: "Amount", render: (i) => formatCurrency(i.amount) },
+    {
+      key: "deposit",
+      header: "Deposit",
+      render: (i) =>
+        i.depositAmount !== undefined ? (
+          <Badge tone={i.depositPaid ? "good" : "warning"}>
+            {i.depositPaid ? "Paid" : `${formatCurrency(i.depositAmount, { compact: true })} due`}
+          </Badge>
+        ) : (
+          <span className="text-ink-3">—</span>
+        ),
+    },
     { key: "status", header: "Status", render: (i) => <Badge tone={INVOICE_TONE[i.status]}>{i.status}</Badge> },
     { key: "due", header: "Due", render: (i) => new Date(i.dueDate).toLocaleDateString() },
     {

@@ -22,6 +22,52 @@ export interface IndustryProfile {
   terms: IndustryTerms;
 }
 
+// ---- Per-industry dashboards & mock datasets ----
+// Each industry gets its own KPIs, charts, sample data, notifications, and AI
+// copy so switching industries changes the *experience*, not just the nouns.
+
+export interface IndustryKpi {
+  key: string;
+  label: string;
+  value: string;
+  deltaLabel?: string;
+  tone?: "positive" | "negative" | "neutral";
+  trend?: number[];
+}
+
+export interface IndustryMonthlyChart {
+  title: string;
+  primaryLabel: string;
+  secondaryLabel: string;
+  unit: "currency" | "percent" | "hours" | "count";
+  months: { month: string; primary: number; secondary: number }[];
+}
+
+export interface IndustryBreakdownChart {
+  title: string;
+  segments: { label: string; count: number }[];
+}
+
+export interface IndustryDataset {
+  profileKey: IndustryProfileKey;
+  orgName: string;
+  greetingSubtitle: string;
+  kpis: [IndustryKpi, IndustryKpi, IndustryKpi];
+  monthlyChart: IndustryMonthlyChart;
+  breakdownChart: IndustryBreakdownChart;
+  organizations: Organization[];
+  people: Person[];
+  deals: Deal[];
+  jobs: Job[];
+  invoices: Invoice[];
+  employees: Employee[];
+  notifications: ActivityItem[];
+  aiRecommendations: string[];
+  /** Optional per-industry relabeling of the shared 6-stage pipeline (e.g. Event
+   * Center's Inquiry / Proposal Sent / Contract Signed / Deposit Paid / Booked). */
+  pipelineStageLabels?: Partial<Record<PipelineStageKey, string>>;
+}
+
 export type UserRole = "Owner" | "Admin" | "Manager" | "Member";
 
 export interface SessionUser {
@@ -106,6 +152,19 @@ export interface Invoice {
   status: InvoiceStatus;
   dueDate: string;
   issuedDate: string;
+  depositAmount?: number;
+  depositPaid?: boolean;
+}
+
+// ---- Attendance ----
+
+export interface AttendanceRecord {
+  id: string;
+  employeeId: string;
+  date: string;
+  clockIn: string | null;
+  clockOut: string | null;
+  hoursWorked: number;
 }
 
 export type ActivityKind =
@@ -220,6 +279,7 @@ export interface DocumentFile {
   jobId: string | null;
   organizationId: string | null;
   visibility: "internal" | "shared";
+  signatureStatus?: "sent" | "viewed" | "signed";
 }
 
 // ---- Communications ----
@@ -302,9 +362,10 @@ export interface KnowledgeArticle {
 
 export interface WorkflowNode {
   id: string;
-  kind: "trigger" | "action";
+  kind: "trigger" | "action" | "delay";
   label: string;
   detail: string;
+  days?: number;
 }
 
 export interface WorkflowDefinition {

@@ -1,4 +1,4 @@
-import type { Deal, DocumentFile, Employee, Job, Meeting, Person } from "@/types";
+import type { Deal, DocumentFile, Employee, IndustryDataset, Job, Meeting, Person } from "@/types";
 import { formatCurrency } from "@/lib/utils";
 import { getTasksForJob } from "@/server/mock-data/tasks";
 import { DEMO_DEALS } from "@/server/mock-data/crm";
@@ -98,30 +98,53 @@ export function recommendStaffing(jobs: Job[], employees: Employee[]): string {
 
 // ---------------- Finance ----------------
 
-export function explainRevenueTrend(): string {
-  return "Revenue is up 12% this quarter, driven almost entirely by the Riverside and Harbor View contracts closing — not broad-based growth across all clients yet.";
+export function explainRevenueTrend(dataset: IndustryDataset): string {
+  const months = dataset.monthlyChart.months;
+  const latest = months[months.length - 1];
+  const prior = months[months.length - 2];
+  if (!prior || prior.primary === 0) return `${dataset.monthlyChart.primaryLabel} is holding steady this month — not enough history yet to call a trend.`;
+  const pct = Math.round(((latest.primary - prior.primary) / prior.primary) * 100);
+  const topJob = [...dataset.jobs].sort((a, b) => b.value - a.value)[0];
+  return `${dataset.monthlyChart.primaryLabel} is ${pct >= 0 ? "up" : "down"} ${Math.abs(pct)}% vs. last month${topJob ? `, with "${topJob.name}" (${formatCurrency(topJob.value, { compact: true })}) as the single biggest driver` : ""} — not broad-based growth across every client yet.`;
 }
 
-export function cashFlowWarning(): string {
-  return "Cash flow is healthy at 42 days of runway. The Smith Co. invoice (9 days overdue) is the only near-term risk — collecting it would add roughly 3 more days of runway.";
+export function cashFlowWarning(dataset: IndustryDataset): string {
+  const overdueInvoices = dataset.invoices.filter((i) => i.status === "overdue");
+  if (overdueInvoices.length === 0) return `Cash flow looks healthy — no overdue invoices on the books right now.`;
+  const worst = overdueInvoices[0];
+  return `${overdueInvoices.length} invoice${overdueInvoices.length === 1 ? " is" : "s are"} overdue, led by ${worst.client} at ${formatCurrency(worst.amount, { compact: true })} — collecting that one would meaningfully improve this month's cash position.`;
 }
 
-export function invoiceInsights(): string {
-  return "3 invoices are outstanding, totaling $22,400. INV-1038 (Smith Co.) is overdue by 9 days — worth a personal follow-up call rather than another automated reminder.";
+export function invoiceInsights(dataset: IndustryDataset): string {
+  const unpaid = dataset.invoices.filter((i) => i.status !== "paid");
+  if (unpaid.length === 0) return `Every invoice is paid in full — nothing outstanding right now.`;
+  const total = unpaid.reduce((sum, i) => sum + i.amount, 0);
+  const worst = unpaid.find((i) => i.status === "overdue") ?? unpaid[0];
+  return `${unpaid.length} invoice${unpaid.length === 1 ? " is" : "s are"} outstanding, totaling ${formatCurrency(total, { compact: true })}. ${worst.client}'s ${worst.number} (${worst.status}) is worth a personal follow-up rather than another automated reminder.`;
 }
 
 // ---------------- Analytics ----------------
 
-export function explainPerformanceChange(): string {
-  return "Revenue growth this quarter came from 2 large contracts (Riverside, Harbor View), not an increase in average deal size or lead volume — worth watching whether growth broadens next quarter.";
+export function explainPerformanceChange(dataset: IndustryDataset): string {
+  const won = dataset.deals.filter((d) => d.stage === "won").sort((a, b) => b.value - a.value).slice(0, 2);
+  if (won.length === 0) return `No closed deals yet this period to attribute growth to — worth watching next quarter.`;
+  return `Recent growth came from ${won.map((d) => `"${d.title}"`).join(" and ")}, not an increase in average deal size or lead volume — worth watching whether growth broadens next quarter.`;
 }
 
-export function forecastRevenue(): string {
-  return "At the current pipeline conversion rate, next quarter's revenue is projected at $210K–$240K, assuming Cedar Hills and Northgate close as expected.";
+export function forecastRevenue(dataset: IndustryDataset): string {
+  const openPipeline = dataset.deals.filter((d) => d.stage === "proposal" || d.stage === "negotiation");
+  const pipelineValue = openPipeline.reduce((sum, d) => sum + d.value, 0);
+  if (openPipeline.length === 0) return `Pipeline is thin right now — no proposal or negotiation-stage deals to forecast from.`;
+  const low = Math.round((pipelineValue * 0.55) / 1000) * 1000;
+  const high = Math.round((pipelineValue * 0.75) / 1000) * 1000;
+  return `At the current pipeline conversion rate, next period's revenue is projected at ${formatCurrency(low, { compact: true })}–${formatCurrency(high, { compact: true })}, assuming ${openPipeline.map((d) => `"${d.title}"`).join(" and ")} close as expected.`;
 }
 
-export function suggestImprovements(): string {
-  return "3 leads (Bayview, Northgate, Kim Retail Buildout) have sat in their current stage for over a week — following up could move an estimated $263K in stalled pipeline forward.";
+export function suggestImprovements(dataset: IndustryDataset): string {
+  const stalled = dataset.deals.filter((d) => d.stage !== "won" && d.stage !== "lost");
+  if (stalled.length === 0) return `Pipeline is clean right now — nothing stalled to flag.`;
+  const stalledValue = stalled.reduce((sum, d) => sum + d.value, 0);
+  return `${stalled.length} deal${stalled.length === 1 ? "" : "s"} (${stalled.map((d) => d.title).join(", ")}) ${stalled.length === 1 ? "has" : "have"} sat open for a while — following up could move an estimated ${formatCurrency(stalledValue, { compact: true })} in stalled pipeline forward.`;
 }
 
 // ---------------- Meetings ----------------

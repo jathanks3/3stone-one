@@ -1,18 +1,45 @@
 "use client";
 
 import { useState } from "react";
-import { CheckCircle2, Eye, FileText, Send, Upload } from "lucide-react";
+import { CheckCircle2, Circle, Eye, FileText, Send, Truck, Upload } from "lucide-react";
 import { Card } from "@/ui/Card";
 import { Badge } from "@/ui/Badge";
 import { Button } from "@/ui/Button";
+import { Tabs } from "@/ui/Tabs";
 import { useToast } from "@/lib/toast";
 import { cn, formatCurrency } from "@/lib/utils";
-import { DEMO_DOCUMENTS, DEMO_INVOICES, DEMO_JOBS, getTasksForJob } from "@/server/mock-data";
+import { DEMO_DOCUMENTS, DEMO_INVOICES, DEMO_JOBS, DEMO_VENDORS, getTasksForJob } from "@/server/mock-data";
 
 const CLIENT_ORG_ID = "org_riverside";
 const CLIENT_JOB_ID = "job_riverside";
 
 export function ClientPortalClient() {
+  const job = DEMO_JOBS.find((j) => j.id === CLIENT_JOB_ID)!;
+
+  return (
+    <div className="mx-auto max-w-4xl px-4 py-6 sm:px-6 sm:py-8">
+      <div className="mb-6 rounded-2xl border border-accent-wash-strong bg-accent-wash px-4 py-3">
+        <p className="flex items-center gap-2 text-[13px] font-semibold text-accent">
+          <Eye size={14} /> Client Portal preview — this is what a client or a vendor sees when they log in.
+        </p>
+      </div>
+
+      <h1 className="text-[22px] font-bold text-ink-1">{job.name}</h1>
+      <p className="mt-1 text-[14px] text-ink-2">Shared with both the client and the vendors working this job.</p>
+
+      <div className="mt-6">
+        <Tabs
+          tabs={[
+            { key: "client", label: "Client View", content: <ClientView /> },
+            { key: "vendor", label: "Vendor View", content: <VendorView /> },
+          ]}
+        />
+      </div>
+    </div>
+  );
+}
+
+function ClientView() {
   const { showToast } = useToast();
   const job = DEMO_JOBS.find((j) => j.id === CLIENT_JOB_ID)!;
   const tasks = getTasksForJob(CLIENT_JOB_ID);
@@ -46,17 +73,7 @@ export function ClientPortalClient() {
   const doneCount = tasks.filter((t) => t.done).length;
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-6 sm:px-6 sm:py-8">
-      <div className="mb-6 rounded-2xl border border-accent-wash-strong bg-accent-wash px-4 py-3">
-        <p className="flex items-center gap-2 text-[13px] font-semibold text-accent">
-          <Eye size={14} /> Client Portal preview — this is what Riverside Properties sees when they log in.
-        </p>
-      </div>
-
-      <h1 className="text-[22px] font-bold text-ink-1">Welcome back, Sarah</h1>
-      <p className="mt-1 text-[14px] text-ink-2">Here&rsquo;s the latest on your project with Acme Construction.</p>
-
-      <div className="mt-6 flex flex-col gap-5">
+      <div className="flex flex-col gap-5">
         <Card className="p-5">
           <div className="flex items-center justify-between">
             <p className="text-[15px] font-semibold text-ink-1">{job.name}</p>
@@ -153,6 +170,80 @@ export function ClientPortalClient() {
           </div>
         </Card>
       </div>
+  );
+}
+
+function VendorView() {
+  const job = DEMO_JOBS.find((j) => j.id === CLIENT_JOB_ID)!;
+  const [vendorStatus, setVendorStatus] = useState<Record<string, boolean>>({
+    ven_1: true,
+    ven_2: false,
+    ven_5: false,
+  });
+
+  const vendorTasks = [
+    { vendorId: "ven_1", label: "Fixtures delivered to site" },
+    { vendorId: "ven_2", label: "Plumbing rough-in complete" },
+    { vendorId: "ven_5", label: "PPE restock confirmed for crew" },
+  ];
+
+  function toggle(vendorId: string) {
+    setVendorStatus((prev) => ({ ...prev, [vendorId]: !prev[vendorId] }));
+  }
+
+  return (
+    <div className="flex flex-col gap-5">
+      <Card className="p-5">
+        <p className="text-[15px] font-semibold text-ink-1">{job.name} — timeline</p>
+        <p className="mt-1 text-[13px] text-ink-3">
+          Start {new Date(job.startDate).toLocaleDateString()} · Target completion {new Date(job.dueDate).toLocaleDateString()}
+        </p>
+        <p className="mt-3 text-[13.5px] leading-relaxed text-ink-2">{job.description}</p>
+      </Card>
+
+      <Card className="p-5">
+        <p className="mb-3 flex items-center gap-2 text-[15px] font-semibold text-ink-1">
+          <Truck size={15} className="text-ink-3" /> Vendor checklist
+        </p>
+        <div className="flex flex-col gap-2">
+          {vendorTasks.map((t) => {
+            const vendor = DEMO_VENDORS.find((v) => v.id === t.vendorId);
+            const done = vendorStatus[t.vendorId];
+            return (
+              <button
+                key={t.vendorId}
+                onClick={() => toggle(t.vendorId)}
+                className="flex items-center gap-2.5 rounded-[10px] border border-line bg-bg px-3.5 py-2.5 text-left"
+              >
+                {done ? (
+                  <CheckCircle2 size={16} className="flex-shrink-0 text-good" />
+                ) : (
+                  <Circle size={16} className="flex-shrink-0 text-ink-3" />
+                )}
+                <div className="min-w-0 flex-1">
+                  <p className={cn("text-[13.5px] font-medium", done ? "text-ink-3 line-through" : "text-ink-1")}>{t.label}</p>
+                  <p className="text-[12px] text-ink-3">{vendor?.name ?? "Vendor"}</p>
+                </div>
+                <Badge tone={done ? "good" : "neutral"}>{done ? "Done" : "Pending"}</Badge>
+              </button>
+            );
+          })}
+        </div>
+      </Card>
+
+      <Card className="p-5">
+        <p className="text-[15px] font-semibold text-ink-1">Shared documents</p>
+        <p className="mt-1 text-[12.5px] text-ink-3">
+          Site plans and permits shared with vendors working this job — the same files visible in the client&rsquo;s Documents tab.
+        </p>
+        <div className="mt-3 flex flex-col gap-2">
+          {DEMO_DOCUMENTS.filter((d) => d.jobId === CLIENT_JOB_ID && d.visibility === "shared").map((d) => (
+            <div key={d.id} className="flex items-center gap-2.5 rounded-[9px] border border-line bg-bg px-3 py-2 text-[13px] text-ink-2">
+              <FileText size={14} className="text-ink-3" /> {d.name}
+            </div>
+          ))}
+        </div>
+      </Card>
     </div>
   );
 }

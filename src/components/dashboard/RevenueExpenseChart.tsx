@@ -4,19 +4,29 @@ import { Area, CartesianGrid, ComposedChart, Line, ResponsiveContainer, Tooltip,
 import { formatCurrency } from "@/lib/utils";
 import type { MonthlyFinancial } from "@/types";
 
-export function RevenueExpenseChart({ data }: { data: MonthlyFinancial[] }) {
+export function RevenueExpenseChart({
+  data,
+  title = "Revenue vs. expenses — 6 months",
+  primaryLabel = "Revenue",
+  secondaryLabel = "Expenses",
+}: {
+  data: MonthlyFinancial[];
+  title?: string;
+  primaryLabel?: string;
+  secondaryLabel?: string;
+}) {
   return (
     <div className="rounded-2xl border border-line bg-surface p-5">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-[13px] font-semibold text-ink-2">Revenue vs. expenses — 6 months</h2>
+        <h2 className="text-[13px] font-semibold text-ink-2">{title}</h2>
         <div className="flex items-center gap-3 text-[11.5px] text-ink-3">
           <span className="flex items-center gap-1.5">
             <span className="h-2 w-2 rounded-full bg-accent" />
-            Revenue
+            {primaryLabel}
           </span>
           <span className="flex items-center gap-1.5">
             <span className="h-2 w-2 rounded-full bg-chart-context" />
-            Expenses
+            {secondaryLabel}
           </span>
         </div>
       </div>
@@ -57,7 +67,7 @@ export function RevenueExpenseChart({ data }: { data: MonthlyFinancial[] }) {
             <Area
               type="monotone"
               dataKey="revenue"
-              name="Revenue"
+              name={primaryLabel}
               stroke="var(--accent)"
               strokeWidth={2}
               fill="url(#revenueFill)"
@@ -65,7 +75,7 @@ export function RevenueExpenseChart({ data }: { data: MonthlyFinancial[] }) {
             <Line
               type="monotone"
               dataKey="expenses"
-              name="Expenses"
+              name={secondaryLabel}
               stroke="var(--chart-context)"
               strokeWidth={2}
               dot={false}

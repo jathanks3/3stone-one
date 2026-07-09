@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowDown, Play, Plus, Workflow as WorkflowIcon, X, Zap } from "lucide-react";
+import { ArrowDown, Clock, Play, Plus, Workflow as WorkflowIcon, X, Zap } from "lucide-react";
 import { Card } from "@/ui/Card";
 import { Badge } from "@/ui/Badge";
 import { useToast } from "@/lib/toast";
@@ -38,6 +38,28 @@ export function AutomationClient() {
       prev.map((w) =>
         w.id === activeId
           ? { ...w, nodes: [...w.nodes, { id: `${w.id}_n${w.nodes.length + 1}`, kind: "action", label, detail }] }
+          : w
+      )
+    );
+  }
+
+  function addDelay(days: number) {
+    setWorkflows((prev) =>
+      prev.map((w) =>
+        w.id === activeId
+          ? {
+              ...w,
+              nodes: [
+                ...w.nodes,
+                {
+                  id: `${w.id}_n${w.nodes.length + 1}`,
+                  kind: "delay",
+                  label: `Wait ${days} day${days === 1 ? "" : "s"}`,
+                  detail: "Pause before running the next step",
+                  days,
+                },
+              ],
+            }
           : w
       )
     );
@@ -116,18 +138,24 @@ export function AutomationClient() {
                 <div
                   className={cn(
                     "group relative w-full max-w-[380px] rounded-[12px] border px-4 py-3 transition-colors",
-                    node.kind === "trigger" ? "border-accent-wash-strong bg-accent-wash" : "border-line bg-surface-raised",
+                    node.kind === "trigger"
+                      ? "border-accent-wash-strong bg-accent-wash"
+                      : node.kind === "delay"
+                        ? "border-dashed border-line-strong bg-bg"
+                        : "border-line bg-surface-raised",
                     runningNodeIndex === i && "ring-2 ring-accent"
                   )}
                 >
                   <div className="flex items-center gap-2">
                     {node.kind === "trigger" ? (
                       <Zap size={14} className="text-accent" />
+                    ) : node.kind === "delay" ? (
+                      <Clock size={14} className="text-ink-3" />
                     ) : (
                       <WorkflowIcon size={14} className="text-ink-3" />
                     )}
                     <p className="text-[13px] font-semibold text-ink-1">{node.label}</p>
-                    {node.kind === "action" ? (
+                    {node.kind !== "trigger" ? (
                       <button
                         onClick={() => removeNode(node.id)}
                         className="ml-auto opacity-0 transition-opacity group-hover:opacity-100"
@@ -145,19 +173,36 @@ export function AutomationClient() {
           </div>
         </Card>
 
-        <div>
-          <p className="mb-2 text-[12px] font-semibold uppercase tracking-wide text-ink-3">Add an action</p>
-          <div className="flex flex-col gap-1.5">
-            {ACTION_CATALOG.map((a) => (
-              <button
-                key={a.label}
-                onClick={() => addNode(a.label, a.detail)}
-                className="flex items-center gap-2 rounded-[9px] border border-line bg-surface px-3 py-2 text-left text-[12.5px] font-medium text-ink-2 hover:bg-surface-raised"
-              >
-                <Plus size={13} className="flex-shrink-0 text-accent" />
-                {a.label}
-              </button>
-            ))}
+        <div className="flex flex-col gap-5">
+          <div>
+            <p className="mb-2 text-[12px] font-semibold uppercase tracking-wide text-ink-3">Add a delay</p>
+            <div className="flex gap-1.5">
+              {[1, 3, 7].map((days) => (
+                <button
+                  key={days}
+                  onClick={() => addDelay(days)}
+                  className="flex flex-1 items-center justify-center gap-1.5 rounded-[9px] border border-dashed border-line-strong bg-surface px-2 py-2 text-[12.5px] font-medium text-ink-2 hover:bg-surface-raised"
+                >
+                  <Clock size={13} className="flex-shrink-0 text-ink-3" />
+                  {days}d
+                </button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <p className="mb-2 text-[12px] font-semibold uppercase tracking-wide text-ink-3">Add an action</p>
+            <div className="flex flex-col gap-1.5">
+              {ACTION_CATALOG.map((a) => (
+                <button
+                  key={a.label}
+                  onClick={() => addNode(a.label, a.detail)}
+                  className="flex items-center gap-2 rounded-[9px] border border-line bg-surface px-3 py-2 text-left text-[12.5px] font-medium text-ink-2 hover:bg-surface-raised"
+                >
+                  <Plus size={13} className="flex-shrink-0 text-accent" />
+                  {a.label}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       </div>

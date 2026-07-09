@@ -12,9 +12,10 @@ import { EmptyState } from "@/ui/EmptyState";
 import { Badge } from "@/ui/Badge";
 import { AiAction, AiActionRow } from "@/ui/AiAction";
 import { cn, formatCurrency } from "@/lib/utils";
-import { DEMO_JOBS, JOB_STATUS_LABEL, JOB_STATUS_ORDER, getEmployeeName, getTasksForJob } from "@/server/mock-data";
+import { JOB_STATUS_LABEL, JOB_STATUS_ORDER, getTasksForJob } from "@/server/mock-data";
+import { getIndustryDataset, getDatasetEmployeeName } from "@/server/mock-data/industries";
 import { estimateCompletion, findBottlenecks, generateStatusUpdate } from "@/server/ai/capabilities";
-import type { Job, JobStatus } from "@/types";
+import type { IndustryDataset, Job, JobStatus } from "@/types";
 
 const STATUS_TONE: Record<JobStatus, "neutral" | "accent" | "good"> = {
   bid: "neutral",
@@ -25,7 +26,8 @@ const STATUS_TONE: Record<JobStatus, "neutral" | "accent" | "good"> = {
 
 export function ProjectsClient() {
   const { profile } = useIndustry();
-  const [jobs, setJobs] = useState<Job[]>(DEMO_JOBS);
+  const dataset = getIndustryDataset(profile.key);
+  const [jobs, setJobs] = useState<Job[]>(dataset.jobs);
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
 
   return (
@@ -46,7 +48,7 @@ export function ProjectsClient() {
             {
               key: "list",
               label: "List",
-              content: <ListTab jobs={jobs} onSelect={setSelectedJob} />,
+              content: <ListTab jobs={jobs} dataset={dataset} onSelect={setSelectedJob} />,
             },
             {
               key: "calendar",
@@ -64,7 +66,7 @@ export function ProjectsClient() {
         subtitle={selectedJob?.client}
       >
         {selectedJob ? (
-          <JobDetail job={selectedJob} projectWord={profile.terms.project} />
+          <JobDetail job={selectedJob} projectWord={profile.terms.project} dataset={dataset} />
         ) : null}
       </DetailPanel>
     </div>
@@ -107,7 +109,7 @@ function KanbanTab({
   );
 }
 
-function ListTab({ jobs, onSelect }: { jobs: Job[]; onSelect: (j: Job) => void }) {
+function ListTab({ jobs, dataset, onSelect }: { jobs: Job[]; dataset: IndustryDataset; onSelect: (j: Job) => void }) {
   const [query, setQuery] = useState("");
   const filtered = useMemo(
     () => jobs.filter((j) => `${j.name} ${j.client}`.toLowerCase().includes(query.toLowerCase())),
@@ -128,7 +130,7 @@ function ListTab({ jobs, onSelect }: { jobs: Job[]; onSelect: (j: Job) => void }
     },
     { key: "value", header: "Value", render: (j) => formatCurrency(j.value, { compact: true }) },
     { key: "due", header: "Due", render: (j) => new Date(j.dueDate).toLocaleDateString() },
-    { key: "owner", header: "Owner", render: (j) => getEmployeeName(j.ownerId) },
+    { key: "owner", header: "Owner", render: (j) => getDatasetEmployeeName(j.ownerId, dataset) },
   ];
 
   return (
@@ -225,7 +227,7 @@ function CalendarTab({ jobs, onSelect }: { jobs: Job[]; onSelect: (j: Job) => vo
   );
 }
 
-function JobDetail({ job, projectWord }: { job: Job; projectWord: string }) {
+function JobDetail({ job, projectWord, dataset }: { job: Job; projectWord: string; dataset: IndustryDataset }) {
   const [taskList, setTaskList] = useState(() => getTasksForJob(job.id));
 
   function toggle(taskId: string) {
@@ -243,7 +245,7 @@ function JobDetail({ job, projectWord }: { job: Job; projectWord: string }) {
         </div>
         <div className="rounded-[10px] border border-line bg-bg p-3">
           <p className="text-[11px] font-medium text-ink-3">Owner</p>
-          <p className="mt-1 text-[14px] font-semibold text-ink-1">{getEmployeeName(job.ownerId)}</p>
+          <p className="mt-1 text-[14px] font-semibold text-ink-1">{getDatasetEmployeeName(job.ownerId, dataset)}</p>
         </div>
       </div>
 
@@ -257,7 +259,7 @@ function JobDetail({ job, projectWord }: { job: Job; projectWord: string }) {
             >
               <input type="checkbox" checked={t.done} onChange={() => toggle(t.id)} className="h-4 w-4 accent-accent" />
               <span className={cn("flex-1", t.done && "text-ink-3 line-through")}>{t.title}</span>
-              <span className="text-[11px] text-ink-3">{getEmployeeName(t.assigneeId)}</span>
+              <span className="text-[11px] text-ink-3">{getDatasetEmployeeName(t.assigneeId, dataset)}</span>
             </label>
           ))}
           {taskList.length === 0 ? <p className="text-[13px] text-ink-3">No tasks yet.</p> : null}

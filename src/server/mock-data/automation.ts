@@ -34,6 +34,19 @@ export const DEMO_WORKFLOWS: WorkflowDefinition[] = [
       { id: "n12", kind: "action", label: "Request Review", detail: "Send a review request to the client" },
     ],
   },
+  {
+    id: "wf_deposit_reminder",
+    name: "Deposit Reminder Sequence",
+    isActive: true,
+    nodes: [
+      { id: "n13", kind: "trigger", label: "New Inquiry", detail: "When a new inquiry is added to the pipeline" },
+      { id: "n14", kind: "action", label: "Send Proposal", detail: "Email the branded proposal and deposit invoice" },
+      { id: "n15", kind: "delay", label: "Wait 3 days", detail: "Pause before running the next step", days: 3 },
+      { id: "n16", kind: "action", label: "Send Reminder Email", detail: "Follow up if the deposit hasn't been paid" },
+      { id: "n17", kind: "delay", label: "Wait 4 days", detail: "Pause before running the next step", days: 4 },
+      { id: "n18", kind: "action", label: "Notify Account Owner", detail: "Flag the stalled deposit for a personal follow-up" },
+    ],
+  },
 ];
 
 export const DEMO_WORKFLOW_RUNS: WorkflowRun[] = [

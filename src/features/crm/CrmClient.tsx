@@ -13,23 +13,15 @@ import { Avatar } from "@/ui/Avatar";
 import { Badge } from "@/ui/Badge";
 import { AiAction, AiActionRow } from "@/ui/AiAction";
 import { formatCurrency } from "@/lib/utils";
-import {
-  DEMO_DEALS,
-  DEMO_ORGANIZATIONS,
-  DEMO_PEOPLE,
-  PIPELINE_STAGES,
-  getEmployeeName,
-} from "@/server/mock-data";
+import { PIPELINE_STAGES } from "@/server/mock-data";
+import { getIndustryDataset, getDatasetEmployeeName, getDatasetOrgName } from "@/server/mock-data/industries";
 import { draftProposal, predictCustomerHealth, summarizeCustomerHistory } from "@/server/ai/capabilities";
-import type { Deal, Organization, Person, PipelineStageKey } from "@/types";
-
-function orgName(id: string | null) {
-  return DEMO_ORGANIZATIONS.find((o) => o.id === id)?.name ?? null;
-}
+import type { Deal, IndustryDataset, Organization, Person, PipelineStageKey } from "@/types";
 
 export function CrmClient() {
   const { profile } = useIndustry();
-  const [deals, setDeals] = useState<Deal[]>(DEMO_DEALS);
+  const dataset = getIndustryDataset(profile.key);
+  const [deals, setDeals] = useState<Deal[]>(dataset.deals);
   const [selectedPerson, setSelectedPerson] = useState<Person | null>(null);
   const [selectedOrg, setSelectedOrg] = useState<Organization | null>(null);
 
@@ -43,28 +35,26 @@ export function CrmClient() {
       <div className="mt-6">
         <Tabs
           tabs={[
-            { key: "pipeline", label: "Pipeline", content: <PipelineTab deals={deals} setDeals={setDeals} /> },
+            {
+              key: "pipeline",
+              label: "Pipeline",
+              content: <PipelineTab deals={deals} setDeals={setDeals} dataset={dataset} />,
+            },
             {
               key: "leads",
               label: "Leads",
-              content: (
-                <PeopleTab
-                  type="lead"
-                  onSelect={setSelectedPerson}
-                />
-              ),
+              content: <PeopleTab type="lead" dataset={dataset} onSelect={setSelectedPerson} />,
             },
             {
               key: "customers",
               label: profile.terms.customers,
-              content: (
-                <PeopleTab
-                  type="customer"
-                  onSelect={setSelectedPerson}
-                />
-              ),
+              content: <PeopleTab type="customer" dataset={dataset} onSelect={setSelectedPerson} />,
             },
-            { key: "companies", label: "Companies", content: <CompaniesTab onSelect={setSelectedOrg} /> },
+            {
+              key: "companies",
+              label: "Companies",
+              content: <CompaniesTab dataset={dataset} onSelect={setSelectedOrg} />,
+            },
           ]}
         />
       </div>
@@ -73,9 +63,9 @@ export function CrmClient() {
         open={!!selectedPerson}
         onClose={() => setSelectedPerson(null)}
         title={selectedPerson ? `${selectedPerson.firstName} ${selectedPerson.lastName}` : ""}
-        subtitle={selectedPerson ? orgName(selectedPerson.organizationId) ?? selectedPerson.email : ""}
+        subtitle={selectedPerson ? getDatasetOrgName(selectedPerson.organizationId, dataset) ?? selectedPerson.email : ""}
       >
-        {selectedPerson ? <PersonDetail person={selectedPerson} /> : null}
+        {selectedPerson ? <PersonDetail person={selectedPerson} dataset={dataset} /> : null}
       </DetailPanel>
 
       <DetailPanel
@@ -84,16 +74,25 @@ export function CrmClient() {
         title={selectedOrg?.name ?? ""}
         subtitle={selectedOrg?.industry}
       >
-        {selectedOrg ? <OrgDetail org={selectedOrg} /> : null}
+        {selectedOrg ? <OrgDetail org={selectedOrg} dataset={dataset} /> : null}
       </DetailPanel>
     </div>
   );
 }
 
-function PipelineTab({ deals, setDeals }: { deals: Deal[]; setDeals: (d: Deal[]) => void }) {
+function PipelineTab({
+  deals,
+  setDeals,
+  dataset,
+}: {
+  deals: Deal[];
+  setDeals: (d: Deal[]) => void;
+  dataset: IndustryDataset;
+}) {
+  const stageLabels = dataset.pipelineStageLabels;
   const columns: KanbanColumn<Deal>[] = PIPELINE_STAGES.map((stage) => ({
     key: stage.key,
-    label: stage.label,
+    label: stageLabels?.[stage.key] ?? stage.label,
     items: deals.filter((d) => d.stage === stage.key),
   }));
 
@@ -105,7 +104,7 @@ function PipelineTab({ deals, setDeals }: { deals: Deal[]; setDeals: (d: Deal[])
         setDeals(deals.map((d) => (d.id === deal.id ? { ...d, stage: toStage as PipelineStageKey } : d)));
       }}
       renderCard={(deal) => {
-        const person = DEMO_PEOPLE.find((p) => p.id === deal.personId);
+        const person = dataset.people.find((p) => p.id === deal.personId);
         return (
           <div>
             <p className="text-[13px] font-semibold leading-snug text-ink-1">{deal.title}</p>
@@ -123,14 +122,24 @@ function PipelineTab({ deals, setDeals }: { deals: Deal[]; setDeals: (d: Deal[])
   );
 }
 
-function PeopleTab({ type, onSelect }: { type: "lead" | "customer"; onSelect: (p: Person) => void }) {
+function PeopleTab({
+  type,
+  dataset,
+  onSelect,
+}: {
+  type: "lead" | "customer";
+  dataset: IndustryDataset;
+  onSelect: (p: Person) => void;
+}) {
   const [query, setQuery] = useState("");
   const people = useMemo(
     () =>
-      DEMO_PEOPLE.filter((p) => p.personType === type).filter((p) =>
-        `${p.firstName} ${p.lastName} ${orgName(p.organizationId) ?? ""}`.toLowerCase().includes(query.toLowerCase())
+      dataset.people.filter((p) => p.personType === type).filter((p) =>
+        `${p.firstName} ${p.lastName} ${getDatasetOrgName(p.organizationId, dataset) ?? ""}`
+          .toLowerCase()
+          .includes(query.toLowerCase())
       ),
-    [type, query]
+    [type, query, dataset]
   );
 
   const columns: Column<Person>[] = [
@@ -144,10 +153,10 @@ function PeopleTab({ type, onSelect }: { type: "lead" | "customer"; onSelect: (p
         </div>
       ),
     },
-    { key: "org", header: "Company", render: (p) => orgName(p.organizationId) ?? "—" },
+    { key: "org", header: "Company", render: (p) => getDatasetOrgName(p.organizationId, dataset) ?? "—" },
     { key: "email", header: "Email", render: (p) => p.email },
     { key: "contact", header: "Last Contact", render: (p) => p.lastContact },
-    { key: "owner", header: "Owner", render: (p) => getEmployeeName(p.ownerId) },
+    { key: "owner", header: "Owner", render: (p) => getDatasetEmployeeName(p.ownerId, dataset) },
   ];
 
   return (
@@ -162,11 +171,11 @@ function PeopleTab({ type, onSelect }: { type: "lead" | "customer"; onSelect: (p
   );
 }
 
-function CompaniesTab({ onSelect }: { onSelect: (o: Organization) => void }) {
+function CompaniesTab({ dataset, onSelect }: { dataset: IndustryDataset; onSelect: (o: Organization) => void }) {
   const [query, setQuery] = useState("");
   const orgs = useMemo(
-    () => DEMO_ORGANIZATIONS.filter((o) => o.name.toLowerCase().includes(query.toLowerCase())),
-    [query]
+    () => dataset.organizations.filter((o) => o.name.toLowerCase().includes(query.toLowerCase())),
+    [query, dataset]
   );
 
   const columns: Column<Organization>[] = [
@@ -184,7 +193,7 @@ function CompaniesTab({ onSelect }: { onSelect: (o: Organization) => void }) {
     },
     { key: "domain", header: "Domain", render: (o) => o.domain || "—" },
     { key: "industry", header: "Industry", render: (o) => o.industry },
-    { key: "owner", header: "Owner", render: (o) => getEmployeeName(o.ownerId) },
+    { key: "owner", header: "Owner", render: (o) => getDatasetEmployeeName(o.ownerId, dataset) },
     { key: "created", header: "Customer Since", render: (o) => new Date(o.createdAt).toLocaleDateString() },
   ];
 
@@ -200,9 +209,9 @@ function CompaniesTab({ onSelect }: { onSelect: (o: Organization) => void }) {
   );
 }
 
-function PersonDetail({ person }: { person: Person }) {
-  const deals = DEMO_DEALS.filter((d) => d.personId === person.id);
-  const org = orgName(person.organizationId);
+function PersonDetail({ person, dataset }: { person: Person; dataset: IndustryDataset }) {
+  const deals = dataset.deals.filter((d) => d.personId === person.id);
+  const org = getDatasetOrgName(person.organizationId, dataset);
 
   return (
     <div className="flex flex-col gap-5">
@@ -222,7 +231,7 @@ function PersonDetail({ person }: { person: Person }) {
             <div key={d.id} className="flex items-center justify-between rounded-[10px] border border-line bg-bg px-3 py-2">
               <span className="text-[13px] text-ink-1">{d.title}</span>
               <Badge tone={d.stage === "won" ? "good" : d.stage === "lost" ? "critical" : "accent"}>
-                {d.stage.replace("_", " ")}
+                {(dataset.pipelineStageLabels?.[d.stage] ?? d.stage.replace("_", " "))}
               </Badge>
             </div>
           ))}
@@ -242,9 +251,9 @@ function PersonDetail({ person }: { person: Person }) {
   );
 }
 
-function OrgDetail({ org }: { org: Organization }) {
-  const people = DEMO_PEOPLE.filter((p) => p.organizationId === org.id);
-  const deals = DEMO_DEALS.filter((d) => d.organizationId === org.id);
+function OrgDetail({ org, dataset }: { org: Organization; dataset: IndustryDataset }) {
+  const people = dataset.people.filter((p) => p.organizationId === org.id);
+  const deals = dataset.deals.filter((d) => d.organizationId === org.id);
   const wonValue = deals.filter((d) => d.stage === "won").reduce((s, d) => s + d.value, 0);
 
   return (
@@ -256,7 +265,7 @@ function OrgDetail({ org }: { org: Organization }) {
         </div>
         <div className="rounded-[10px] border border-line bg-bg p-3">
           <p className="text-[11px] font-medium text-ink-3">Owner</p>
-          <p className="mt-1 text-[14px] font-semibold text-ink-1">{getEmployeeName(org.ownerId)}</p>
+          <p className="mt-1 text-[14px] font-semibold text-ink-1">{getDatasetEmployeeName(org.ownerId, dataset)}</p>
         </div>
       </div>
       <div>

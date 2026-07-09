@@ -71,6 +71,18 @@ export function DocumentsClient() {
       ),
     },
     { key: "category", header: "Category", render: (d) => <Badge tone="neutral">{DOCUMENT_CATEGORY_LABEL[d.category]}</Badge> },
+    {
+      key: "signature",
+      header: "Signature",
+      render: (d) =>
+        d.signatureStatus ? (
+          <Badge tone={d.signatureStatus === "signed" ? "good" : d.signatureStatus === "viewed" ? "accent" : "warning"}>
+            {d.signatureStatus === "signed" ? "Signed" : d.signatureStatus === "viewed" ? "Viewed" : "Sent"}
+          </Badge>
+        ) : (
+          <span className="text-ink-3">—</span>
+        ),
+    },
     { key: "size", header: "Size", render: (d) => formatSize(d.sizeKb) },
     { key: "uploadedBy", header: "Uploaded By", render: (d) => getEmployeeName(d.uploadedById) },
     { key: "date", header: "Date", render: (d) => new Date(d.uploadedAt).toLocaleDateString() },
@@ -133,6 +145,14 @@ export function DocumentsClient() {
             <div className="flex flex-col gap-1.5 text-[13.5px] text-ink-2">
               <p>Uploaded by {getEmployeeName(selected.uploadedById)} on {new Date(selected.uploadedAt).toLocaleDateString()}</p>
               <p>{selected.visibility === "shared" ? "Shared with the client via the Client Portal." : "Internal only."}</p>
+              {selected.signatureStatus ? (
+                <p className="flex items-center gap-1.5">
+                  E-signature:{" "}
+                  <Badge tone={selected.signatureStatus === "signed" ? "good" : selected.signatureStatus === "viewed" ? "accent" : "warning"}>
+                    {selected.signatureStatus === "signed" ? "Signed" : selected.signatureStatus === "viewed" ? "Viewed, not signed" : "Sent, not yet viewed"}
+                  </Badge>
+                </p>
+              ) : null}
             </div>
             <div>
               <p className="mb-2 text-[12px] font-semibold uppercase tracking-wide text-ink-3">AI actions</p>
