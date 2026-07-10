@@ -4,15 +4,13 @@ import { Menu, Search } from "lucide-react";
 import { WorkspaceSwitcher } from "./WorkspaceSwitcher";
 import { NotificationsMenu } from "./NotificationsMenu";
 import { AccountMenu } from "./AccountMenu";
-import type { SessionUser, Workspace } from "@/types";
+import type { SessionUser } from "@/types";
 
 export function TopBar({
-  workspace,
   user,
   onOpenPalette,
   onOpenMobileNav,
 }: {
-  workspace: Workspace;
   user: SessionUser;
   onOpenPalette: () => void;
   onOpenMobileNav: () => void;
@@ -27,7 +25,7 @@ export function TopBar({
         >
           <Menu size={18} />
         </button>
-        <WorkspaceSwitcher workspace={workspace} />
+        <WorkspaceSwitcher />
       </div>
 
       <button

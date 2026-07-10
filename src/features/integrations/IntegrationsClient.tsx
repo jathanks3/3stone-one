@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Plug } from "lucide-react";
+import { Plug, Sparkles } from "lucide-react";
 import { Card } from "@/ui/Card";
 import { Badge } from "@/ui/Badge";
 import { useToast } from "@/lib/toast";
@@ -13,13 +13,8 @@ export function IntegrationsClient() {
   const [connecting, setConnecting] = useState<string | null>(null);
   const { showToast } = useToast();
 
-  function toggle(key: string) {
+  function connect(key: string) {
     const provider = providers.find((p) => p.key === key)!;
-    if (provider.status === "connected") {
-      setProviders((prev) => prev.map((p) => (p.key === key ? { ...p, status: "not_connected", lastSync: null } : p)));
-      showToast({ title: `Disconnected ${provider.name}`, description: "You can reconnect any time." });
-      return;
-    }
     setConnecting(key);
     window.setTimeout(() => {
       setProviders((prev) => prev.map((p) => (p.key === key ? { ...p, status: "connected", lastSync: "Just now" } : p)));
@@ -28,12 +23,28 @@ export function IntegrationsClient() {
     }, 900);
   }
 
+  function disconnect(key: string) {
+    const provider = providers.find((p) => p.key === key)!;
+    setProviders((prev) => prev.map((p) => (p.key === key ? { ...p, status: "not_connected", lastSync: null } : p)));
+    showToast({ title: `Disconnected ${provider.name}`, description: "You can reconnect any time." });
+  }
+
+  function transform(key: string) {
+    const provider = providers.find((p) => p.key === key)!;
+    setProviders((prev) => prev.map((p) => (p.key === key ? { ...p, status: "transformed", lastSync: null } : p)));
+    showToast({
+      title: `${provider.name} replaced by 3Stone One`,
+      description: "Migration earned, not forced — you can revert to Connect any time.",
+    });
+  }
+
   return (
     <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-8">
       <h1 className="text-[22px] font-bold text-ink-1">Integrations</h1>
-      <p className="mt-1 max-w-[640px] text-[14px] text-ink-2">
-        3Stone One doesn&rsquo;t replace QuickBooks, Stripe, or Slack — it brings the information that matters from
-        each of them into one command center.
+      <p className="mt-1 max-w-[680px] text-[14px] text-ink-2">
+        Two ways to work with the tools you already use: <strong className="text-ink-1">Connect</strong> keeps
+        them and brings their information into one command center. <strong className="text-ink-1">Transform</strong>{" "}
+        replaces them with a native 3Stone One module when you&rsquo;re ready — migration is earned, never forced.
       </p>
 
       <div className="mt-6 flex flex-col gap-8">
@@ -53,24 +64,56 @@ export function IntegrationsClient() {
                         </span>
                         <p className="text-[14px] font-semibold text-ink-1">{p.name}</p>
                       </div>
-                      <Badge tone={p.status === "connected" ? "good" : "neutral"}>
-                        {p.status === "connected" ? "Connected" : "Not connected"}
+                      <Badge tone={p.status === "connected" ? "good" : p.status === "transformed" ? "accent" : "neutral"}>
+                        {p.status === "connected" ? "Connected" : p.status === "transformed" ? "Transformed" : "Not connected"}
                       </Badge>
                     </div>
-                    <p className="text-[12.5px] leading-relaxed text-ink-3">{p.blurb}</p>
+                    <p className="text-[12.5px] leading-relaxed text-ink-3">
+                      {p.status === "transformed" ? `Replaced by 3Stone One's native module. ${p.blurb}` : p.blurb}
+                    </p>
                     {p.lastSync ? <p className="text-[11.5px] text-ink-3">Last synced {p.lastSync}</p> : null}
-                    <button
-                      onClick={() => toggle(p.key)}
-                      disabled={connecting === p.key}
-                      className={
-                        "mt-auto rounded-[9px] border px-3 py-2 text-[12.5px] font-semibold transition-colors disabled:opacity-70 " +
-                        (p.status === "connected"
-                          ? "border-line bg-surface text-ink-2 hover:bg-surface-raised"
-                          : "border-accent bg-accent text-on-accent hover:opacity-90")
-                      }
-                    >
-                      {connecting === p.key ? "Connecting…" : p.status === "connected" ? "Disconnect" : "Connect"}
-                    </button>
+
+                    <div className="mt-auto flex flex-col gap-1.5">
+                      {p.status === "not_connected" ? (
+                        <>
+                          <button
+                            onClick={() => connect(p.key)}
+                            disabled={connecting === p.key}
+                            className="rounded-[9px] border border-accent bg-accent px-3 py-2 text-[12.5px] font-semibold text-on-accent transition-colors hover:opacity-90 disabled:opacity-70"
+                          >
+                            {connecting === p.key ? "Connecting…" : "Connect"}
+                          </button>
+                          <button
+                            onClick={() => transform(p.key)}
+                            className="flex items-center justify-center gap-1 rounded-[9px] px-3 py-1.5 text-[12px] font-medium text-ink-3 hover:text-accent"
+                          >
+                            <Sparkles size={12} /> Transform to native instead
+                          </button>
+                        </>
+                      ) : p.status === "connected" ? (
+                        <>
+                          <button
+                            onClick={() => disconnect(p.key)}
+                            className="rounded-[9px] border border-line bg-surface px-3 py-2 text-[12.5px] font-semibold text-ink-2 transition-colors hover:bg-surface-raised"
+                          >
+                            Disconnect
+                          </button>
+                          <button
+                            onClick={() => transform(p.key)}
+                            className="flex items-center justify-center gap-1 rounded-[9px] px-3 py-1.5 text-[12px] font-medium text-ink-3 hover:text-accent"
+                          >
+                            <Sparkles size={12} /> Transform to native module
+                          </button>
+                        </>
+                      ) : (
+                        <button
+                          onClick={() => connect(p.key)}
+                          className="rounded-[9px] border border-line bg-surface px-3 py-2 text-[12.5px] font-semibold text-ink-2 transition-colors hover:bg-surface-raised"
+                        >
+                          Revert to Connect
+                        </button>
+                      )}
+                    </div>
                   </Card>
                 ))}
               </div>

@@ -394,13 +394,27 @@ export type IntegrationCategory =
   | "Commerce"
   | "CRM";
 
+// "connected" = Connect path (owner keeps the tool, 3Stone One syncs from it).
+// "transformed" = Transform path (owner has replaced it with a native 3Stone
+// One module — migration earned, never forced). "not_connected" = untouched.
 export interface IntegrationProvider {
   key: string;
   name: string;
   category: IntegrationCategory;
-  status: "connected" | "not_connected";
+  status: "connected" | "not_connected" | "transformed";
   lastSync: string | null;
   blurb: string;
+}
+
+// ---- Businesses ----
+// A Business is the real switchable unit for a multi-business owner. Its full
+// data lives in the IndustryDataset keyed by industryProfileKey — this type
+// only carries the identity/ownership bits the dataset doesn't already have.
+
+export interface Business {
+  id: string;
+  industryProfileKey: IndustryProfileKey;
+  ownerRole: string;
 }
 
 // ---- Portfolio ----

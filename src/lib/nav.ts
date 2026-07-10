@@ -4,7 +4,16 @@ export function getNavSections(profile: IndustryProfile): NavSection[] {
   const t = profile.terms;
   return [
     {
-      items: [{ key: "dashboard", href: "/dashboard", label: "Dashboard", icon: "LayoutDashboard" }],
+      items: [
+        {
+          key: "portfolio",
+          href: "/portfolio",
+          label: "Businesses",
+          icon: "Building2",
+          description: "One login, every business you own — switch instantly.",
+        },
+        { key: "dashboard", href: "/dashboard", label: "Dashboard", icon: "LayoutDashboard" },
+      ],
     },
     {
       title: "Workspace",
@@ -96,13 +105,6 @@ export function getNavSections(profile: IndustryProfile): NavSection[] {
     {
       title: "Company",
       items: [
-        {
-          key: "portfolio",
-          href: "/portfolio",
-          label: "Portfolio",
-          icon: "Building2",
-          description: "See and switch between every company you own — no logout.",
-        },
         {
           key: "client-portal",
           href: "/client-portal",

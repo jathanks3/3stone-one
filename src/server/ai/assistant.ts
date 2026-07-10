@@ -168,3 +168,62 @@ export function answerQuestion(query: string, ctx: AssistantContext): string {
 
   return fallbackHelp(ctx, ctx.terms);
 }
+
+// ---------------- Executive (cross-business) ----------------
+// One AI, one understanding — when the owner is looking at all their
+// businesses rather than one, the same kind of question ("what needs my
+// attention") should be answerable across every business at once.
+
+export interface ExecutiveBusiness {
+  name: string;
+  dataset: IndustryDataset;
+}
+
+function answerWhichBusinessNeedsAttention(businesses: ExecutiveBusiness[]): string {
+  const scored = businesses
+    .map((b) => {
+      const overdueJobs = b.dataset.jobs.filter((j) => j.overdue).length;
+      const overdueInvoices = b.dataset.invoices.filter((i) => i.status === "overdue").length;
+      return { name: b.name, overdueJobs, overdueInvoices, score: overdueJobs * 2 + overdueInvoices };
+    })
+    .sort((a, b) => b.score - a.score);
+  const worst = scored[0];
+  if (!worst || worst.score === 0) return `All ${businesses.length} businesses are in good shape right now — nothing overdue anywhere.`;
+  return `${worst.name} needs attention most — ${worst.overdueJobs} item${worst.overdueJobs === 1 ? "" : "s"} behind schedule and ${worst.overdueInvoices} overdue invoice${worst.overdueInvoices === 1 ? "" : "s"}.`;
+}
+
+function answerCompareBusinesses(businesses: ExecutiveBusiness[]): string {
+  const ranked = businesses
+    .map((b) => {
+      const months = b.dataset.monthlyChart.months;
+      const latest = months[months.length - 1];
+      const prior = months[months.length - 2];
+      const pct = prior && prior.primary > 0 ? Math.round(((latest.primary - prior.primary) / prior.primary) * 100) : 0;
+      return { name: b.name, pct };
+    })
+    .sort((a, b) => b.pct - a.pct);
+  return ranked.map((r) => `${r.name} ${r.pct >= 0 ? "+" : ""}${r.pct}%`).join(", ") + " vs. last month.";
+}
+
+function answerTotalRevenue(businesses: ExecutiveBusiness[]): string {
+  const total = businesses.reduce((sum, b) => {
+    const months = b.dataset.monthlyChart.months;
+    return sum + months[months.length - 1].primary;
+  }, 0);
+  return `Across all ${businesses.length} businesses, you brought in ${formatCurrency(total, { compact: true })} this month.`;
+}
+
+function executiveFallbackHelp(businesses: ExecutiveBusiness[]): string {
+  return `Ask me about any of your ${businesses.length} businesses — try "Which business needs attention?", "Compare businesses", or "How much did I make across everything this month?"`;
+}
+
+export function answerExecutiveQuestion(query: string, businesses: ExecutiveBusiness[]): string {
+  const q = query.trim().toLowerCase();
+  if (!q) return executiveFallbackHelp(businesses);
+
+  if (/struggling|needs (my )?attention|which (business|location)/.test(q)) return answerWhichBusinessNeedsAttention(businesses);
+  if (/compare/.test(q)) return answerCompareBusinesses(businesses);
+  if (/how much.*(make|earn)|total revenue|across everything|across all/.test(q)) return answerTotalRevenue(businesses);
+
+  return executiveFallbackHelp(businesses);
+}

@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/session";
 import { DEMO_USER, DEMO_WORKSPACE } from "@/server/mock-data";
+import { DEFAULT_BUSINESS_ID } from "@/server/mock-data/businesses";
 import { IndustryProvider } from "@/lib/industry";
 import { AppShell } from "@/components/shell/AppShell";
 
@@ -16,10 +17,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const user = DEMO_USER;
 
   return (
-    <IndustryProvider initialKey={workspace.industryProfileKey}>
-      <AppShell workspace={workspace} user={user}>
-        {children}
-      </AppShell>
+    <IndustryProvider initialKey={workspace.industryProfileKey} initialBusinessId={DEFAULT_BUSINESS_ID}>
+      <AppShell user={user}>{children}</AppShell>
     </IndustryProvider>
   );
 }

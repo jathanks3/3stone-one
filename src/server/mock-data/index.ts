@@ -21,7 +21,6 @@ export { DEMO_MEETINGS } from "./meetings";
 export { DEMO_ARTICLES, KNOWLEDGE_CATEGORY_LABEL } from "./knowledge";
 export { DEMO_WORKFLOWS, DEMO_WORKFLOW_RUNS } from "./automation";
 export { DEMO_INTEGRATIONS, INTEGRATION_CATEGORY_ORDER } from "./integrations";
-export { DEMO_PORTFOLIO } from "./portfolio";
 export { DEMO_API_KEYS, COMPANY_PROFILE, BILLING } from "./settings";
 export {
   REVENUE_MTD,

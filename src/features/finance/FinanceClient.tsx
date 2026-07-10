@@ -25,6 +25,7 @@ const VendorExpenseChart = dynamic(
 );
 import {
   BUDGETS,
+  DEMO_INTEGRATIONS,
   PENDING_PURCHASE_REQUESTS,
   VENDOR_EXPENSES,
 } from "@/server/mock-data";
@@ -104,9 +105,15 @@ function OverviewTab() {
   const priorProfit = prior ? prior.primary - prior.secondary : 0;
   const profitPct = priorProfit > 0 ? Math.round(((profit - priorProfit) / priorProfit) * 100) : 0;
   const signatureKpi = dataset.kpis[2];
+  const quickbooks = DEMO_INTEGRATIONS.find((p) => p.key === "quickbooks");
 
   return (
     <div className="flex flex-col gap-5">
+      {quickbooks?.status === "connected" ? (
+        <div className="flex items-center gap-1.5 text-[12px] text-ink-3">
+          <Landmark size={12} /> Synced from QuickBooks — not a replacement for it.
+        </div>
+      ) : null}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatTile
           label={`${dataset.monthlyChart.primaryLabel} (MTD)`}

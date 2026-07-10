@@ -7,14 +7,12 @@ import { Sidebar } from "./Sidebar";
 import { MobileNav } from "./MobileNav";
 import { CommandPalette } from "./CommandPalette";
 import { AiAssistant } from "@/components/assistant/AiAssistant";
-import type { SessionUser, Workspace } from "@/types";
+import type { SessionUser } from "@/types";
 
 export function AppShell({
-  workspace,
   user,
   children,
 }: {
-  workspace: Workspace;
   user: SessionUser;
   children: ReactNode;
 }) {
@@ -24,7 +22,6 @@ export function AppShell({
   return (
     <div className="flex h-screen flex-col">
       <TopBar
-        workspace={workspace}
         user={user}
         onOpenPalette={() => setPaletteOpen(true)}
         onOpenMobileNav={() => setMobileNavOpen(true)}

@@ -6,7 +6,7 @@ export const DEMO_INTEGRATIONS: IntegrationProvider[] = [
   { key: "google_sheets", name: "Google Sheets", category: "Accounting", status: "not_connected", lastSync: null, blurb: "Keep a live spreadsheet copy of any report, always up to date." },
   { key: "toast", name: "Toast", category: "Commerce", status: "not_connected", lastSync: null, blurb: "POS sales data for restaurant and hospitality workspaces." },
   { key: "stripe", name: "Stripe", category: "Payments", status: "connected", lastSync: "2 hours ago", blurb: "Client invoice payments flow straight into Finance and the Client Portal." },
-  { key: "calendly", name: "Calendly", category: "Scheduling", status: "connected", lastSync: "1 day ago", blurb: "Meeting bookings from your scheduling page appear in Meetings automatically." },
+  { key: "calendly", name: "Calendly", category: "Scheduling", status: "transformed", lastSync: null, blurb: "Meeting bookings from your scheduling page appear in Meetings automatically." },
   { key: "slack", name: "Slack", category: "Communication", status: "connected", lastSync: "5 minutes ago", blurb: "Mirror key channels and get automation notifications in Slack." },
   { key: "microsoft_365", name: "Microsoft 365", category: "Productivity", status: "not_connected", lastSync: null, blurb: "Sync email, calendar, and documents from Outlook and OneDrive." },
   { key: "google_workspace", name: "Google Workspace", category: "Productivity", status: "not_connected", lastSync: null, blurb: "Sync email, calendar, and Drive documents from Google." },

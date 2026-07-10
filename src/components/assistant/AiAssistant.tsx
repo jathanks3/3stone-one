@@ -1,13 +1,15 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { usePathname } from "next/navigation";
 import { Sparkles, X, ArrowUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useIndustry } from "@/lib/industry";
 import { getIndustryDataset } from "@/server/mock-data/industries";
 import { generateAttendanceForEmployees } from "@/server/mock-data/attendance";
 import { DEMO_VENDORS } from "@/server/mock-data";
-import { answerQuestion } from "@/server/ai/assistant";
+import { DEMO_BUSINESSES, getBusinessName } from "@/server/mock-data/businesses";
+import { answerQuestion, answerExecutiveQuestion, type ExecutiveBusiness } from "@/server/ai/assistant";
 
 interface ChatMessage {
   id: string;
@@ -20,6 +22,12 @@ const SUGGESTIONS = [
   "Who still owes deposits?",
   "How much profit did we make this month?",
   "Which projects are at risk?",
+];
+
+const EXECUTIVE_SUGGESTIONS = [
+  "Which business needs attention?",
+  "Compare businesses",
+  "How much did I make across everything this month?",
 ];
 
 export function AiAssistant() {
@@ -46,6 +54,8 @@ export function AiAssistant() {
 
 function AssistantPanel({ onClose }: { onClose: () => void }) {
   const { profile } = useIndustry();
+  const pathname = usePathname();
+  const isExecutive = pathname === "/portfolio";
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -73,14 +83,22 @@ function AssistantPanel({ onClose }: { onClose: () => void }) {
     setLoading(true);
 
     window.setTimeout(() => {
-      const dataset = getIndustryDataset(profile.key);
-      const attendance = generateAttendanceForEmployees(dataset.employees);
-      const answer = answerQuestion(trimmed, {
-        dataset,
-        attendance,
-        vendors: DEMO_VENDORS,
-        terms: profile.terms,
-      });
+      const answer = isExecutive
+        ? answerExecutiveQuestion(
+            trimmed,
+            DEMO_BUSINESSES.map(
+              (business): ExecutiveBusiness => ({
+                name: getBusinessName(business),
+                dataset: getIndustryDataset(business.industryProfileKey),
+              })
+            )
+          )
+        : answerQuestion(trimmed, {
+            dataset: getIndustryDataset(profile.key),
+            attendance: generateAttendanceForEmployees(getIndustryDataset(profile.key).employees),
+            vendors: DEMO_VENDORS,
+            terms: profile.terms,
+          });
       setMessages((m) => [...m, { id: `a_${nextId.current++}`, role: "assistant", text: answer }]);
       setLoading(false);
     }, 650);
@@ -92,7 +110,9 @@ function AssistantPanel({ onClose }: { onClose: () => void }) {
         <div className="flex flex-shrink-0 items-center justify-between border-b border-line px-4 py-3.5">
           <div>
             <p className="text-[14px] font-bold text-ink-1">3Stone AI</p>
-            <p className="text-[12px] text-ink-3">Ask anything about {getIndustryDataset(profile.key).orgName}</p>
+            <p className="text-[12px] text-ink-3">
+              {isExecutive ? "Ask anything across all your businesses" : `Ask anything about ${getIndustryDataset(profile.key).orgName}`}
+            </p>
           </div>
           <button
             onClick={onClose}
@@ -111,7 +131,7 @@ function AssistantPanel({ onClose }: { onClose: () => void }) {
                 Try one:
               </p>
               <div className="flex flex-col gap-1.5">
-                {SUGGESTIONS.map((s) => (
+                {(isExecutive ? EXECUTIVE_SUGGESTIONS : SUGGESTIONS).map((s) => (
                   <button
                     key={s}
                     onClick={() => ask(s)}
