@@ -12,10 +12,12 @@ import { useIndustry } from "@/lib/industry";
 import { useToast } from "@/lib/toast";
 import { formatCurrency } from "@/lib/utils";
 import { industryProfileList } from "@/config/industry-profiles";
-import { BILLING, COMPANY_PROFILE, DEMO_API_KEYS, DEMO_EMPLOYEES } from "@/server/mock-data";
+import { BILLING, COMPANY_PROFILE, DEMO_API_KEYS } from "@/server/mock-data";
+import { getIndustryDataset } from "@/server/mock-data/industries";
 import type { ApiKeyRecord, Employee, UserRole } from "@/types";
 
 export function SettingsClient() {
+  const { profile } = useIndustry();
   return (
     <div className="mx-auto max-w-4xl px-4 py-6 sm:px-6 sm:py-8">
       <h1 className="text-[22px] font-bold text-ink-1">Settings</h1>
@@ -26,7 +28,7 @@ export function SettingsClient() {
           tabs={[
             { key: "company", label: "Company", content: <CompanyTab /> },
             { key: "branding", label: "Branding", content: <BrandingTab /> },
-            { key: "users", label: "Users", content: <UsersTab /> },
+            { key: "users", label: "Users", content: <UsersTab key={profile.key} /> },
             { key: "industry", label: "Industry Profile", content: <IndustryTab /> },
             { key: "billing", label: "Billing", content: <BillingTab /> },
             { key: "keys", label: "API Keys", content: <ApiKeysTab /> },
@@ -51,13 +53,16 @@ function Field({ label, defaultValue }: { label: string; defaultValue: string })
 
 function CompanyTab() {
   const { showToast } = useToast();
+  const { profile } = useIndustry();
+  const dataset = getIndustryDataset(profile.key);
+  const website = dataset.employees[0]?.email.split("@")[1] ?? COMPANY_PROFILE.website;
   return (
-    <Card className="flex flex-col gap-4 p-5">
+    <Card key={profile.key} className="flex flex-col gap-4 p-5">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <Field label="Company name" defaultValue={COMPANY_PROFILE.name} />
-        <Field label="Legal name" defaultValue={COMPANY_PROFILE.legalName} />
+        <Field label="Company name" defaultValue={dataset.orgName} />
+        <Field label="Legal name" defaultValue={`${dataset.orgName} LLC`} />
         <Field label="Phone" defaultValue={COMPANY_PROFILE.phone} />
-        <Field label="Website" defaultValue={COMPANY_PROFILE.website} />
+        <Field label="Website" defaultValue={website} />
       </div>
       <Field label="Address" defaultValue={COMPANY_PROFILE.address} />
       <Button variant="primary" className="w-fit" onClick={() => showToast({ title: "Company profile saved" })}>
@@ -107,7 +112,9 @@ function BrandingTab() {
 const ROLES: UserRole[] = ["Owner", "Admin", "Manager", "Member"];
 
 function UsersTab() {
-  const [employees, setEmployees] = useState<Employee[]>(DEMO_EMPLOYEES);
+  const { profile } = useIndustry();
+  const dataset = getIndustryDataset(profile.key);
+  const [employees, setEmployees] = useState<Employee[]>(dataset.employees);
   const { showToast } = useToast();
 
   const columns: Column<Employee>[] = [

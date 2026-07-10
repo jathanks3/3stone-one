@@ -93,7 +93,7 @@ function ClientView() {
               </p>
             ) : (
               <div className="mt-2.5 flex gap-2">
-                <Button variant="primary" onClick={() => { setMilestoneApproved(true); showToast({ title: "Milestone approved", description: "Acme Construction has been notified." }); }}>
+                <Button variant="primary" onClick={() => { setMilestoneApproved(true); showToast({ title: "Milestone approved", description: "Red Oak Construction has been notified." }); }}>
                   Approve
                 </Button>
                 <Button variant="secondary" onClick={() => showToast({ title: "Feedback sent", description: "Jane Dorsey will follow up shortly." })}>

@@ -8,7 +8,7 @@ export function getNavSections(profile: IndustryProfile): NavSection[] {
         {
           key: "portfolio",
           href: "/portfolio",
-          label: "Businesses",
+          label: "Executive Overview",
           icon: "Building2",
           description: "One login, every business you own — switch instantly.",
         },

@@ -9,7 +9,7 @@ import type {
   Person,
 } from "@/types";
 
-// ---- Willowmere Event Center — mock dataset ----
+// ---- Northstar Events & Venue — mock dataset ----
 // Everything below is authored specifically for the Event Center industry
 // profile. Job -> "Event", Customer -> "Client", Employee -> "Coordinator".
 
@@ -187,14 +187,14 @@ const EVENT_INVOICES: Invoice[] = [
 ];
 
 const EVENT_EMPLOYEES: Employee[] = [
-  { id: "emp_ec_renee", name: "Renee Calloway", initials: "RC", title: "Owner & General Manager", department: "Executive", email: "renee.calloway@willowmereevents.com", phone: "(555) 610-1001", hireDate: "2018-04-02", role: "Owner", overdueCount: 0, status: "active" },
-  { id: "emp_ec_holly", name: "Holly Bennett", initials: "HB", title: "Sales & Bookings Manager", department: "Sales", email: "holly.bennett@willowmereevents.com", phone: "(555) 610-1002", hireDate: "2020-02-10", role: "Manager", overdueCount: 0, status: "active" },
-  { id: "emp_ec_dante", name: "Dante Ruiz", initials: "DR", title: "Venue Manager", department: "Operations", email: "dante.ruiz@willowmereevents.com", phone: "(555) 610-1003", hireDate: "2019-08-19", role: "Manager", overdueCount: 0, overtimeHours: 14, status: "active" },
-  { id: "emp_ec_priscilla", name: "Priscilla Nakamura", initials: "PN", title: "Catering Director", department: "Catering", email: "priscilla.nakamura@willowmereevents.com", phone: "(555) 610-1004", hireDate: "2021-05-03", role: "Manager", overdueCount: 1, status: "active" },
-  { id: "emp_ec_owen", name: "Owen Fitzgerald", initials: "OF", title: "AV/Production Lead", department: "Production", email: "owen.fitzgerald@willowmereevents.com", phone: "(555) 610-1005", hireDate: "2022-09-12", role: "Member", overdueCount: 0, status: "active" },
-  { id: "emp_ec_maya", name: "Maya Sutton", initials: "MS", title: "Event Coordinator", department: "Events", email: "maya.sutton@willowmereevents.com", phone: "(555) 610-1006", hireDate: "2023-03-06", role: "Member", overdueCount: 1, status: "active" },
-  { id: "emp_ec_grant", name: "Grant Ochoa", initials: "GO", title: "Event Coordinator", department: "Events", email: "grant.ochoa@willowmereevents.com", phone: "(555) 610-1007", hireDate: "2024-06-24", role: "Member", overdueCount: 0, status: "active" },
-  { id: "emp_ec_lydia", name: "Lydia Park", initials: "LP", title: "Office Administrator", department: "Admin", email: "lydia.park@willowmereevents.com", phone: "(555) 610-1008", hireDate: "2021-11-15", role: "Admin", overdueCount: 0, status: "away" },
+  { id: "emp_ec_renee", name: "Renee Calloway", initials: "RC", title: "Owner & General Manager", department: "Executive", email: "renee.calloway@northstarevents.com", phone: "(555) 610-1001", hireDate: "2018-04-02", role: "Owner", overdueCount: 0, status: "active" },
+  { id: "emp_ec_holly", name: "Holly Bennett", initials: "HB", title: "Sales & Bookings Manager", department: "Sales", email: "holly.bennett@northstarevents.com", phone: "(555) 610-1002", hireDate: "2020-02-10", role: "Manager", overdueCount: 0, status: "active" },
+  { id: "emp_ec_dante", name: "Dante Ruiz", initials: "DR", title: "Venue Manager", department: "Operations", email: "dante.ruiz@northstarevents.com", phone: "(555) 610-1003", hireDate: "2019-08-19", role: "Manager", overdueCount: 0, overtimeHours: 14, status: "active" },
+  { id: "emp_ec_priscilla", name: "Priscilla Nakamura", initials: "PN", title: "Catering Director", department: "Catering", email: "priscilla.nakamura@northstarevents.com", phone: "(555) 610-1004", hireDate: "2021-05-03", role: "Manager", overdueCount: 1, status: "active" },
+  { id: "emp_ec_owen", name: "Owen Fitzgerald", initials: "OF", title: "AV/Production Lead", department: "Production", email: "owen.fitzgerald@northstarevents.com", phone: "(555) 610-1005", hireDate: "2022-09-12", role: "Member", overdueCount: 0, status: "active" },
+  { id: "emp_ec_maya", name: "Maya Sutton", initials: "MS", title: "Event Coordinator", department: "Events", email: "maya.sutton@northstarevents.com", phone: "(555) 610-1006", hireDate: "2023-03-06", role: "Member", overdueCount: 1, status: "active" },
+  { id: "emp_ec_grant", name: "Grant Ochoa", initials: "GO", title: "Event Coordinator", department: "Events", email: "grant.ochoa@northstarevents.com", phone: "(555) 610-1007", hireDate: "2024-06-24", role: "Member", overdueCount: 0, status: "active" },
+  { id: "emp_ec_lydia", name: "Lydia Park", initials: "LP", title: "Office Administrator", department: "Admin", email: "lydia.park@northstarevents.com", phone: "(555) 610-1008", hireDate: "2021-11-15", role: "Admin", overdueCount: 0, status: "away" },
 ];
 
 const EVENT_ACTIVITY: ActivityItem[] = [
@@ -238,8 +238,8 @@ const eventsThisWeek = EVENT_JOBS.filter((job) => job.status === "in_progress");
 
 export const EVENT_CENTER_DATASET: IndustryDataset = {
   profileKey: "event_center",
-  orgName: "Willowmere Event Center",
-  greetingSubtitle: "Here's what matters at Willowmere Event Center today.",
+  orgName: "Northstar Events & Venue",
+  greetingSubtitle: "Here's what matters at Northstar Events & Venue today.",
   kpis: [
     {
       key: "revenue_mtd",
@@ -302,6 +302,6 @@ export const EVENT_CENTER_DATASET: IndustryDataset = {
     "The Hollis-Bennett Wedding deposit (DEP-2119, $5,500) is now about two weeks past due — a quick text to Brianna Hollis usually gets a faster response than another emailed invoice.",
     "The Park-Delgado Wedding's final balance (BAL-2123, $9,750) is still outstanding with the reception this Saturday — worth a same-day call from Holly instead of waiting on email.",
     "The Amara-Singh Wedding ($45,000, Grand Ballroom) has been sitting in negotiation since December — it's the largest deal in the pipeline, so getting Amara Singh on a call this week to finalize the contract is worth prioritizing over smaller inquiries.",
-    "Riverbend Rotary Club's proposal for the Skyline Room has been out for a while awaiting a board vote — a light check-in from Dante Ruiz this week keeps Willowmere top of mind before they decide.",
+    "Riverbend Rotary Club's proposal for the Skyline Room has been out for a while awaiting a board vote — a light check-in from Dante Ruiz this week keeps Northstar top of mind before they decide.",
   ],
 };

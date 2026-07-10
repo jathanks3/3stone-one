@@ -11,8 +11,8 @@ const overdueJobs = DEMO_JOBS.filter((j) => j.overdue);
 
 export const CONSTRUCTION_DATASET: IndustryDataset = {
   profileKey: "construction",
-  orgName: "Acme Construction",
-  greetingSubtitle: "Here's what matters at Acme Construction today.",
+  orgName: "Red Oak Construction",
+  greetingSubtitle: "Here's what matters at Red Oak Construction today.",
   kpis: [
     {
       key: "revenue_mtd",

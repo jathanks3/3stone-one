@@ -14,12 +14,14 @@ import { Badge } from "@/ui/Badge";
 import { Button } from "@/ui/Button";
 import { AiAction, AiActionRow } from "@/ui/AiAction";
 import { cn } from "@/lib/utils";
-import { DEMO_ANNOUNCEMENTS, DEMO_DEPARTMENTS, DEMO_EMPLOYEES, DEMO_JOBS, getEmployeeName } from "@/server/mock-data";
+import { DEMO_ANNOUNCEMENTS, getEmployeeName } from "@/server/mock-data";
+import { getIndustryDataset } from "@/server/mock-data/industries";
 import { identifyBurnoutSignals, recommendStaffing } from "@/server/ai/capabilities";
-import type { Announcement, Employee } from "@/types";
+import type { Announcement, Employee, IndustryDataset } from "@/types";
 
 export function PeopleClient() {
   const { profile } = useIndustry();
+  const dataset = getIndustryDataset(profile.key);
   const [selected, setSelected] = useState<Employee | null>(null);
 
   return (
@@ -32,30 +34,40 @@ export function PeopleClient() {
       <div className="mt-6">
         <Tabs
           tabs={[
-            { key: "directory", label: "Directory", content: <DirectoryTab employeeWord={profile.terms.employee} onSelect={setSelected} /> },
-            { key: "departments", label: "Departments", content: <DepartmentsTab /> },
+            { key: "directory", label: "Directory", content: <DirectoryTab employeeWord={profile.terms.employee} dataset={dataset} onSelect={setSelected} /> },
+            { key: "departments", label: "Departments", content: <DepartmentsTab dataset={dataset} /> },
             { key: "announcements", label: "Announcements", content: <AnnouncementsTab /> },
           ]}
         />
       </div>
 
       <DetailPanel open={!!selected} onClose={() => setSelected(null)} title={selected?.name ?? ""} subtitle={selected?.title}>
-        {selected ? <EmployeeDetail employee={selected} /> : null}
+        {selected ? <EmployeeDetail employee={selected} dataset={dataset} /> : null}
       </DetailPanel>
     </div>
   );
 }
 
-function DirectoryTab({ employeeWord, onSelect }: { employeeWord: string; onSelect: (e: Employee) => void }) {
+function DirectoryTab({
+  employeeWord,
+  dataset,
+  onSelect,
+}: {
+  employeeWord: string;
+  dataset: IndustryDataset;
+  onSelect: (e: Employee) => void;
+}) {
   const [query, setQuery] = useState("");
   const [dept, setDept] = useState<string>("all");
 
+  const depts = useMemo(() => Array.from(new Set(dataset.employees.map((e) => e.department))), [dataset]);
+
   const filtered = useMemo(
     () =>
-      DEMO_EMPLOYEES.filter((e) => dept === "all" || e.department === dept).filter((e) =>
+      dataset.employees.filter((e) => dept === "all" || e.department === dept).filter((e) =>
         `${e.name} ${e.title}`.toLowerCase().includes(query.toLowerCase())
       ),
-    [query, dept]
+    [query, dept, dataset]
   );
 
   const columns: Column<Employee>[] = [
@@ -83,7 +95,7 @@ function DirectoryTab({ employeeWord, onSelect }: { employeeWord: string; onSele
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap gap-1.5">
-          {["all", ...DEMO_DEPARTMENTS.map((d) => d.name)].map((d) => (
+          {["all", ...depts].map((d) => (
             <button
               key={d}
               onClick={() => setDept(d)}
@@ -107,18 +119,20 @@ function DirectoryTab({ employeeWord, onSelect }: { employeeWord: string; onSele
   );
 }
 
-function DepartmentsTab() {
+function DepartmentsTab({ dataset }: { dataset: IndustryDataset }) {
+  const deptNames = Array.from(new Set(dataset.employees.map((e) => e.department)));
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-      {DEMO_DEPARTMENTS.map((d) => {
-        const members = DEMO_EMPLOYEES.filter((e) => e.department === d.name);
+      {deptNames.map((name) => {
+        const members = dataset.employees.filter((e) => e.department === name);
+        const lead = members.find((e) => e.role === "Owner") ?? members.find((e) => e.role === "Manager") ?? members[0];
         return (
-          <Card key={d.id} className="p-5">
+          <Card key={name} className="p-5">
             <div className="flex items-center justify-between">
-              <p className="text-[15px] font-semibold text-ink-1">{d.name}</p>
+              <p className="text-[15px] font-semibold text-ink-1">{name}</p>
               <span className="text-[12px] text-ink-3">{members.length} people</span>
             </div>
-            <p className="mt-1 text-[12.5px] text-ink-3">Led by {getEmployeeName(d.leadId)}</p>
+            <p className="mt-1 text-[12.5px] text-ink-3">Led by {lead?.name ?? "—"}</p>
             <div className="mt-3 flex -space-x-2">
               {members.map((m) => (
                 <Avatar key={m.id} initials={m.initials} size={30} className="border-2 border-surface" />
@@ -174,7 +188,7 @@ function AnnouncementsTab() {
   );
 }
 
-function EmployeeDetail({ employee }: { employee: Employee }) {
+function EmployeeDetail({ employee, dataset }: { employee: Employee; dataset: IndustryDataset }) {
   return (
     <div className="flex flex-col gap-5">
       <div className="grid grid-cols-2 gap-3 text-[13px]">
@@ -198,8 +212,8 @@ function EmployeeDetail({ employee }: { employee: Employee }) {
       <div>
         <p className="mb-2 text-[12px] font-semibold uppercase tracking-wide text-ink-3">AI actions</p>
         <AiActionRow>
-          <AiAction label="Identify burnout signals" run={() => identifyBurnoutSignals(DEMO_EMPLOYEES)} />
-          <AiAction label="Recommend staffing" run={() => recommendStaffing(DEMO_JOBS, DEMO_EMPLOYEES)} />
+          <AiAction label="Identify burnout signals" run={() => identifyBurnoutSignals(dataset.employees)} />
+          <AiAction label="Recommend staffing" run={() => recommendStaffing(dataset.jobs, dataset.employees)} />
         </AiActionRow>
       </div>
     </div>

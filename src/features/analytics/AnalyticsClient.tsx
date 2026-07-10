@@ -12,17 +12,11 @@ import { Button } from "@/ui/Button";
 import { ChartSkeleton } from "@/ui/ChartSkeleton";
 import { useToast } from "@/lib/toast";
 import { formatCurrency } from "@/lib/utils";
-import {
-  DEMO_DEALS,
-  DEMO_EMPLOYEES,
-  DEMO_INVOICES,
-  DEMO_JOBS,
-  JOB_STATUS_LABEL,
-  PIPELINE_STAGES,
-} from "@/server/mock-data";
+import { JOB_STATUS_LABEL, PIPELINE_STAGES } from "@/server/mock-data";
 import { explainPerformanceChange, forecastRevenue, suggestImprovements } from "@/server/ai/capabilities";
 import { useIndustry } from "@/lib/industry";
 import { getIndustryDataset } from "@/server/mock-data/industries";
+import type { IndustryDataset } from "@/types";
 
 const AnalyticsOverviewCharts = dynamic(
   () => import("./AnalyticsOverviewCharts").then((m) => m.AnalyticsOverviewCharts),
@@ -34,14 +28,16 @@ interface EntityConfig {
   columns: string[];
 }
 
-const ENTITIES: Record<string, EntityConfig> = {
-  Jobs: { data: DEMO_JOBS as unknown as Record<string, unknown>[], columns: ["name", "client", "status", "value", "dueDate"] },
-  Deals: { data: DEMO_DEALS as unknown as Record<string, unknown>[], columns: ["title", "stage", "value", "expectedCloseDate"] },
-  Invoices: { data: DEMO_INVOICES as unknown as Record<string, unknown>[], columns: ["number", "client", "amount", "status", "dueDate"] },
-  Employees: { data: DEMO_EMPLOYEES as unknown as Record<string, unknown>[], columns: ["name", "title", "department", "status"] },
-};
+function getEntities(dataset: IndustryDataset): Record<string, EntityConfig> {
+  return {
+    Jobs: { data: dataset.jobs as unknown as Record<string, unknown>[], columns: ["name", "client", "status", "value", "dueDate"] },
+    Deals: { data: dataset.deals as unknown as Record<string, unknown>[], columns: ["title", "stage", "value", "expectedCloseDate"] },
+    Invoices: { data: dataset.invoices as unknown as Record<string, unknown>[], columns: ["number", "client", "amount", "status", "dueDate"] },
+    Employees: { data: dataset.employees as unknown as Record<string, unknown>[], columns: ["name", "title", "department", "status"] },
+  };
+}
 
-type EntityKey = keyof typeof ENTITIES;
+type EntityKey = "Jobs" | "Deals" | "Invoices" | "Employees";
 
 function toCsv(rows: Record<string, unknown>[], columns: string[]) {
   const header = columns.join(",");
@@ -72,16 +68,17 @@ export function AnalyticsClient() {
 function OverviewTab() {
   const { profile } = useIndustry();
   const dataset = getIndustryDataset(profile.key);
+  const stageLabels = dataset.pipelineStageLabels;
   const pipelineData = PIPELINE_STAGES.filter((s) => s.key !== "won" && s.key !== "lost").map((s) => ({
-    label: s.label,
-    count: DEMO_DEALS.filter((d) => d.stage === s.key).length,
+    label: stageLabels?.[s.key] ?? s.label,
+    count: dataset.deals.filter((d) => d.stage === s.key).length,
   }));
   const jobStatusData = (["bid", "scheduled", "in_progress", "done"] as const).map((s) => ({
     label: JOB_STATUS_LABEL[s],
-    count: DEMO_JOBS.filter((j) => j.status === s).length,
+    count: dataset.jobs.filter((j) => j.status === s).length,
   }));
-  const doneCount = DEMO_JOBS.filter((j) => j.status === "done").length;
-  const completionRate = Math.round((doneCount / DEMO_JOBS.length) * 100);
+  const doneCount = dataset.jobs.filter((j) => j.status === "done").length;
+  const completionRate = Math.round((doneCount / dataset.jobs.length) * 100);
 
   return (
     <div className="flex flex-col gap-5">
@@ -104,10 +101,13 @@ function OverviewTab() {
 }
 
 function ReportBuilderTab() {
+  const { profile } = useIndustry();
+  const dataset = getIndustryDataset(profile.key);
+  const entities = useMemo(() => getEntities(dataset), [dataset]);
   const [entity, setEntity] = useState<EntityKey>("Jobs");
   const [query, setQuery] = useState("");
   const { showToast } = useToast();
-  const config = ENTITIES[entity];
+  const config = entities[entity];
 
   const rows = useMemo(() => {
     const q = query.toLowerCase();
@@ -142,7 +142,7 @@ function ReportBuilderTab() {
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap gap-1.5">
-          {(Object.keys(ENTITIES) as EntityKey[]).map((e) => (
+          {(Object.keys(entities) as EntityKey[]).map((e) => (
             <button
               key={e}
               onClick={() => setEntity(e)}

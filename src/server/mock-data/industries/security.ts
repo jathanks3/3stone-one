@@ -9,7 +9,7 @@ import type {
   Person,
 } from "@/types";
 
-// ---- Vantage Point Security Services ----
+// ---- Sentinel Security Services ----
 // Contract guard services for office parks, retail centers, warehouses,
 // apartment communities, a hospital campus, and event venues. All data below
 // is hand-authored for this industry — nothing is imported or shared with
@@ -181,7 +181,7 @@ const EMPLOYEES: Employee[] = [
     initials: "DM",
     title: "Operations Manager",
     department: "Operations",
-    email: "derek.monroe@vantagepointsecurity.com",
+    email: "derek.monroe@sentinelsecurityservices.com",
     phone: "(555) 318-1140",
     hireDate: "2021-05-10",
     role: "Manager",
@@ -194,7 +194,7 @@ const EMPLOYEES: Employee[] = [
     initials: "SC",
     title: "Business Development Manager",
     department: "Business Development",
-    email: "samantha.carver@vantagepointsecurity.com",
+    email: "samantha.carver@sentinelsecurityservices.com",
     phone: "(555) 318-2251",
     hireDate: "2023-02-06",
     role: "Manager",
@@ -207,7 +207,7 @@ const EMPLOYEES: Employee[] = [
     initials: "CA",
     title: "Site Supervisor",
     department: "Field",
-    email: "christina.alvarez@vantagepointsecurity.com",
+    email: "christina.alvarez@sentinelsecurityservices.com",
     phone: "(555) 318-3362",
     hireDate: "2022-08-19",
     role: "Manager",
@@ -221,7 +221,7 @@ const EMPLOYEES: Employee[] = [
     initials: "JP",
     title: "Lead Guard",
     department: "Field",
-    email: "jason.park@vantagepointsecurity.com",
+    email: "jason.park@sentinelsecurityservices.com",
     phone: "(555) 318-4473",
     hireDate: "2026-06-15",
     role: "Member",
@@ -234,7 +234,7 @@ const EMPLOYEES: Employee[] = [
     initials: "RW",
     title: "Scheduling Coordinator",
     department: "Admin",
-    email: "renee.whitfield@vantagepointsecurity.com",
+    email: "renee.whitfield@sentinelsecurityservices.com",
     phone: "(555) 318-5584",
     hireDate: "2024-03-12",
     role: "Member",
@@ -247,7 +247,7 @@ const EMPLOYEES: Employee[] = [
     initials: "MD",
     title: "Compliance Officer",
     department: "Compliance",
-    email: "marcus.dubois@vantagepointsecurity.com",
+    email: "marcus.dubois@sentinelsecurityservices.com",
     phone: "(555) 318-6695",
     hireDate: "2022-01-24",
     role: "Member",
@@ -260,7 +260,7 @@ const EMPLOYEES: Employee[] = [
     initials: "AN",
     title: "Guard",
     department: "Field",
-    email: "aiko.nakamura@vantagepointsecurity.com",
+    email: "aiko.nakamura@sentinelsecurityservices.com",
     phone: "(555) 318-7706",
     hireDate: "2024-09-09",
     role: "Member",
@@ -273,7 +273,7 @@ const EMPLOYEES: Employee[] = [
     initials: "PH",
     title: "Billing & Accounts Coordinator",
     department: "Admin",
-    email: "patricia.hollis@vantagepointsecurity.com",
+    email: "patricia.hollis@sentinelsecurityservices.com",
     phone: "(555) 318-8817",
     hireDate: "2023-06-15",
     role: "Member",
@@ -318,8 +318,8 @@ const openSites = JOBS.filter((j) => j.status === "in_progress" || j.status === 
 
 export const SECURITY_DATASET: IndustryDataset = {
   profileKey: "security",
-  orgName: "Vantage Point Security Services",
-  greetingSubtitle: "Here's what matters at Vantage Point Security Services today.",
+  orgName: "Sentinel Security Services",
+  greetingSubtitle: "Here's what matters at Sentinel Security Services today.",
   kpis: [
     {
       key: "contract_revenue_mtd",

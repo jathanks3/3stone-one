@@ -17,7 +17,7 @@ export function PortfolioClient() {
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-8">
-      <h1 className="text-[22px] font-bold text-ink-1">Your Businesses</h1>
+      <h1 className="text-[22px] font-bold text-ink-1">Executive Overview</h1>
       <p className="mt-1 max-w-[640px] text-[14px] text-ink-2">
         One login, every business you own. Switching changes the dashboard, CRM, finance, team, and AI —
         not just the labels.

@@ -9,9 +9,9 @@ import type {
   Person,
 } from "@/types";
 
-// ---- Thornbury Hospitality Group ----
+// ---- Ember Table Restaurant Group ----
 // Three-location restaurant group (Uptown, Riverside, Lakeside — flagship brand
-// "Thornbury Kitchen & Tap") plus a growing catering & private-events arm that
+// "Ember Table Kitchen & Tap") plus a growing catering & private-events arm that
 // books corporate lunches, weddings, and venue partnerships across the region.
 
 const RESTAURANT_ORGANIZATIONS: Organization[] = [
@@ -73,7 +73,7 @@ const RESTAURANT_JOBS: Job[] = [
     startDate: "2026-05-10",
     dueDate: "2026-05-15",
     ownerId: "emp_rst_dana",
-    description: "Plated three-course dinner for 40 partners and top clients at the firm's downtown office, with paired wine service and the Thornbury Kitchen signature braised short rib.",
+    description: "Plated three-course dinner for 40 partners and top clients at the firm's downtown office, with paired wine service and the Ember Table Kitchen signature braised short rib.",
   },
   {
     id: "job_rst_oakhurst",
@@ -85,7 +85,7 @@ const RESTAURANT_JOBS: Job[] = [
     startDate: "2026-08-15",
     dueDate: "2026-08-16",
     ownerId: "emp_rst_devon",
-    description: "Co-catering the club's 200-guest Summer Gala alongside the in-house kitchen — Thornbury supplying the raw bar, a live carving station, and the dessert display.",
+    description: "Co-catering the club's 200-guest Summer Gala alongside the in-house kitchen — Ember Table supplying the raw bar, a live carving station, and the dessert display.",
   },
   {
     id: "job_rst_ridgeview",
@@ -109,7 +109,7 @@ const RESTAURANT_JOBS: Job[] = [
     startDate: "2026-06-01",
     dueDate: "2026-09-01",
     ownerId: "emp_rst_dana",
-    description: "Building a permanent 400-square-foot prep kitchen on the Wilmont Estate grounds so Thornbury can serve as the venue's exclusive in-house caterer for all 2027 weddings.",
+    description: "Building a permanent 400-square-foot prep kitchen on the Wilmont Estate grounds so Ember Table can serve as the venue's exclusive in-house caterer for all 2027 weddings.",
   },
   {
     id: "job_rst_brightside",
@@ -173,14 +173,14 @@ const RESTAURANT_INVOICES: Invoice[] = [
 ];
 
 const RESTAURANT_EMPLOYEES: Employee[] = [
-  { id: "emp_rst_renata", name: "Renata Ashworth", initials: "RA", title: "Founder & CEO", department: "Admin", email: "renata.ashworth@thornburyhg.com", phone: "(555) 618-2201", hireDate: "2016-05-01", role: "Owner", overdueCount: 0, status: "active" },
-  { id: "emp_rst_devon", name: "Devon Okafor", initials: "DO", title: "General Manager", department: "Front of House", email: "devon.okafor@thornburyhg.com", phone: "(555) 618-2245", hireDate: "2020-03-02", role: "Manager", overdueCount: 1, status: "active" },
-  { id: "emp_rst_marcus", name: "Marcus Ihenetu", initials: "MI", title: "Executive Chef", department: "Kitchen", email: "marcus.ihenetu@thornburyhg.com", phone: "(555) 618-2278", hireDate: "2019-08-12", role: "Manager", overdueCount: 0, overtimeHours: 6, status: "active" },
-  { id: "emp_rst_colette", name: "Colette Fontaine", initials: "CF", title: "Sous Chef", department: "Kitchen", email: "colette.fontaine@thornburyhg.com", phone: "(555) 618-2309", hireDate: "2022-02-14", role: "Member", overdueCount: 0, overtimeHours: 9, status: "active" },
-  { id: "emp_rst_isaiah", name: "Isaiah Brennan", initials: "IB", title: "Bar Manager", department: "Front of House", email: "isaiah.brennan@thornburyhg.com", phone: "(555) 618-2341", hireDate: "2020-11-03", role: "Manager", overdueCount: 0, status: "active" },
-  { id: "emp_rst_dana", name: "Dana Whitfield", initials: "DW", title: "Catering Sales Manager", department: "Catering", email: "dana.whitfield@thornburyhg.com", phone: "(555) 618-2367", hireDate: "2023-01-09", role: "Manager", overdueCount: 2, status: "active" },
-  { id: "emp_rst_priya", name: "Priya Nkemelu", initials: "PN", title: "Front of House Manager", department: "Front of House", email: "priya.nkemelu@thornburyhg.com", phone: "(555) 618-2398", hireDate: "2021-07-19", role: "Manager", overdueCount: 0, status: "away" },
-  { id: "emp_rst_grace", name: "Grace Kowalski", initials: "GK", title: "Office Manager", department: "Admin", email: "grace.kowalski@thornburyhg.com", phone: "(555) 618-2412", hireDate: "2018-09-20", role: "Admin", overdueCount: 0, status: "active" },
+  { id: "emp_rst_renata", name: "Renata Ashworth", initials: "RA", title: "Founder & CEO", department: "Admin", email: "renata.ashworth@embertablegroup.com", phone: "(555) 618-2201", hireDate: "2016-05-01", role: "Owner", overdueCount: 0, status: "active" },
+  { id: "emp_rst_devon", name: "Devon Okafor", initials: "DO", title: "General Manager", department: "Front of House", email: "devon.okafor@embertablegroup.com", phone: "(555) 618-2245", hireDate: "2020-03-02", role: "Manager", overdueCount: 1, status: "active" },
+  { id: "emp_rst_marcus", name: "Marcus Ihenetu", initials: "MI", title: "Executive Chef", department: "Kitchen", email: "marcus.ihenetu@embertablegroup.com", phone: "(555) 618-2278", hireDate: "2019-08-12", role: "Manager", overdueCount: 0, overtimeHours: 6, status: "active" },
+  { id: "emp_rst_colette", name: "Colette Fontaine", initials: "CF", title: "Sous Chef", department: "Kitchen", email: "colette.fontaine@embertablegroup.com", phone: "(555) 618-2309", hireDate: "2022-02-14", role: "Member", overdueCount: 0, overtimeHours: 9, status: "active" },
+  { id: "emp_rst_isaiah", name: "Isaiah Brennan", initials: "IB", title: "Bar Manager", department: "Front of House", email: "isaiah.brennan@embertablegroup.com", phone: "(555) 618-2341", hireDate: "2020-11-03", role: "Manager", overdueCount: 0, status: "active" },
+  { id: "emp_rst_dana", name: "Dana Whitfield", initials: "DW", title: "Catering Sales Manager", department: "Catering", email: "dana.whitfield@embertablegroup.com", phone: "(555) 618-2367", hireDate: "2023-01-09", role: "Manager", overdueCount: 2, status: "active" },
+  { id: "emp_rst_priya", name: "Priya Nkemelu", initials: "PN", title: "Front of House Manager", department: "Front of House", email: "priya.nkemelu@embertablegroup.com", phone: "(555) 618-2398", hireDate: "2021-07-19", role: "Manager", overdueCount: 0, status: "away" },
+  { id: "emp_rst_grace", name: "Grace Kowalski", initials: "GK", title: "Office Manager", department: "Admin", email: "grace.kowalski@embertablegroup.com", phone: "(555) 618-2412", hireDate: "2018-09-20", role: "Admin", overdueCount: 0, status: "active" },
 ];
 
 const RESTAURANT_ACTIVITY: ActivityItem[] = [
@@ -219,8 +219,8 @@ const SALES_DELTA_PCT = Math.round(((SALES_MTD - SALES_PRIOR_MONTH) / SALES_PRIO
 
 export const RESTAURANT_DATASET: IndustryDataset = {
   profileKey: "restaurant",
-  orgName: "Thornbury Hospitality Group",
-  greetingSubtitle: "Here's what matters across Thornbury Hospitality Group today.",
+  orgName: "Ember Table Restaurant Group",
+  greetingSubtitle: "Here's what matters across Ember Table Restaurant Group today.",
   kpis: [
     {
       key: "sales_mtd",

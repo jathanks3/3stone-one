@@ -11,7 +11,7 @@ export const DEMO_ACTIVITY: ActivityItem[] = [
   { id: "act_8", message: "Sent 3 messages in #sales", actor: "Priya Shah", timestamp: "Today", kind: "message", module: "Communications" },
   { id: "act_9", message: "Job status changed to In Progress — Fifth Avenue Retail Fit-out", actor: "Diego Ramirez", timestamp: "5 days ago", kind: "job", module: "Projects" },
   { id: "act_10", message: "Workflow \"New Lead Onboarding\" ran for Nora Islam", actor: "Automation", timestamp: "Today", kind: "automation", module: "Automation" },
-  { id: "act_11", message: "Purchase request approved — scaffold rental extension", actor: "Alex Rivera", timestamp: "Yesterday", kind: "approval", module: "Finance" },
+  { id: "act_11", message: "Purchase request approved — scaffold rental extension", actor: "Jordan Ellis", timestamp: "Yesterday", kind: "approval", module: "Finance" },
   { id: "act_12", message: "Job marked Done — Oakwood Warehouse Roof", actor: "Taylor Brooks", timestamp: "1 week ago", kind: "job", module: "Projects" },
   { id: "act_13", message: "Invoice INV-1029 (Oakwood Logistics) paid in full", actor: "System", timestamp: "1 week ago", kind: "invoice", module: "Finance" },
   { id: "act_14", message: "Posted announcement: Q2 numbers are in", actor: "Morgan Lee", timestamp: "1 week ago", kind: "message", module: "People" },
@@ -20,7 +20,7 @@ export const DEMO_ACTIVITY: ActivityItem[] = [
   { id: "act_17", message: "Workflow \"Overdue Invoice Reminder\" ran for INV-1038", actor: "Automation", timestamp: "Today", kind: "automation", module: "Automation" },
   { id: "act_18", message: "Call logged with Ben Carter — Bayview Construction Partners", actor: "Priya Shah", timestamp: "Yesterday", kind: "message", module: "Communications" },
   { id: "act_19", message: "Deal moved to Negotiation — Cedar Hills Custom Home", actor: "Priya Shah", timestamp: "2 days ago", kind: "deal", module: "CRM" },
-  { id: "act_20", message: "Meeting completed: Monthly Financial Review", actor: "Alex Rivera", timestamp: "1 week ago", kind: "meeting", module: "Meetings" },
+  { id: "act_20", message: "Meeting completed: Monthly Financial Review", actor: "Jordan Ellis", timestamp: "1 week ago", kind: "meeting", module: "Meetings" },
 ];
 
 export const DEMO_NOTIFICATIONS: NotificationItem[] = [

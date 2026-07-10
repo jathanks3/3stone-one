@@ -47,7 +47,7 @@ export const DEMO_MEETINGS: Meeting[] = [
     id: "meet_4",
     title: "Monthly Financial Review",
     at: "2026-06-28 9:00 AM",
-    attendees: ["Alex Rivera", "Morgan Lee"],
+    attendees: ["Jordan Ellis", "Morgan Lee"],
     agenda: ["Review Q2 revenue and profit", "Discuss outstanding invoices", "Budget check-in by department"],
     actionItems: [
       { id: "ai_6", title: "Follow up on Smith Co. overdue invoice", assigneeId: "emp_morgan", done: false },

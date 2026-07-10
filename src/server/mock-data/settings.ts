@@ -7,11 +7,11 @@ export const DEMO_API_KEYS: ApiKeyRecord[] = [
 ];
 
 export const COMPANY_PROFILE = {
-  name: "Acme Construction",
-  legalName: "Acme Construction LLC",
+  name: "Red Oak Construction",
+  legalName: "Red Oak Construction LLC",
   address: "1420 Industrial Pkwy, Suite 200, Riverside, CA 92501",
   phone: "(555) 200-1000",
-  website: "acmeconstruction.com",
+  website: "redoakconstruction.com",
   founded: "2014",
 };
 

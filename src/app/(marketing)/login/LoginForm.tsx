@@ -88,7 +88,7 @@ export function LoginForm() {
         </button>
       </form>
       <p className="mt-2.5 text-center text-[12.5px] text-ink-3">
-        Loads Acme Construction, fully populated — no signup required.
+        Loads a fully populated demo account — no signup required.
       </p>
 
       <p className="mt-6 text-center text-[13px] text-ink-3">

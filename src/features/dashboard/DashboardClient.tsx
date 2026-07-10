@@ -2,7 +2,7 @@
 
 import { useIndustry } from "@/lib/industry";
 import { getIndustryDataset } from "@/server/mock-data/industries";
-import { getPendingPurchaseRequests, DEMO_ACTIVITY } from "@/server/mock-data";
+import { getPendingPurchaseRequests, DEMO_ACTIVITY, DEMO_USER } from "@/server/mock-data";
 import { BriefingCard } from "@/components/dashboard/BriefingCard";
 import { AttentionCard } from "@/components/dashboard/AttentionCard";
 import { ChangedTodayCard } from "@/components/dashboard/ChangedTodayCard";
@@ -19,7 +19,7 @@ export function DashboardClient() {
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-5 px-4 py-6 sm:px-6 sm:py-8">
       <div>
-        <h1 className="text-[22px] font-bold text-ink-1">Good morning, Alex</h1>
+        <h1 className="text-[22px] font-bold text-ink-1">Good morning, {DEMO_USER.name.split(" ")[0]}</h1>
         <p className="text-[14px] text-ink-2">{dataset.greetingSubtitle}</p>
       </div>
 

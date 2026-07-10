@@ -11,11 +11,11 @@ etc.) they already use.
 
 ## Status
 
-Architecture approved; building the interactive demo now, phase by phase.
-Phase 1 (this build): login + demo login, executive dashboard, full
-navigation shell, responsive layout, theme system, and realistic mock data
-for the "Acme Construction" demo workspace. Everything else in the nav is
-a clearly labeled "coming soon" placeholder until its phase — see
+A full interactive demo: login, executive dashboard, full navigation shell,
+responsive layout, theme system, and realistic mock data across 4 real
+demo businesses (Red Oak Construction, Ember Table Restaurant Group,
+Sentinel Security Services, Northstar Events & Venue), switchable from one
+login as demo user Jordan Ellis (demo@3stoneone.com) — see
 [`docs/11-roadmap.md`](docs/11-roadmap.md).
 
 This is a demo, not a production app: no real auth, no real database —
@@ -39,8 +39,10 @@ npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) — it redirects to
-`/login`. Use the **Try the Live Demo** button to sign in as Acme
-Construction without entering credentials.
+`/login`. Use the **Try the Live Demo** button to sign in as the demo user
+(Jordan Ellis, demo@3stoneone.com) without entering credentials, or type
+any email/password (this demo build accepts anything — there's no real
+auth backend yet).
 
 ## Relationship to other 3Stone AI repos
 

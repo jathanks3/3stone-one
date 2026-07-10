@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
-import { Check, ChevronDown, ChevronsUpDown } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Check, ChevronDown, ChevronsUpDown, LayoutGrid } from "lucide-react";
 import { useIndustry } from "@/lib/industry";
 import { industryProfileList } from "@/config/industry-profiles";
 import { DEMO_BUSINESSES, getBusinessName } from "@/server/mock-data/businesses";
@@ -11,6 +12,7 @@ import { cn } from "@/lib/utils";
 
 export function WorkspaceSwitcher() {
   const { profile, currentBusinessId, setBusinessId, setIndustryKey } = useIndustry();
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -40,12 +42,31 @@ export function WorkspaceSwitcher() {
       {open ? (
         <div className="absolute left-0 top-[calc(100%+6px)] z-50 w-80 rounded-[14px] border border-line bg-surface p-1.5 shadow-[var(--shadow)]">
           <div className="px-2.5 pb-2 pt-1.5">
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-ink-3">Your businesses</p>
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-ink-3">My Businesses</p>
             <p className="mt-1 text-[12px] leading-snug text-ink-3">
               One login, every business you own — switching changes the dashboard, CRM, finance, team,
               and AI, all at once.
             </p>
           </div>
+
+          <button
+            onClick={() => {
+              setOpen(false);
+              router.push("/portfolio");
+            }}
+            className="flex w-full items-center gap-2.5 rounded-[8px] px-2.5 py-2 text-left hover:bg-surface-raised"
+          >
+            <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-[8px] bg-accent-wash text-accent">
+              <LayoutGrid size={14} />
+            </span>
+            <span className="min-w-0">
+              <span className="block truncate text-[13.5px] font-medium text-ink-1">Executive Overview</span>
+              <span className="block text-[11.5px] text-ink-3">See every business at once</span>
+            </span>
+          </button>
+
+          <div className="my-1.5 h-px bg-line" />
+
           {DEMO_BUSINESSES.map((business) => {
             const name = getBusinessName(business);
             const businessProfile = industryProfileList.find((p) => p.key === business.industryProfileKey);
