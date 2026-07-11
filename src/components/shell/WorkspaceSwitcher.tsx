@@ -27,6 +27,8 @@ export function WorkspaceSwitcher() {
   return (
     <div className="relative" ref={ref}>
       <button
+        data-tour="business-switcher"
+        aria-expanded={open}
         onClick={() => setOpen((v) => !v)}
         className="flex items-center gap-2 rounded-[10px] px-2 py-1.5 hover:bg-surface-raised"
       >
@@ -40,7 +42,7 @@ export function WorkspaceSwitcher() {
         <ChevronsUpDown size={14} className="text-ink-3" />
       </button>
       {open ? (
-        <div className="absolute left-0 top-[calc(100%+6px)] z-50 w-80 rounded-[14px] border border-line bg-surface p-1.5 shadow-[var(--shadow)]">
+        <div data-tour="business-switcher-menu" className="absolute left-0 top-[calc(100%+6px)] z-50 w-[min(20rem,calc(100vw-1.5rem))] rounded-[14px] border border-line bg-surface p-1.5 shadow-[var(--shadow)]">
           <div className="px-2.5 pb-2 pt-1.5">
             <p className="text-[11px] font-semibold uppercase tracking-wider text-ink-3">My Businesses</p>
             <p className="mt-1 text-[12px] leading-snug text-ink-3">

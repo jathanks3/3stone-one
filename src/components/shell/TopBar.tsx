@@ -1,6 +1,6 @@
 "use client";
 
-import { Menu, Search } from "lucide-react";
+import { CircleHelp, Menu, Search } from "lucide-react";
 import { WorkspaceSwitcher } from "./WorkspaceSwitcher";
 import { NotificationsMenu } from "./NotificationsMenu";
 import { AccountMenu } from "./AccountMenu";
@@ -10,10 +10,12 @@ export function TopBar({
   user,
   onOpenPalette,
   onOpenMobileNav,
+  onStartTour,
 }: {
   user: SessionUser;
   onOpenPalette: () => void;
   onOpenMobileNav: () => void;
+  onStartTour: () => void;
 }) {
   return (
     <header className="flex h-14 flex-shrink-0 items-center justify-between gap-3 border-b border-line bg-surface px-3 sm:px-4">
@@ -38,6 +40,8 @@ export function TopBar({
       </button>
 
       <div className="flex flex-shrink-0 items-center gap-1">
+        <button onClick={onStartTour} className="hidden min-h-9 items-center gap-1.5 rounded-[10px] px-2.5 text-[12.5px] font-medium text-ink-2 hover:bg-surface-raised hover:text-ink-1 md:flex" aria-label="Start guided tour"><CircleHelp size={16} /> Guided Tour</button>
+        <button onClick={onStartTour} className="flex h-9 w-9 items-center justify-center rounded-[10px] text-ink-2 hover:bg-surface-raised md:hidden" aria-label="Start guided tour"><CircleHelp size={17} /></button>
         <button
           onClick={onOpenPalette}
           className="flex h-9 w-9 items-center justify-center rounded-[10px] text-ink-2 hover:bg-surface-raised hover:text-ink-1 sm:hidden"

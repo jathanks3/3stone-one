@@ -65,7 +65,7 @@ export default function LoginPage() {
       <div className="relative hidden w-[46%] flex-col justify-between border-r border-line px-14 py-14 lg:flex xl:px-20">
         <div>
           <div className="mb-10 flex items-center gap-2.5">
-            <Image src="/branding/monogram.svg" alt="" width={28} height={28} priority />
+            <Image src="/branding/monogram.svg" alt="" width={28} height={21} priority />
             <span className="text-[15px] font-bold text-ink-1">3Stone One</span>
           </div>
           <h1 className="max-w-[420px] text-[34px] font-extrabold leading-[1.15] tracking-tight text-ink-1 text-balance">
@@ -109,7 +109,7 @@ export default function LoginPage() {
             src="/branding/monogram.svg"
             alt=""
             width={36}
-            height={36}
+            height={27}
             className="mb-6 opacity-95 lg:hidden"
             priority
           />

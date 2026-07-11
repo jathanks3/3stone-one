@@ -6,7 +6,11 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test:e2e": "playwright test tests/e2e",
+    "video:teaser": "playwright test tests/promo/walkthrough.spec.ts --project=vertical-teaser",
+    "video:vertical": "playwright test tests/promo/walkthrough.spec.ts --project=vertical-full",
+    "video:linkedin": "playwright test tests/promo/walkthrough.spec.ts --project=linkedin"
   },
   "dependencies": {
     "clsx": "^2.1.1",
@@ -17,6 +21,7 @@
     "recharts": "^3.9.2"
   },
   "devDependencies": {
+    "@playwright/test": "^1.61.1",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",

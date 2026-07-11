@@ -6,6 +6,10 @@ import { securityProfile } from "./security";
 import { eventCenterProfile } from "./eventCenter";
 import { medicalProfile } from "./medical";
 import { propertyManagementProfile } from "./propertyManagement";
+import { hairSalonProfile } from "./hairSalon";
+import { lashStudioProfile } from "./lashStudio";
+import { estheticianProfile } from "./esthetician";
+import { clothingBrandProfile } from "./clothingBrand";
 
 export const industryProfiles: Record<IndustryProfileKey, IndustryProfile> = {
   construction: constructionProfile,
@@ -15,6 +19,10 @@ export const industryProfiles: Record<IndustryProfileKey, IndustryProfile> = {
   event_center: eventCenterProfile,
   medical: medicalProfile,
   property_management: propertyManagementProfile,
+  hair_salon: hairSalonProfile,
+  lash_studio: lashStudioProfile,
+  esthetician: estheticianProfile,
+  clothing_brand: clothingBrandProfile,
 };
 
 export const industryProfileList: IndustryProfile[] = [
@@ -25,6 +33,10 @@ export const industryProfileList: IndustryProfile[] = [
   eventCenterProfile,
   medicalProfile,
   propertyManagementProfile,
+  hairSalonProfile,
+  lashStudioProfile,
+  estheticianProfile,
+  clothingBrandProfile,
 ];
 
 export function getIndustryProfile(key: IndustryProfileKey): IndustryProfile {

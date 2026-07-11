@@ -13,7 +13,7 @@ export function MobileNav({ open, onClose }: { open: boolean; onClose: () => voi
       <div className="relative flex h-full w-[280px] flex-col border-r border-line bg-surface">
         <div className="flex h-14 flex-shrink-0 items-center justify-between border-b border-line px-4">
           <div className="flex items-center gap-2">
-            <Image src="/branding/monogram.svg" alt="" width={24} height={24} />
+            <Image src="/branding/monogram.svg" alt="" width={24} height={18} />
             <span className="text-[14px] font-bold text-ink-1">3Stone One</span>
           </div>
           <button

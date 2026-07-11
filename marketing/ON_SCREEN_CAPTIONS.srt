@@ -1,0 +1,35 @@
+1
+00:00:00,000 --> 00:00:04,000
+Most software manages one department.
+
+2
+00:00:04,000 --> 00:00:08,000
+Owners manage the whole business.
+
+3
+00:00:08,000 --> 00:00:14,000
+See every business from one login.
+
+4
+00:00:14,000 --> 00:00:21,000
+KPIs, workflows, customers, and finances adapt.
+
+5
+00:00:21,000 --> 00:00:28,000
+One AI understands the selected business.
+
+6
+00:00:28,000 --> 00:00:35,000
+Know what needs attention first.
+
+7
+00:00:35,000 --> 00:00:42,000
+One Login. One Platform. One AI.
+
+8
+00:00:42,000 --> 00:00:48,000
+3Stone One — Built Around the Owner.
+
+9
+00:00:48,000 --> 00:00:54,000
+Explore the interactive demo.

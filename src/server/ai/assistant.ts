@@ -144,6 +144,37 @@ function answerAtRisk(ctx: AssistantContext): string {
   return `Nothing overdue yet, but keep an eye on ${soonest.map((j) => `"${j.name}"`).join(" and ")} — still unconfirmed with dates coming up.`;
 }
 
+function answerTopRevenueEmployee(ctx: AssistantContext): string {
+  const ranked = ctx.dataset.employees
+    .map((employee) => ({ employee, revenue: ctx.dataset.jobs.filter((job) => job.ownerId === employee.id).reduce((sum, job) => sum + job.value, 0) }))
+    .sort((a, b) => b.revenue - a.revenue);
+  const top = ranked[0];
+  return top && top.revenue > 0
+    ? `${top.employee.name} generated the most tracked revenue at ${formatCurrency(top.revenue, { compact: true })}, across ${ctx.dataset.jobs.filter((job) => job.ownerId === top.employee.id).length} ${ctx.terms.projects.toLowerCase()}.`
+    : `There is not enough assigned revenue data to rank the team yet.`;
+}
+
+function answerLapsedCustomers(ctx: AssistantContext): string {
+  const lapsed = ctx.dataset.people.filter((person) => /week|month/.test(person.lastContact));
+  if (!lapsed.length) return `Every active ${ctx.terms.customer.toLowerCase()} has recent contact logged.`;
+  return `${lapsed.slice(0, 3).map((person) => `${person.firstName} ${person.lastName} (${person.lastContact})`).join(", ")} have not had recent contact. Start with the longest gap and send a personal rebooking follow-up.`;
+}
+
+function answerInventory(ctx: AssistantContext): string {
+  const inventorySignal = ctx.dataset.aiRecommendations.find((item) => /unit|stock|reorder|replenish|sold out/i.test(item));
+  return inventorySignal ?? `No low-stock alert is present in ${ctx.dataset.orgName}'s current demo data.`;
+}
+
+function answerDraftFollowUp(ctx: AssistantContext): string {
+  const person = ctx.dataset.people.find((candidate) => /week|month/.test(candidate.lastContact)) ?? ctx.dataset.people[0];
+  if (!person) return `There is no customer record available for a follow-up draft.`;
+  return `Draft for ${person.firstName}: “Hi ${person.firstName}, it’s the team at ${ctx.dataset.orgName}. We’d love to help with your next ${ctx.terms.project.toLowerCase()}. Would you like me to share a few available options?”`;
+}
+
+function answerPriority(ctx: AssistantContext): string {
+  return ctx.dataset.aiRecommendations[0] ?? answerSummarizeToday(ctx, ctx.terms);
+}
+
 function fallbackHelp(ctx: AssistantContext, terms: IndustryTerms): string {
   return [
     `I can help with questions about ${ctx.dataset.orgName} — try things like:`,
@@ -165,6 +196,11 @@ export function answerQuestion(query: string, ctx: AssistantContext): string {
   if (/draft.*(email|message).*vendor|vendor.*(email|message)/.test(q)) return answerDraftVendorEmail(ctx);
   if (/reduce cost|cut cost|save money|lower cost/.test(q)) return answerCostReduction(ctx);
   if (/at risk|which.*risk|risky/.test(q)) return answerAtRisk(ctx);
+  if (/(employee|stylist|artist|provider|team member).*(most|highest).*(revenue|sales)|who.*(most|highest).*(revenue|sales)/.test(q)) return answerTopRevenueEmployee(ctx);
+  if (/(customer|client|guest).*(not|haven't|hasn't).*(book|return|contact)|not booked again|rebook/.test(q)) return answerLapsedCustomers(ctx);
+  if (/almost sold out|low.?stock|inventory|reorder|replenish/.test(q)) return answerInventory(ctx);
+  if (/draft.*(follow.?up|email|message)/.test(q)) return answerDraftFollowUp(ctx);
+  if (/focus.*first|prioriti[sz]e|what.*attention/.test(q)) return answerPriority(ctx);
 
   return fallbackHelp(ctx, ctx.terms);
 }

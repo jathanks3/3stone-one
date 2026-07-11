@@ -1,5 +1,13 @@
 @import "tailwindcss";
 
+.guided-tour-target {
+  position: relative;
+  z-index: 135 !important;
+  outline: 3px solid var(--accent);
+  outline-offset: 5px;
+  border-radius: 12px;
+}
+
 :root {
   color-scheme: light dark;
 

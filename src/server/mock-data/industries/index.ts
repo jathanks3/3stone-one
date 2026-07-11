@@ -6,6 +6,7 @@ import { SECURITY_DATASET } from "./security";
 import { EVENT_CENTER_DATASET } from "./eventCenter";
 import { MEDICAL_DATASET } from "./medical";
 import { PROPERTY_MANAGEMENT_DATASET } from "./propertyManagement";
+import { CLOTHING_BRAND_DATASET, ESTHETICIAN_DATASET, HAIR_SALON_DATASET, LASH_STUDIO_DATASET } from "./ownerBusinesses";
 
 const REGISTRY: Record<IndustryProfileKey, IndustryDataset> = {
   construction: CONSTRUCTION_DATASET,
@@ -15,6 +16,10 @@ const REGISTRY: Record<IndustryProfileKey, IndustryDataset> = {
   event_center: EVENT_CENTER_DATASET,
   medical: MEDICAL_DATASET,
   property_management: PROPERTY_MANAGEMENT_DATASET,
+  hair_salon: HAIR_SALON_DATASET,
+  lash_studio: LASH_STUDIO_DATASET,
+  esthetician: ESTHETICIAN_DATASET,
+  clothing_brand: CLOTHING_BRAND_DATASET,
 };
 
 export function getIndustryDataset(key: IndustryProfileKey): IndustryDataset {

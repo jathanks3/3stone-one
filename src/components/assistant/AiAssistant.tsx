@@ -36,6 +36,8 @@ export function AiAssistant() {
   return (
     <>
       <button
+        data-tour="ai-assistant"
+        aria-expanded={open}
         type="button"
         onClick={() => setOpen((o) => !o)}
         aria-label={open ? "Close AI assistant" : "Open AI assistant"}

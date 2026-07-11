@@ -5,7 +5,11 @@ export type IndustryProfileKey =
   | "security"
   | "event_center"
   | "medical"
-  | "property_management";
+  | "property_management"
+  | "hair_salon"
+  | "lash_studio"
+  | "esthetician"
+  | "clothing_brand";
 
 export interface IndustryTerms {
   project: string;
