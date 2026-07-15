@@ -26,9 +26,18 @@ describe("inventory calculations and industry datasets", () => {
   });
 
   it("provides distinct datasets for key inventory industries", () => {
-    assert.match(getInventoryDataset("clothing_brand").products[0].variant, /Black/);
-    assert.equal(getInventoryDataset("salon").noun, "Product");
-    assert.equal(getInventoryDataset("restaurant").noun, "Ingredient");
-    assert.equal(getInventoryDataset("event_center").noun, "Asset");
+    const clothing = getInventoryDataset("clothing_brand");
+    const salon = getInventoryDataset("salon");
+    const restaurant = getInventoryDataset("restaurant");
+    const construction = getInventoryDataset("construction");
+    const events = getInventoryDataset("event_center");
+    assert.match(clothing.products[0].variant, /Black/);
+    assert.equal(salon.noun, "Product");
+    assert.equal(restaurant.noun, "Ingredient");
+    assert.equal(events.noun, "Asset");
+    assert.notEqual(clothing.suppliers[0].name, restaurant.suppliers[0].name);
+    assert.notEqual(salon.purchaseOrders[0].supplier, construction.purchaseOrders[0].supplier);
+    assert.match(restaurant.analytics!.riskLabel, /Spoilage/);
+    assert.match(construction.terminology!.reserved, /jobs/);
   });
 });

@@ -13,7 +13,11 @@ export interface InventoryProduct {
 export interface StockMovement { id: string; productId: string; quantity: number; date: string; type: MovementType; reason: string; source: string; location: string; reference: string }
 export interface PurchaseOrder { id: string; number: string; supplier: string; orderDate: string; expectedDelivery: string; status: PurchaseOrderStatus; items: { productId: string; quantity: number; received: number; unitCost: number }[] }
 export interface Supplier { id: string; name: string; contact: string; email: string; phone: string; leadTimeDays: number; reliability: number; totalSpend: number; lastDelivery: string; notes: string }
-export interface InventoryDataset { label: string; noun: string; products: InventoryProduct[]; movements: StockMovement[]; purchaseOrders: PurchaseOrder[]; suppliers: Supplier[] }
+export interface InventoryDataset {
+  label: string; noun: string; products: InventoryProduct[]; movements: StockMovement[]; purchaseOrders: PurchaseOrder[]; suppliers: Supplier[];
+  terminology?: { catalog: string; onHand: string; reserved: string; reorder: string; receiving: string };
+  analytics?: { turnoverLabel: string; turnoverDetail: string; riskLabel: string; riskDetail: string };
+}
 
 export const availableQuantity = (p: InventoryProduct) => Math.max(0, p.onHand - p.reserved);
 export const productStatus = (p: InventoryProduct): StockStatus => p.status === "Discontinued" ? "Discontinued" : availableQuantity(p) <= 0 ? "Out of Stock" : availableQuantity(p) <= p.reorderPoint ? "Low Stock" : "In Stock";
@@ -26,6 +30,31 @@ const suppliers: Supplier[] = [
   { id: "sup_harbor", name: "Harbor Wholesale", contact: "Eli Brooks", email: "eli@harbor.example", phone: "(555) 014-2288", leadTimeDays: 11, reliability: 88, totalSpend: 31940, lastDelivery: "Jul 8, 2026", notes: "Confirm substitutions before shipping." },
   { id: "sup_local", name: "Local Trade Partners", contact: "Sam Rivera", email: "sam@localtrade.example", phone: "(555) 014-2310", leadTimeDays: 2, reliability: 93, totalSpend: 17680, lastDelivery: "Jul 14, 2026", notes: "Best option for urgent replenishment." },
 ];
+
+const supplierNames: Partial<Record<IndustryProfileKey, [string, string, string]>> = {
+  clothing_brand: ["Evergreen Cut & Sew", "Pacific Blank Goods", "Threadline Trims"],
+  restaurant: ["Green Valley Produce", "Coastal Foods Distribution", "Metro Restaurant Supply"],
+  salon: ["Pro Beauty Distribution", "Lash Atelier Supply", "CleanTouch Consumables"],
+  construction: ["Builders First Supply", "Allied Plumbing & HVAC", "TradePro Tool Depot"],
+  event_center: ["Grand Event Furnishings", "Heritage Linen Co.", "VenueWorks Equipment"],
+  security: ["Sentinel Equipment Group", "Uniform & PPE Direct", "FieldCom Systems"],
+};
+
+const terminology: Partial<Record<IndustryProfileKey, InventoryDataset["terminology"]>> = {
+  clothing_brand: { catalog: "Product variants", onHand: "Units in stock", reserved: "Allocated to orders", reorder: "Variants to replenish", receiving: "Production & inbound" },
+  restaurant: { catalog: "Ingredients & supplies", onHand: "Usable quantity", reserved: "Committed to service", reorder: "Ingredients to order", receiving: "Vendor deliveries" },
+  salon: { catalog: "Retail & backbar", onHand: "Products on hand", reserved: "Committed to appointments", reorder: "Supplies to replenish", receiving: "Distributor deliveries" },
+  construction: { catalog: "Materials, parts & tools", onHand: "Warehouse & truck stock", reserved: "Reserved for jobs", reorder: "Materials to replenish", receiving: "Material deliveries" },
+  event_center: { catalog: "Event assets & supplies", onHand: "Assets on hand", reserved: "Allocated to events", reorder: "Assets to replenish", receiving: "Equipment deliveries" },
+};
+
+const analytics: Partial<Record<IndustryProfileKey, InventoryDataset["analytics"]>> = {
+  clothing_brand: { turnoverLabel: "Sell-through velocity", turnoverDetail: "Variant movement across recent sales periods", riskLabel: "Variant concentration", riskDetail: "Sizes and colors with the highest stock exposure" },
+  restaurant: { turnoverLabel: "Ingredient usage velocity", turnoverDetail: "Consumption across recent service periods", riskLabel: "Spoilage & shortage risk", riskDetail: "Perishables and ingredients below par" },
+  salon: { turnoverLabel: "Product consumption", turnoverDetail: "Retail sales and backbar usage", riskLabel: "Weekend service coverage", riskDetail: "Consumables needed for booked services" },
+  construction: { turnoverLabel: "Material usage velocity", turnoverDetail: "Warehouse and truck movement", riskLabel: "Job readiness", riskDetail: "Materials reserved against upcoming jobs" },
+  event_center: { turnoverLabel: "Asset utilization", turnoverDetail: "Equipment allocated across events", riskLabel: "Event availability", riskDetail: "Shortages and damaged assets affecting bookings" },
+};
 
 function product(id: string, name: string, sku: string, category: string, onHand: number, reserved: number, reorderPoint: number, unitCost: number, sellingPrice: number, variant: string, supplier: string, location: string, lastMovedDays: number, suggestedReorder: number, unit = "units"): InventoryProduct {
   return { id, name, description: `${name} tracked across purchasing, storage, and operational usage.`, sku, category, onHand, reserved, reorderPoint, unitCost, sellingPrice, variant, supplier, location, lastMovedDays, suggestedReorder, unit, notes: ["Cycle count verified July 12.", "Barcode / QR identifier can be added when scanning is enabled."], trend: [18, 22, 20, 27, 25, Math.max(1, onHand)] };
@@ -71,19 +100,26 @@ const datasets: Partial<Record<IndustryProfileKey, InventoryDataset>> = {
   ], movements: [], purchaseOrders: [], suppliers },
 };
 
-for (const dataset of Object.values(datasets)) {
+for (const [key, dataset] of Object.entries(datasets) as [IndustryProfileKey, InventoryDataset][]) {
   if (!dataset) continue;
+  const names = supplierNames[key];
+  if (names) {
+    dataset.suppliers = suppliers.map((supplier, index) => ({ ...supplier, id: `${key}_${supplier.id}`, name: names[index] }));
+    dataset.products = dataset.products.map((item) => ({ ...item, supplier: names[Math.max(0, suppliers.findIndex((supplier) => supplier.name === item.supplier))] }));
+  }
+  dataset.terminology = terminology[key] ?? { catalog: "Inventory catalog", onHand: "Units on hand", reserved: "Units reserved", reorder: "Items to replenish", receiving: "Receiving pipeline" };
+  dataset.analytics = analytics[key] ?? { turnoverLabel: "Inventory turnover", turnoverDetail: "Movement across recent periods", riskLabel: "Operational coverage", riskDetail: "Stock availability against demand" };
   const [a, b, c] = dataset.products;
   dataset.movements = [
     { id: `${a.id}_m1`, productId: a.id, quantity: 24, date: "2026-07-14", type: "Received", reason: "Scheduled replenishment", source: "Jordan Lee", location: a.location, reference: "RCV-1048" },
-    { id: `${b.id}_m2`, productId: b.id, quantity: -4, date: "2026-07-13", type: dataset.noun === "Ingredient" ? "Sold" : "Used on a job", reason: "Operational usage", source: "3Stone workflow", location: b.location, reference: "JOB-2841" },
-    { id: `${c.id}_m3`, productId: c.id, quantity: -1, date: "2026-07-11", type: "Damaged", reason: "Removed during cycle count", source: "Alex Morgan", location: c.location, reference: "ADJ-0391" },
+    { id: `${b.id}_m2`, productId: b.id, quantity: -4, date: "2026-07-13", type: key === "clothing_brand" || key === "restaurant" ? "Sold" : "Used on a job", reason: key === "salon" ? "Consumed during booked services" : key === "event_center" ? "Allocated to weekend event" : "Operational usage", source: "3Stone workflow", location: b.location, reference: key === "clothing_brand" ? "ORD-2841" : "JOB-2841" },
+    { id: `${c.id}_m3`, productId: c.id, quantity: -1, date: "2026-07-11", type: "Damaged", reason: key === "restaurant" ? "Spoilage recorded during close" : "Removed during cycle count", source: "Alex Morgan", location: c.location, reference: "ADJ-0391" },
     { id: `${a.id}_m4`, productId: a.id, quantity: -6, date: "2026-07-10", type: "Reserved", reason: "Upcoming confirmed work", source: "Scheduling automation", location: a.location, reference: "RSV-1172" },
   ];
   dataset.purchaseOrders = [
-    { id: "po_1048", number: "PO-1048", supplier: "Northline Supply Co.", orderDate: "2026-07-10", expectedDelivery: "2026-07-17", status: "Submitted", items: [{ productId: a.id, quantity: a.suggestedReorder || 24, received: 0, unitCost: a.unitCost }, { productId: b.id, quantity: b.suggestedReorder || 12, received: 0, unitCost: b.unitCost }] },
-    { id: "po_1042", number: "PO-1042", supplier: "Harbor Wholesale", orderDate: "2026-07-04", expectedDelivery: "2026-07-15", status: "Partially Received", items: [{ productId: c.id, quantity: c.suggestedReorder || 16, received: Math.round((c.suggestedReorder || 16) / 2), unitCost: c.unitCost }] },
-    { id: "po_1037", number: "PO-1037", supplier: "Local Trade Partners", orderDate: "2026-06-27", expectedDelivery: "2026-07-02", status: "Received", items: [{ productId: a.id, quantity: 20, received: 20, unitCost: a.unitCost }] },
+    { id: `${key}_po_1048`, number: key === "clothing_brand" ? "PO-APP-1048" : key === "restaurant" ? "VD-1048" : "PO-1048", supplier: a.supplier, orderDate: "2026-07-10", expectedDelivery: "2026-07-17", status: "Submitted", items: [{ productId: a.id, quantity: a.suggestedReorder || 24, received: 0, unitCost: a.unitCost }, { productId: b.id, quantity: b.suggestedReorder || 12, received: 0, unitCost: b.unitCost }] },
+    { id: `${key}_po_1042`, number: key === "restaurant" ? "VD-1042" : "PO-1042", supplier: c.supplier, orderDate: "2026-07-04", expectedDelivery: "2026-07-15", status: "Partially Received", items: [{ productId: c.id, quantity: c.suggestedReorder || 16, received: Math.round((c.suggestedReorder || 16) / 2), unitCost: c.unitCost }] },
+    { id: `${key}_po_1037`, number: key === "restaurant" ? "VD-1037" : "PO-1037", supplier: a.supplier, orderDate: "2026-06-27", expectedDelivery: "2026-07-02", status: "Received", items: [{ productId: a.id, quantity: 20, received: 20, unitCost: a.unitCost }] },
   ];
 }
 
