@@ -9,6 +9,8 @@ export const DEMO_BUSINESSES: Business[] = [
   { id: "biz_thornbury", industryProfileKey: "restaurant", ownerRole: "Owner" },
   { id: "biz_vantage", industryProfileKey: "security", ownerRole: "Owner" },
   { id: "biz_willowmere", industryProfileKey: "event_center", ownerRole: "Owner" },
+  { id: "biz_northpine", industryProfileKey: "clothing_brand", ownerRole: "Owner" },
+  { id: "biz_luma", industryProfileKey: "salon", ownerRole: "Owner" },
 ];
 
 export function getBusinessById(id: string): Business {

@@ -15,6 +15,8 @@ const REGISTRY: Record<IndustryProfileKey, IndustryDataset> = {
   event_center: EVENT_CENTER_DATASET,
   medical: MEDICAL_DATASET,
   property_management: PROPERTY_MANAGEMENT_DATASET,
+  clothing_brand: { ...RESTAURANT_DATASET, profileKey: "clothing_brand", orgName: "North & Pine Apparel", greetingSubtitle: "Here’s what matters across North & Pine’s collections today." },
+  salon: { ...MEDICAL_DATASET, profileKey: "salon", orgName: "Luma Beauty Collective", greetingSubtitle: "Here’s what matters across Luma’s services and retail today." },
 };
 
 export function getIndustryDataset(key: IndustryProfileKey): IndustryDataset {
