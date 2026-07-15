@@ -15,6 +15,7 @@ import {
   History,
   Settings,
   Eye,
+  PackageSearch,
   type LucideIcon,
 } from "lucide-react";
 
@@ -35,4 +36,5 @@ export const NAV_ICONS: Record<string, LucideIcon> = {
   History,
   Settings,
   Eye,
+  PackageSearch,
 };

@@ -74,6 +74,13 @@ export function getNavSections(profile: IndustryProfile): NavSection[] {
           icon: "Landmark",
           description: "Revenue, profit, invoices, purchase requests, and budgets.",
         },
+        {
+          key: "inventory",
+          href: "/inventory",
+          label: "Inventory",
+          icon: "PackageSearch",
+          description: "Products, supplies, stock movements, suppliers, and purchase orders.",
+        },
       ],
     },
     {
