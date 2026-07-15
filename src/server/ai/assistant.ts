@@ -1,6 +1,7 @@
 import type { AttendanceRecord, IndustryDataset, IndustryTerms, Vendor } from "@/types";
 import { formatCurrency } from "@/lib/utils";
 import { ATTENDANCE_TODAY, getTodayRecord, getWeeklyHours } from "@/server/mock-data/attendance";
+import { availableQuantity, estimatedMargin, getInventoryDataset, inventoryValue, productStatus } from "@/server/mock-data/inventory";
 
 export interface AssistantContext {
   dataset: IndustryDataset;
@@ -154,6 +155,16 @@ function fallbackHelp(ctx: AssistantContext, terms: IndustryTerms): string {
 export function answerQuestion(query: string, ctx: AssistantContext): string {
   const q = query.trim().toLowerCase();
   if (!q) return fallbackHelp(ctx, ctx.terms);
+
+  const inventory = getInventoryDataset(ctx.dataset.profileKey);
+  if (/inventory value|value.*inventory/.test(q)) return `Total inventory value is ${formatCurrency(inventoryValue(inventory.products))} across ${inventory.products.length} active SKUs.`;
+  if (/reorder|run out|low.stock|before the weekend/.test(q)) { const items=inventory.products.filter(p=>["Low Stock","Out of Stock"].includes(productStatus(p))); return items.length?`Reorder ${items.map(p=>`${p.name} (${p.suggestedReorder} ${p.unit})`).join(", ")}. ${items.filter(p=>productStatus(p)==="Out of Stock").length} item(s) are already out of stock.`:"Nothing needs reordering today; every tracked item is above its reorder point."; }
+  if (/black.*medium.*hoodie|how many.*available/.test(q)) { const p=inventory.products.find(p=>q.includes(p.name.toLowerCase())||q.includes(p.variant.toLowerCase())); return p?`${p.name} (${p.variant}) has ${availableQuantity(p)} ${p.unit} available — ${p.onHand} on hand and ${p.reserved} reserved.`:`I couldn't match that item in ${ctx.dataset.orgName}'s current catalog.`; }
+  if (/not moved|slow.moving|60 days/.test(q)) { const items=inventory.products.filter(p=>p.lastMovedDays>=60); return items.length?`${items.map(p=>`${p.name} (${p.lastMovedDays} days)`).join(", ")} have not moved in at least 60 days.`:"No products have been idle for 60 days."; }
+  if (/supplier.*longest|longest lead/.test(q)) { const s=[...inventory.suppliers].sort((a,b)=>b.leadTimeDays-a.leadTimeDays)[0]; return `${s.name} has the longest average lead time at ${s.leadTimeDays} days, with ${s.reliability}% delivery reliability.`; }
+  if (/reserved.*(job|project)|what inventory is reserved/.test(q)) { const items=inventory.products.filter(p=>p.reserved>0); return `${items.map(p=>`${p.name}: ${p.reserved}`).join(", ")} are reserved for upcoming work (${items.reduce((s,p)=>s+p.reserved,0)} units total).`; }
+  if (/highest margin/.test(q)) { const items=inventory.products.filter(p=>p.sellingPrice>0).sort((a,b)=>estimatedMargin(b)-estimatedMargin(a)).slice(0,3); return `Highest estimated margins: ${items.map(p=>`${p.name} ${estimatedMargin(p).toFixed(0)}%`).join(", ")}.`; }
+  if (/damaged|adjusted inventory/.test(q)) { const ms=inventory.movements.filter(m=>m.type==="Damaged"||m.type==="Manual adjustment"); return ms.length?`${ms.map(m=>`${inventory.products.find(p=>p.id===m.productId)?.name}: ${m.quantity} (${m.reference})`).join(", ")}.`:"No damaged or adjusted inventory is recorded this month."; }
 
   if (/clock(ed)?\s*in|clocked out|attendance/.test(q)) return answerAttendance(q, ctx);
   if (/overtime/.test(q)) return answerOvertime(ctx);

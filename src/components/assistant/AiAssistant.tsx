@@ -18,6 +18,8 @@ interface ChatMessage {
 }
 
 const SUGGESTIONS = [
+  "What should I reorder today?",
+  "What is my total inventory value?",
   "Summarize today's operations",
   "Who still owes deposits?",
   "How much profit did we make this month?",

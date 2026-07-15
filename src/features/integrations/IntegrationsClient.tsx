@@ -65,7 +65,7 @@ export function IntegrationsClient() {
                         <p className="text-[14px] font-semibold text-ink-1">{p.name}</p>
                       </div>
                       <Badge tone={p.status === "connected" ? "good" : p.status === "transformed" ? "accent" : "neutral"}>
-                        {p.status === "connected" ? "Connected" : p.status === "transformed" ? "Transformed" : "Not connected"}
+                        {p.status === "connected" ? "Demo connection" : p.status === "transformed" ? "Native demo" : "Integration option"}
                       </Badge>
                     </div>
                     <p className="text-[12.5px] leading-relaxed text-ink-3">
@@ -81,7 +81,7 @@ export function IntegrationsClient() {
                             disabled={connecting === p.key}
                             className="rounded-[9px] border border-accent bg-accent px-3 py-2 text-[12.5px] font-semibold text-on-accent transition-colors hover:opacity-90 disabled:opacity-70"
                           >
-                            {connecting === p.key ? "Connecting…" : "Connect"}
+                            {connecting === p.key ? "Preparing…" : "View example configuration"}
                           </button>
                           <button
                             onClick={() => transform(p.key)}

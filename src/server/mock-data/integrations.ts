@@ -11,6 +11,10 @@ export const DEMO_INTEGRATIONS: IntegrationProvider[] = [
   { key: "microsoft_365", name: "Microsoft 365", category: "Productivity", status: "not_connected", lastSync: null, blurb: "Sync email, calendar, and documents from Outlook and OneDrive." },
   { key: "google_workspace", name: "Google Workspace", category: "Productivity", status: "not_connected", lastSync: null, blurb: "Sync email, calendar, and Drive documents from Google." },
   { key: "shopify", name: "Shopify", category: "Commerce", status: "not_connected", lastSync: null, blurb: "Order and customer data for retail and e-commerce workspaces." },
+  { key: "square", name: "Square", category: "Commerce", status: "not_connected", lastSync: null, blurb: "Planned connector for example POS and inventory configuration; no live sync in this demo." },
+  { key: "clover", name: "Clover", category: "Commerce", status: "not_connected", lastSync: null, blurb: "Planned connector; shown as an inventory integration option only." },
+  { key: "lightspeed", name: "Lightspeed", category: "Commerce", status: "not_connected", lastSync: null, blurb: "Example retail catalog and stock configuration; no live connection." },
+  { key: "woocommerce", name: "WooCommerce", category: "Commerce", status: "not_connected", lastSync: null, blurb: "Planned connector for catalog and order data; not connected in this demo." },
   { key: "hubspot", name: "HubSpot", category: "CRM", status: "not_connected", lastSync: null, blurb: "Bring existing HubSpot contacts and deals into the CRM module." },
   { key: "salesforce", name: "Salesforce", category: "CRM", status: "not_connected", lastSync: null, blurb: "Bring existing Salesforce accounts and opportunities into the CRM module." },
 ];

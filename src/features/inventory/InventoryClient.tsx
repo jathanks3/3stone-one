@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { AlertTriangle, ArrowDownUp, Boxes, ChevronRight, ClipboardList, PackageCheck, Search, TrendingUp, Truck } from "lucide-react";
+import { AlertTriangle, ArrowDownUp, Boxes, ChevronRight, ClipboardList, PackageCheck, Search, TrendingUp } from "lucide-react";
 import { useIndustry } from "@/lib/industry";
 import { Badge } from "@/ui/Badge";
 import { Card } from "@/ui/Card";
