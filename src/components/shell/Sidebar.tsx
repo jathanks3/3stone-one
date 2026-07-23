@@ -28,6 +28,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
               <Link
                 key={item.key}
                 href={item.href}
+                prefetch={false}
                 onClick={onNavigate}
                 className={cn(
                   "flex items-center gap-2.5 rounded-[10px] px-3 py-2 text-[13.5px] font-medium transition-colors",
