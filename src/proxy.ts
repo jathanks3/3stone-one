@@ -1,23 +1,34 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { SESSION_COOKIE_NAME } from "@/lib/session";
+import { SESSION_COOKIE_NAME, parseSessionCookie } from "@/lib/session";
 
 const PUBLIC_ROUTES = ["/login", "/demo"];
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  const hasSession = Boolean(request.cookies.get(SESSION_COOKIE_NAME)?.value);
+  const rawCookie = request.cookies.get(SESSION_COOKIE_NAME)?.value;
+  const hasSession = parseSessionCookie(rawCookie) !== null;
+  // A cookie can be present but fail shape validation (corrupted, tampered,
+  // or from a stale format) — that must be treated as no session at all,
+  // not silently trusted, and not left behind for the next request to trip
+  // over again.
+  const hasInvalidCookie = Boolean(rawCookie) && !hasSession;
   const isPublicRoute = PUBLIC_ROUTES.includes(pathname);
 
+  let response: NextResponse;
   if (!hasSession && !isPublicRoute && pathname !== "/") {
-    return NextResponse.redirect(new URL("/login", request.url));
+    response = NextResponse.redirect(new URL("/login", request.url));
+  } else if (hasSession && isPublicRoute) {
+    response = NextResponse.redirect(new URL("/dashboard", request.url));
+  } else {
+    response = NextResponse.next();
   }
 
-  if (hasSession && isPublicRoute) {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
+  if (hasInvalidCookie) {
+    response.cookies.delete(SESSION_COOKIE_NAME);
   }
 
-  return NextResponse.next();
+  return response;
 }
 
 export const config = {

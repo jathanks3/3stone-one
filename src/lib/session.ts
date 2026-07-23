@@ -18,15 +18,35 @@ export async function createSession(payload: SessionPayload) {
   });
 }
 
-export async function getSession(): Promise<SessionPayload | null> {
-  const cookieStore = await cookies();
-  const raw = cookieStore.get(SESSION_COOKIE_NAME)?.value;
+/**
+ * The single source of truth for what counts as a valid session cookie —
+ * shape-checked, not just present. Pure (no `cookies()`/Node APIs) so it can
+ * run in proxy.ts's Edge middleware as well as here.
+ */
+export function parseSessionCookie(raw: string | undefined | null): SessionPayload | null {
   if (!raw) return null;
+  let parsed: unknown;
   try {
-    return JSON.parse(raw) as SessionPayload;
+    parsed = JSON.parse(raw);
   } catch {
     return null;
   }
+  if (
+    typeof parsed === "object" &&
+    parsed !== null &&
+    typeof (parsed as SessionPayload).userId === "string" &&
+    (parsed as SessionPayload).userId.length > 0 &&
+    typeof (parsed as SessionPayload).workspaceId === "string" &&
+    (parsed as SessionPayload).workspaceId.length > 0
+  ) {
+    return parsed as SessionPayload;
+  }
+  return null;
+}
+
+export async function getSession(): Promise<SessionPayload | null> {
+  const cookieStore = await cookies();
+  return parseSessionCookie(cookieStore.get(SESSION_COOKIE_NAME)?.value);
 }
 
 export async function deleteSession() {
