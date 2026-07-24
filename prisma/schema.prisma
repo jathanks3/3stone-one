@@ -177,6 +177,11 @@ model User {
   // to delete a row from, so invalidation works by making the number the
   // cookie carries stop matching the number in the database.
   sessionVersion Int      @default(0)
+  // Null means "everything on" (the honest default — nobody has opted out
+  // of anything yet), not an empty object meaning "everything off". Kept
+  // as free-form Json rather than a fixed set of boolean columns so a new
+  // notification category never needs its own migration.
+  notificationPreferences Json?
   createdAt    DateTime  @default(now())
 
   workspaceMemberships WorkspaceMember[]
