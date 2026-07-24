@@ -8,6 +8,8 @@
 
 import { PrismaClient } from "../generated/prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
+import { industryProfileList } from "../src/config/industry-profiles";
+import type { Prisma } from "../generated/prisma/client";
 
 const connectionString = process.env.DATABASE_URL;
 if (!connectionString) {
@@ -64,6 +66,31 @@ async function main() {
       where: { key: stage.key },
       update: { label: stage.label, sortOrder: stage.sortOrder, isTerminal: stage.isTerminal },
       create: stage,
+    });
+  }
+
+  // --- Industry profiles — real, sourced from the app's own existing
+  // src/config/industry-profiles/*.ts, not invented. Workspace.industryProfileKey
+  // has a real foreign-key constraint against this table (caught by
+  // actually trying to onboard a workspace before this existed — the
+  // schema correctly refused to let a workspace reference a
+  // non-existent industry). moduleVisibility/customFieldSchemas/
+  // pipelineStages are genuinely empty JSON, not fabricated — nothing in
+  // the app reads them yet (industry behavior beyond terminology is a
+  // later conversion, see docs/13-self-critique.md #1), so an empty
+  // object is the truthful state, not a placeholder pretending to be more. ---
+  for (const profile of industryProfileList) {
+    await prisma.industryProfile.upsert({
+      where: { key: profile.key },
+      update: { label: profile.label, terminologyMap: profile.terms as unknown as Prisma.InputJsonValue },
+      create: {
+        key: profile.key,
+        label: profile.label,
+        terminologyMap: profile.terms as unknown as Prisma.InputJsonValue,
+        moduleVisibility: {},
+        customFieldSchemas: {},
+        pipelineStages: [],
+      },
     });
   }
 
