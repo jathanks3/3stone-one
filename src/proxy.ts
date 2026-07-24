@@ -4,8 +4,14 @@ import { SESSION_COOKIE_NAME, parseSessionCookie, hasStaffAccess } from "@/lib/s
 
 const PUBLIC_ROUTES = ["/login", "/demo"];
 const STAFF_PREFIX = "/3stone-ai";
-const SIGNUP_PREFIX = "/signup";
-const RESET_PASSWORD_PREFIX = "/reset-password";
+// Routes reachable regardless of session state — neither "logged-out
+// only" (like /login) nor "logged-in only": a brand new visitor can
+// arrive with no session at all, but partway through (email verified,
+// invitation not yet accepted) they carry a real, if
+// not-yet-workspace-having, session. None of these should ever trigger
+// the "already logged in, go to /dashboard" rule below, or the flow
+// would boot them out the moment they have a session at all.
+const ALWAYS_ACCESSIBLE_PREFIXES = ["/signup", "/reset-password", "/invite"];
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -19,25 +25,15 @@ export async function proxy(request: NextRequest) {
   const hasInvalidCookie = Boolean(rawCookie) && !hasSession;
   const isPublicRoute = PUBLIC_ROUTES.includes(pathname);
   const isStaffRoute = pathname === STAFF_PREFIX || pathname.startsWith(`${STAFF_PREFIX}/`);
-  // /signup is neither "logged-out only" nor "logged-in only" — a brand
-  // new visitor starts it with no session at all, but partway through
-  // (once their email is verified) they carry a real, if
-  // not-yet-workspace-having, session for the rest of the wizard. It
-  // must never trigger the "already logged in, go to /dashboard" rule
-  // below, or the wizard would boot them out the moment they have a
-  // session at all.
-  const isSignupRoute = pathname === SIGNUP_PREFIX || pathname.startsWith(`${SIGNUP_PREFIX}/`);
-  // Same reasoning as /signup: reset-password can be hit by someone with
-  // no session at all (the common case, via an emailed link) or by
-  // someone who's already logged in (they might just prefer to reset
-  // rather than remember) — never a reason to bounce either way.
-  const isResetPasswordRoute =
-    pathname === RESET_PASSWORD_PREFIX || pathname.startsWith(`${RESET_PASSWORD_PREFIX}/`);
-  // /logout must always reach its Route Handler unconditionally, the same
-  // way /signup does — never bounced by the "already logged in" rule
-  // below. That rule exists to keep a logged-in user off the login form,
-  // but a session that's cryptographically valid yet failed a deeper,
-  // DB-only check (sessionVersion revocation — see (app)/layout.tsx and
+  const isAlwaysAccessibleRoute = ALWAYS_ACCESSIBLE_PREFIXES.some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
+  );
+  // /logout must always reach its Route Handler unconditionally, same
+  // reasoning as the prefixes above — but it's never bounced by the
+  // "already logged in" rule below for a different reason: that rule
+  // exists to keep a logged-in user off the login form, but a session
+  // that's cryptographically valid yet failed a deeper, DB-only check
+  // (sessionVersion revocation — see (app)/layout.tsx and
   // 3stone-ai/layout.tsx, neither of which proxy.ts's Edge runtime can
   // run) still parses as "logged in" here. Without this carve-out,
   // redirecting a revoked session to /logout would immediately bounce
@@ -52,7 +48,7 @@ export async function proxy(request: NextRequest) {
   // structurally, not just by convention.
   if (isStaffRoute && !hasStaffAccess(session)) {
     response = NextResponse.redirect(new URL(hasSession ? "/dashboard" : "/login", request.url));
-  } else if (isSignupRoute || isLogoutRoute || isResetPasswordRoute) {
+  } else if (isAlwaysAccessibleRoute || isLogoutRoute) {
     response = NextResponse.next();
   } else if (!hasSession && !isPublicRoute && pathname !== "/") {
     response = NextResponse.redirect(new URL("/login", request.url));
