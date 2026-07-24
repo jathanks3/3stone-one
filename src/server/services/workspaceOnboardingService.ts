@@ -1,11 +1,20 @@
 import { db } from "@/server/db";
+import { hashPassword } from "@/lib/password";
 import type { IndustryProfileKey } from "@/types";
+import {
+  createWorkspace,
+  setBusinessInfo,
+  selectIndustry,
+  confirmProductAndEdition,
+  selectPlan,
+} from "./onboardingService";
 
 export interface OnboardWorkspaceInput {
   workspaceName: string;
   slug: string;
   ownerEmail: string;
   ownerName: string;
+  ownerPassword: string;
   industryProfileKey: IndustryProfileKey;
 }
 
@@ -14,56 +23,41 @@ export interface OnboardWorkspaceResult {
   ownerUserId: string;
 }
 
-// The one real onboarding path — used for every workspace, starting with
-// Carl's and identically for whoever comes after him. No special-casing:
-// a future self-serve signup form calls this exact function with
-// user-submitted values instead of values typed into a script by the
-// founder: same service, different caller.
+// The founder's *secondary* administrative path — for exceptional
+// circumstances, imports, enterprise onboarding, or support (the
+// onboarding charter's own words), never the primary way customers get
+// onboarded. It composes onboardingService's exact same step functions
+// rather than re-implementing workspace creation, so there is one real
+// onboarding mechanism with two entry points (self-service wizard, this
+// script), not two mechanisms that happen to produce similar results.
 //
-// industryProfileKey is a key into src/config/industry-profiles/* (the
-// existing static terminology-map mechanism), not a row in the
-// IndustryProfile table — that table exists in the schema per
-// docs/03-database-schema.md but nothing writes to it yet; the app's
-// current industry-labeling still reads the static config. Real,
-// DB-backed IndustryProfile rows (so an industry's terminology can be
-// edited without a code deploy) are a later conversion, not required to
-// onboard a real workspace today.
+// The email-verification step is skipped here on purpose — the founder
+// is vouching for the account directly (that's what makes this
+// "exceptional"), not because verification doesn't matter for the
+// self-service path, where it's fully enforced.
 export async function onboardWorkspace(input: OnboardWorkspaceInput): Promise<OnboardWorkspaceResult> {
-  const ownerRole = await db.role.findFirst({ where: { name: "Owner", workspaceId: null, isSystemRole: true } });
-  if (!ownerRole) {
-    throw new Error("System role 'Owner' not seeded — run `npx prisma db seed` first.");
-  }
-
-  const existingWorkspace = await db.workspace.findUnique({ where: { slug: input.slug } });
-  if (existingWorkspace) {
+  const existingSlug = await db.workspace.findUnique({ where: { slug: input.slug } });
+  if (existingSlug) {
     throw new Error(`Workspace slug "${input.slug}" is already taken.`);
   }
 
+  const passwordHash = await hashPassword(input.ownerPassword);
   const user = await db.user.upsert({
     where: { email: input.ownerEmail },
     update: {},
-    create: { email: input.ownerEmail, name: input.ownerName },
-  });
-
-  const workspace = await db.workspace.create({
-    data: {
-      name: input.workspaceName,
-      slug: input.slug,
-      industryProfileKey: input.industryProfileKey,
-      // productKey/editionKey/lifecycleStageKey/plan all take their
-      // schema defaults (3stone_one / business / lead / free) — real,
-      // not fabricated: this genuinely is a brand-new, untouched
-      // customer at the start of its actual lifecycle.
+    create: {
+      email: input.ownerEmail,
+      name: input.ownerName,
+      passwordHash,
+      emailVerifiedAt: new Date(), // founder is vouching for this account directly
     },
   });
 
-  await db.workspaceMember.create({
-    data: { workspaceId: workspace.id, userId: user.id, roleId: ownerRole.id, status: "active" },
-  });
+  const { workspaceId } = await createWorkspace(user.id, input.slug);
+  await setBusinessInfo(workspaceId, input.workspaceName);
+  await selectIndustry(workspaceId, input.industryProfileKey);
+  await confirmProductAndEdition(workspaceId);
+  await selectPlan(workspaceId, "free");
 
-  await db.workspaceOnboardingState.create({
-    data: { workspaceId: workspace.id, step: "created" },
-  });
-
-  return { workspaceId: workspace.id, ownerUserId: user.id };
+  return { workspaceId, ownerUserId: user.id };
 }

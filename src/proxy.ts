@@ -4,6 +4,7 @@ import { SESSION_COOKIE_NAME, parseSessionCookie, hasStaffAccess } from "@/lib/s
 
 const PUBLIC_ROUTES = ["/login", "/demo"];
 const STAFF_PREFIX = "/3stone-ai";
+const SIGNUP_PREFIX = "/signup";
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -17,6 +18,14 @@ export function proxy(request: NextRequest) {
   const hasInvalidCookie = Boolean(rawCookie) && !hasSession;
   const isPublicRoute = PUBLIC_ROUTES.includes(pathname);
   const isStaffRoute = pathname === STAFF_PREFIX || pathname.startsWith(`${STAFF_PREFIX}/`);
+  // /signup is neither "logged-out only" nor "logged-in only" — a brand
+  // new visitor starts it with no session at all, but partway through
+  // (once their email is verified) they carry a real, if
+  // not-yet-workspace-having, session for the rest of the wizard. It
+  // must never trigger the "already logged in, go to /dashboard" rule
+  // below, or the wizard would boot them out the moment they have a
+  // session at all.
+  const isSignupRoute = pathname === SIGNUP_PREFIX || pathname.startsWith(`${SIGNUP_PREFIX}/`);
 
   let response: NextResponse;
   // Layer 1 of 4 (see docs/15-company-platform-vision.md): checked first
@@ -26,6 +35,8 @@ export function proxy(request: NextRequest) {
   // structurally, not just by convention.
   if (isStaffRoute && !hasStaffAccess(session)) {
     response = NextResponse.redirect(new URL(hasSession ? "/dashboard" : "/login", request.url));
+  } else if (isSignupRoute) {
+    response = NextResponse.next();
   } else if (!hasSession && !isPublicRoute && pathname !== "/") {
     response = NextResponse.redirect(new URL("/login", request.url));
   } else if (hasSession && isPublicRoute) {
