@@ -90,10 +90,15 @@ model Workspace {
   lifecycleStageKey  String    @default("lead")
   lifecycleStage     CustomerLifecycleStage @relation(fields: [lifecycleStageKey], references: [key])
   logoUrl            String?
+  timezone           String?
+  address            String?
+  contactEmail       String?
+  contactPhone       String?
   plan               WorkspacePlan @default(free)
   createdAt          DateTime  @default(now())
 
   members            WorkspaceMember[]
+  invitations        Invitation[]
   roles              Role[]
   sites              Site[]
   organizations      Organization[]
@@ -164,13 +169,61 @@ model User {
   // sessions (see login/actions.ts's demoLoginAction, which never reaches
   // recordLogin).
   lastLoginAt  DateTime?
+  // Incremented on password change / reset completion — embedded in every
+  // session cookie at creation time (lib/session.ts). A request whose
+  // cookie carries a stale sessionVersion is treated as logged out, which
+  // is what "session revocation after password changes" means for a
+  // stateless-cookie session model: there's no server-side session table
+  // to delete a row from, so invalidation works by making the number the
+  // cookie carries stop matching the number in the database.
+  sessionVersion Int      @default(0)
   createdAt    DateTime  @default(now())
 
   workspaceMemberships WorkspaceMember[]
   staffMembership      StaffMembership?
   emailVerificationTokens EmailVerificationToken[]
+  passwordResetTokens  PasswordResetToken[]
+  securityEvents       SecurityEvent[]
+  invitationsSent      Invitation[] @relation("InvitedBy")
 
   @@map("users")
+}
+
+// Same shape as EmailVerificationToken (real, single-use, expiring) — the
+// "password reset request" step's actual mechanism. Reset email delivery
+// is stubbed the same way verification email is (see EmailVerificationToken's
+// comment): the token itself is fully real, only the send is stubbed
+// pending a verified sending domain.
+model PasswordResetToken {
+  token     String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@map("platform_password_reset_tokens")
+}
+
+// Real login history + account security events — one table for both,
+// since "login history" is just this table filtered to type:"login".
+// Distinct from PlatformAuditLogEntry (staff actions, cross-tenant) and
+// from AuditLogEntry-per-module (business-record changes): this is a
+// user's own account-security timeline, e.g. login, password_reset_requested,
+// password_changed, sessions_revoked.
+model SecurityEvent {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  type      String
+  ipAddress String?
+  userAgent String?
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@map("platform_security_events")
 }
 
 // Real, single-use, expiring — the "Verify Email" step's actual
@@ -217,6 +270,38 @@ enum MemberStatus {
   suspended
 }
 
+// The real team-invitation mechanism: a token/expiry/status lifecycle
+// distinct from WorkspaceMember. Accepting an invitation is what creates
+// (or reactivates) the WorkspaceMember row — an Invitation is a standing
+// offer, not membership itself, so it can be resent or revoked without
+// ever having created a member.
+enum InvitationStatus {
+  pending
+  accepted
+  revoked
+  expired
+}
+
+model Invitation {
+  id              String   @id @default(cuid())
+  workspaceId     String
+  workspace       Workspace @relation(fields: [workspaceId], references: [id])
+  email           String
+  roleId          String
+  role            Role     @relation(fields: [roleId], references: [id])
+  token           String   @unique @default(cuid())
+  status          InvitationStatus @default(pending)
+  invitedByUserId String
+  invitedBy       User     @relation("InvitedBy", fields: [invitedByUserId], references: [id])
+  expiresAt       DateTime
+  acceptedAt      DateTime?
+  revokedAt       DateTime?
+  createdAt       DateTime @default(now())
+
+  @@index([workspaceId, status])
+  @@map("workspace_invitations")
+}
+
 model IndustryProfile {
   key                String  @id
   label              String
@@ -243,6 +328,7 @@ model Role {
   isSystemRole Boolean   @default(false)
   members      WorkspaceMember[]
   permissions  Permission[]
+  invitations  Invitation[]
 
   @@map("roles")
 }
