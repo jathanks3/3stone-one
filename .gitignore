@@ -30,8 +30,9 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
+# env files — everything ignored except the placeholder-only example
 .env*
+!.env.example
 
 # vercel
 .vercel
@@ -42,5 +43,3 @@ next-env.d.ts
 
 # Prisma
 /generated/prisma
-.env
-.env.local

@@ -33,6 +33,7 @@ Read the rest in this order:
 12. [12-saas-roadmap.md](12-saas-roadmap.md) — what comes after v1, once this is a sellable product
 13. [13-self-critique.md](13-self-critique.md) — where this design is weakest, and what we're doing about it
 14. [14-first-run-experience.md](14-first-run-experience.md) — the deliberately designed first 90 seconds, and why it's the highest-leverage screen in the product
+15. [16-database-operations.md](16-database-operations.md) — the real database, once it exists: setup, migrations, rollback, backup, credential rotation
 
 ## Revision note (v2)
 

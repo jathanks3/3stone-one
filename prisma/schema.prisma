@@ -18,6 +18,11 @@ generator client {
   output   = "../generated/prisma"
 }
 
+// Connection URLs live in prisma.config.ts (Prisma 7 moved them out of the
+// schema file entirely) — url (pooled, DATABASE_URL) for the app and
+// Prisma Client, directUrl (unpooled, DIRECT_URL) for schema-changing
+// commands (migrate dev/deploy, db push), which need session-level
+// features a pgbouncer pooled connection doesn't support.
 datasource db {
   provider = "postgresql"
 }

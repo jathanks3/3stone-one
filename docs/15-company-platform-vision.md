@@ -74,6 +74,14 @@ Customers never see it and never know it exists. This replaces the
 "Platform" naming used in earlier planning in this repo's history; see
 "Known conflicts" below.
 
+**URL prefix: `/3stone-ai/*`**, not `/platform/*`. Route names should match
+the name a human sees in logs and in the nav — a route prefix that
+disagrees with the section's own name is exactly the kind of thing that
+costs time at 2am. Every internal route (`/3stone-ai/dashboard`,
+`/3stone-ai/customers`, `/3stone-ai/customers/[workspaceId]`, etc.) lives
+under this one prefix, gated by the four-layer authorization design
+(middleware, section layout, API, nav).
+
 ### Internal navigation
 
 ```
