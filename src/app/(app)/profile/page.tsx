@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { getSession } from "@/lib/session";
 import { getProfile } from "@/server/services/profileService";
+import { isStorageConfigured } from "@/server/services/storageService";
 import { ProfileClient } from "./ProfileClient";
 
 export const metadata: Metadata = { title: "Profile — 3Stone One" };
@@ -17,5 +18,5 @@ export default async function ProfilePage() {
   }
 
   const profile = await getProfile(session.userId);
-  return <ProfileClient profile={profile} />;
+  return <ProfileClient profile={profile} storageConfigured={isStorageConfigured()} />;
 }

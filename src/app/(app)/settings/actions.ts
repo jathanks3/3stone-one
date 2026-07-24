@@ -47,6 +47,7 @@ export async function updateSettingsAction(_prev: ActionState, formData: FormDat
       address: String(formData.get("address") ?? "") || undefined,
       contactEmail: String(formData.get("contactEmail") ?? "") || undefined,
       contactPhone: String(formData.get("contactPhone") ?? "") || undefined,
+      logoUrl: formData.has("logoUrl") ? String(formData.get("logoUrl") ?? "") : undefined,
       industryProfileKey: (String(formData.get("industryProfileKey") ?? "") || undefined) as
         | IndustryProfileKey
         | undefined,

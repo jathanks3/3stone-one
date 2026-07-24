@@ -1,12 +1,13 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import { Tabs } from "@/ui/Tabs";
 import { Card } from "@/ui/Card";
 import { Button } from "@/ui/Button";
 import { Badge } from "@/ui/Badge";
 import { Avatar } from "@/ui/Avatar";
+import { FileUploadField } from "@/components/shared/FileUploadField";
 import { industryProfileList } from "@/config/industry-profiles";
 import { PLAN_TIERS } from "@/config/pricing";
 import type { WorkspaceSettings } from "@/server/services/workspaceSettingsService";
@@ -58,10 +59,14 @@ function Field({
   );
 }
 
-function CompanyTab({ settings }: { settings: WorkspaceSettings }) {
+function CompanyTab({ settings, storageConfigured }: { settings: WorkspaceSettings; storageConfigured: boolean }) {
   const [state, formAction, pending] = useActionState(updateSettingsAction, emptyState);
+  const [logoUrl, setLogoUrl] = useState(settings.logoUrl);
   return (
     <Card className="flex flex-col gap-4 p-5">
+      {storageConfigured ? (
+        <FileUploadField kind="logo" currentUrl={logoUrl} label="Workspace logo" onUploaded={setLogoUrl} />
+      ) : null}
       <form action={formAction} className="flex flex-col gap-4">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field label="Workspace name" name="name" defaultValue={settings.name} />
@@ -85,6 +90,9 @@ function CompanyTab({ settings }: { settings: WorkspaceSettings }) {
           </label>
         </div>
         <Field label="Business address" name="address" defaultValue={settings.address ?? ""} />
+        {!storageConfigured ? (
+          <Field label="Logo URL" name="logoUrl" defaultValue={settings.logoUrl ?? ""} />
+        ) : null}
         <div className="flex items-center gap-3">
           <Button type="submit" variant="primary" className="w-fit" disabled={pending}>
             {pending ? "Saving…" : "Save changes"}
@@ -418,6 +426,7 @@ export function RealSettingsClient({
   ownMemberId,
   isOwner,
   stripeConfigured,
+  storageConfigured,
 }: {
   settings: WorkspaceSettings;
   members: TeamMemberRow[];
@@ -426,6 +435,7 @@ export function RealSettingsClient({
   ownMemberId: string;
   isOwner: boolean;
   stripeConfigured: boolean;
+  storageConfigured: boolean;
 }) {
   return (
     <div className="mx-auto max-w-4xl px-4 py-6 sm:px-6 sm:py-8">
@@ -435,7 +445,11 @@ export function RealSettingsClient({
       <div className="mt-6">
         <Tabs
           tabs={[
-            { key: "company", label: "Company", content: <CompanyTab settings={settings} /> },
+            {
+              key: "company",
+              label: "Company",
+              content: <CompanyTab settings={settings} storageConfigured={storageConfigured} />,
+            },
             {
               key: "team",
               label: "Team",

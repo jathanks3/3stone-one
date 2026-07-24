@@ -17,7 +17,13 @@ export async function updateProfileAction(_prev: ActionState, formData: FormData
   try {
     await updateProfile(session.userId, {
       name: String(formData.get("name") ?? ""),
-      avatarUrl: String(formData.get("avatarUrl") ?? ""),
+      // Only included when the plain-URL fallback field actually
+      // rendered (storage not configured) — when uploads are configured,
+      // FileUploadField's /api/uploads/confirm already persisted
+      // avatarUrl directly, and this form never carries that field at
+      // all. Sending "" unconditionally would silently wipe out an
+      // avatar someone just uploaded the moment they save their name.
+      avatarUrl: formData.has("avatarUrl") ? String(formData.get("avatarUrl") ?? "") : undefined,
     });
     return { success: "Profile updated." };
   } catch (e) {

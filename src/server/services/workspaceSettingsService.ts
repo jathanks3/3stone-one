@@ -33,6 +33,7 @@ export interface WorkspaceSettingsInput {
   address?: string;
   contactEmail?: string;
   contactPhone?: string;
+  logoUrl?: string;
   industryProfileKey?: IndustryProfileKey;
 }
 
@@ -58,6 +59,7 @@ export async function updateWorkspaceSettings(workspaceId: string, input: Worksp
       address: input.address || null,
       contactEmail: input.contactEmail || null,
       contactPhone: input.contactPhone || null,
+      ...(input.logoUrl !== undefined ? { logoUrl: input.logoUrl || null } : {}),
       ...(input.industryProfileKey ? { industryProfileKey: input.industryProfileKey } : {}),
     },
   });

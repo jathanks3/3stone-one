@@ -26,7 +26,11 @@ export async function updateProfile(userId: string, input: { name: string; avata
   if (!name) throw new Error("Name is required.");
   await db.user.update({
     where: { id: userId },
-    data: { name, avatarUrl: input.avatarUrl || null },
+    // avatarUrl is only touched when the caller explicitly passed it
+    // (the plain-URL fallback form) — undefined means "leave it alone",
+    // not "clear it". See profile/actions.ts's comment for why that
+    // distinction matters once uploads exist.
+    data: { name, ...(input.avatarUrl !== undefined ? { avatarUrl: input.avatarUrl || null } : {}) },
   });
 }
 

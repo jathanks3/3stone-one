@@ -1,8 +1,9 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { Card } from "@/ui/Card";
 import { Button } from "@/ui/Button";
+import { FileUploadField } from "@/components/shared/FileUploadField";
 import type { Profile } from "@/server/services/profileService";
 import { type ActionState, updateProfileAction, changePasswordAction, updatePreferencesAction } from "./actions";
 
@@ -28,10 +29,11 @@ function Field({ label, name, defaultValue, type = "text" }: { label: string; na
   );
 }
 
-export function ProfileClient({ profile }: { profile: Profile }) {
+export function ProfileClient({ profile, storageConfigured }: { profile: Profile; storageConfigured: boolean }) {
   const [profileState, profileAction, profilePending] = useActionState(updateProfileAction, emptyState);
   const [passwordState, passwordAction, passwordPending] = useActionState(changePasswordAction, emptyState);
   const [prefsState, prefsAction, prefsPending] = useActionState(updatePreferencesAction, emptyState);
+  const [avatarUrl, setAvatarUrl] = useState(profile.avatarUrl);
 
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-6 px-4 py-6 sm:px-6 sm:py-8">
@@ -42,9 +44,14 @@ export function ProfileClient({ profile }: { profile: Profile }) {
 
       <Card className="flex flex-col gap-4 p-5">
         <p className="text-[13.5px] font-semibold text-ink-1">Edit profile</p>
+        {storageConfigured ? (
+          <FileUploadField kind="avatar" currentUrl={avatarUrl} label="Avatar" onUploaded={setAvatarUrl} />
+        ) : null}
         <form action={profileAction} className="flex flex-col gap-4">
           <Field label="Display name" name="name" defaultValue={profile.name} />
-          <Field label="Avatar URL" name="avatarUrl" defaultValue={profile.avatarUrl ?? ""} />
+          {!storageConfigured ? (
+            <Field label="Avatar URL" name="avatarUrl" defaultValue={profile.avatarUrl ?? ""} />
+          ) : null}
           <label className="flex flex-col gap-1.5">
             <span className="text-[12.5px] font-medium text-ink-2">Email</span>
             <input
