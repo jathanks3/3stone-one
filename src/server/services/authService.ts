@@ -17,10 +17,41 @@ async function notifyPasswordChanged(userId: string, via: "reset" | "profile"): 
 }
 
 const RESET_TOKEN_TTL_MS = 1000 * 60 * 60; // 1 hour — shorter than email verification's 24h; a reset token grants account takeover, not just proof of email ownership.
+const LOGIN_ATTEMPT_WINDOW_MS = 1000 * 60 * 15; // 15 minutes
+const LOGIN_ATTEMPT_LIMIT = 5;
+const RESET_REQUEST_WINDOW_MS = 1000 * 60 * 60; // 1 hour
+const RESET_REQUEST_LIMIT = 3;
 
 export interface RequestContext {
   ipAddress?: string | null;
   userAgent?: string | null;
+}
+
+// DB-backed, not in-memory — a serverless deployment has no shared
+// process memory between invocations, so an in-memory counter would
+// silently do nothing in production. No new infra (Redis/KV) needed:
+// SecurityEvent/PasswordResetToken already record what's needed, this
+// just counts recent rows. Scoped to a known account (not IP or a
+// nonexistent email) so it never becomes a second enumeration vector —
+// see the two call sites below for why.
+async function recentEventCount(userId: string, type: string, windowMs: number): Promise<number> {
+  return db.securityEvent.count({
+    where: { userId, type, createdAt: { gte: new Date(Date.now() - windowMs) } },
+  });
+}
+
+// Exported so loginAction (a real account under active brute-forcing)
+// can check before spending a scrypt hash comparison on every attempt.
+// Deliberately keyed on the existing user row, never on the submitted
+// email string before it's confirmed to exist — rate-limiting a
+// nonexistent email would itself leak "this account doesn't exist" by
+// its absence of any limit ever kicking in.
+export async function isLoginRateLimited(userId: string): Promise<boolean> {
+  return (await recentEventCount(userId, "login_failed", LOGIN_ATTEMPT_WINDOW_MS)) >= LOGIN_ATTEMPT_LIMIT;
+}
+
+export async function recordFailedLogin(userId: string, context: RequestContext = {}): Promise<void> {
+  await logSecurityEvent(userId, "login_failed", context);
 }
 
 async function logSecurityEvent(
@@ -81,6 +112,16 @@ export async function requestPasswordReset(
   if (!user || !user.passwordHash) {
     // No account, or an account that never set a password (mid-signup,
     // or invited-but-never-accepted) — nothing to reset. Silently no-op.
+    return {};
+  }
+
+  const recentRequests = await db.passwordResetToken.count({
+    where: { userId: user.id, createdAt: { gte: new Date(Date.now() - RESET_REQUEST_WINDOW_MS) } },
+  });
+  if (recentRequests >= RESET_REQUEST_LIMIT) {
+    // Same anti-enumeration principle as everywhere else in this file:
+    // silently no-op rather than return a "too many requests" error that
+    // would itself confirm the account exists.
     return {};
   }
 

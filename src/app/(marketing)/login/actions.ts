@@ -6,7 +6,7 @@ import { createSession } from "@/lib/session";
 import { verifyPassword } from "@/lib/password";
 import { db } from "@/server/db";
 import { DEMO_USER, DEMO_WORKSPACE } from "@/server/mock-data";
-import { recordLogin } from "@/server/services/authService";
+import { recordLogin, isLoginRateLimited, recordFailedLogin } from "@/server/services/authService";
 
 export interface LoginFormState {
   error?: string;
@@ -31,6 +31,9 @@ export async function loginAction(
     return { error: "Enter an email and password to continue." };
   }
 
+  const headerList = await headers();
+  const requestContext = { ipAddress: headerList.get("x-forwarded-for"), userAgent: headerList.get("user-agent") };
+
   let user: { id: string; passwordHash: string | null } | null;
   try {
     user = await db.user.findUnique({ where: { email }, select: { id: true, passwordHash: true } });
@@ -44,20 +47,25 @@ export async function loginAction(
     return { error: GENERIC_LOGIN_ERROR };
   }
 
-  // Same generic error whether the email doesn't exist or the password is
-  // wrong — telling them apart is a user-enumeration vector.
-  if (!user || !user.passwordHash || !(await verifyPassword(password, user.passwordHash))) {
+  // Same generic error whether the email doesn't exist, the account is
+  // rate-limited, or the password is wrong — telling any of these apart
+  // is a user-enumeration vector. Rate limiting is only meaningful once a
+  // real account is confirmed (see authService.isLoginRateLimited).
+  if (!user || !user.passwordHash) {
+    return { error: GENERIC_LOGIN_ERROR };
+  }
+  if (await isLoginRateLimited(user.id)) {
+    return { error: GENERIC_LOGIN_ERROR };
+  }
+  if (!(await verifyPassword(password, user.passwordHash))) {
+    await recordFailedLogin(user.id, requestContext);
     return { error: GENERIC_LOGIN_ERROR };
   }
 
   const staffMembership = await db.staffMembership.findUnique({ where: { userId: user.id } });
   const staffRole = staffMembership?.status === "active" ? staffMembership.role : undefined;
 
-  const headerList = await headers();
-  const { sessionVersion } = await recordLogin(user.id, {
-    ipAddress: headerList.get("x-forwarded-for"),
-    userAgent: headerList.get("user-agent"),
-  });
+  const { sessionVersion } = await recordLogin(user.id, requestContext);
   await createSession({ userId: user.id, isDemo: false, sessionVersion, ...(staffRole ? { staffRole } : {}) });
   redirect("/dashboard");
 }
