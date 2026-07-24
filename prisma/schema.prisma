@@ -1426,6 +1426,19 @@ model UploadedFile {
   @@map("uploaded_files")
 }
 
+// Founder Integration Center's persisted "Test connection" history — one
+// row per service, tracking the two facts separately (a check that
+// fails after a prior success must never overwrite when the LAST
+// success actually was).
+model IntegrationVerification {
+  serviceKey       String   @id
+  lastSuccessAt    DateTime?
+  lastErrorAt      DateTime?
+  lastErrorMessage String?
+
+  @@map("platform_integration_verifications")
+}
+
 enum LegalDocumentType {
   tos
   privacy
