@@ -10,7 +10,10 @@ export async function GET() {
   try {
     await db.$queryRaw`SELECT 1`;
     return NextResponse.json({ status: "ok" });
-  } catch {
+  } catch (e) {
+    // Logged server-side for whoever's operating this; the client-facing
+    // response stays exactly as uninformative as the comment above requires.
+    console.error("GET /api/health/db: database unreachable", e);
     return NextResponse.json({ status: "error" }, { status: 503 });
   }
 }

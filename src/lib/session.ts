@@ -10,11 +10,21 @@ const STAFF_ROLES: readonly StaffRole[] = ["founder", "operations", "support"];
 
 export interface SessionPayload {
   userId: string;
-  workspaceId: string;
+  // Optional: a pure-staff session (someone with only a StaffMembership,
+  // no workspace of their own) has nothing meaningful to put here yet —
+  // there's no self-serve "create your own workspace" flow in this app.
+  workspaceId?: string;
+  // Required, never inferred — every session must explicitly say which
+  // world it belongs to. The default on any ambiguity is `true` (demo),
+  // not `false` (real) — see parseSessionCookie: unknown must never be
+  // trusted with real/staff access.
+  isDemo: boolean;
   // Orthogonal to workspace membership (docs/15-company-platform-vision.md)
-  // — set only for staff with an active StaffMembership. Absent for every
-  // customer session. Gates the "3Stone AI" internal section; see
-  // proxy.ts and (app)/(platform)/layout.tsx for the enforcement layers —
+  // — set only for staff with an active StaffMembership, and only ever
+  // meaningful when isDemo is false (see parseSessionCookie: a demo
+  // session can never carry a staffRole, structurally, even if some other
+  // bug tried to attach one). Gates the "3Stone AI" internal section; see
+  // proxy.ts and (app)/3stone-ai/layout.tsx for the enforcement layers —
   // this field alone is never sufficient authorization on its own.
   staffRole?: StaffRole;
 }
@@ -44,26 +54,43 @@ export function parseSessionCookie(raw: string | undefined | null): SessionPaylo
     return null;
   }
   if (
-    typeof parsed === "object" &&
-    parsed !== null &&
-    typeof (parsed as SessionPayload).userId === "string" &&
-    (parsed as SessionPayload).userId.length > 0 &&
-    typeof (parsed as SessionPayload).workspaceId === "string" &&
-    (parsed as SessionPayload).workspaceId.length > 0
+    typeof parsed !== "object" ||
+    parsed === null ||
+    typeof (parsed as SessionPayload).userId !== "string" ||
+    (parsed as SessionPayload).userId.length === 0
   ) {
-    const { userId, workspaceId, staffRole } = parsed as SessionPayload;
-    // staffRole is a privilege claim, not a required field — if it's
-    // present but doesn't parse to one of the three known roles, drop it
-    // rather than reject the whole session. A customer's ordinary session
-    // must never be invalidated by a malformed claim to a privilege they
-    // never had; a staff claim that doesn't check out must never be
-    // trusted either. Fail closed on the sensitive part, not the whole.
-    const validStaffRole = typeof staffRole === "string" && STAFF_ROLES.includes(staffRole as StaffRole)
-      ? (staffRole as StaffRole)
-      : undefined;
-    return validStaffRole ? { userId, workspaceId, staffRole: validStaffRole } : { userId, workspaceId };
+    return null;
   }
-  return null;
+
+  const raw2 = parsed as SessionPayload;
+
+  // Demo-ness is never inferred from absence — but if the field is
+  // missing or malformed, the only safe default is `true`. Treating an
+  // ambiguous session as "real" would be the one bug in this file that
+  // could actually let a demo session touch something it shouldn't.
+  const isDemo = typeof raw2.isDemo === "boolean" ? raw2.isDemo : true;
+
+  const workspaceId =
+    typeof raw2.workspaceId === "string" && raw2.workspaceId.length > 0 ? raw2.workspaceId : undefined;
+
+  // staffRole is a privilege claim, not a required field — if it's present
+  // but doesn't parse to one of the three known roles, or the session is
+  // demo, drop it rather than reject the whole session. A session must
+  // never be invalidated by a malformed claim to a privilege it never
+  // had; a staff claim that doesn't check out (or belongs to a demo
+  // session) must never be trusted either. Fail closed on the sensitive
+  // part, not the whole.
+  const staffRole =
+    !isDemo && typeof raw2.staffRole === "string" && STAFF_ROLES.includes(raw2.staffRole as StaffRole)
+      ? (raw2.staffRole as StaffRole)
+      : undefined;
+
+  return {
+    userId: raw2.userId,
+    ...(workspaceId ? { workspaceId } : {}),
+    isDemo,
+    ...(staffRole ? { staffRole } : {}),
+  };
 }
 
 export async function getSession(): Promise<SessionPayload | null> {
@@ -74,4 +101,16 @@ export async function getSession(): Promise<SessionPayload | null> {
 export async function deleteSession() {
   const cookieStore = await cookies();
   cookieStore.delete(SESSION_COOKIE_NAME);
+}
+
+/**
+ * True only for a session that is both authenticated as staff AND not a
+ * demo session — the one check every layer of the "3Stone AI" section's
+ * authorization (middleware, section layout, API, nav) must use. Never
+ * check `staffRole` alone; parseSessionCookie already strips staffRole
+ * from demo sessions, but this helper exists so every call site reads
+ * the same intent instead of re-deriving it.
+ */
+export function hasStaffAccess(session: SessionPayload | null): session is SessionPayload & { staffRole: StaffRole } {
+  return Boolean(session && !session.isDemo && session.staffRole);
 }
