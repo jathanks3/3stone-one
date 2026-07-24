@@ -4,6 +4,20 @@ Living document — updated every milestone, per the founder's production
 charter. Checked items are verified (built, tested, confirmed against
 live infrastructure where applicable), not just "written."
 
+See [18-architecture-inventory.md](18-architecture-inventory.md) for the
+full external-service-by-service status (also live and testable at
+`/3stone-ai/integrations`, the Founder Integration Center).
+
+## Deployment
+
+- [x] `origin/main` and the live production deployment
+      (`https://3stone-one.vercel.app`) are both current as of the
+      stack-reconciliation milestone — verified via production smoke
+      tests (signup wizard, Settings, Profile, adversarial forged-cookie
+      rejection, all passing with zero console errors)
+- [x] No test/demo data left in the production database after any
+      milestone's verification (checked directly after each one)
+
 ## Foundation
 
 - [x] Real Postgres database (Neon, `3stone-one-production`, free tier)
@@ -231,19 +245,72 @@ flow as every future customer.
       migration; none exist yet because nothing calls `createNotification`
       for them.
 
-## Billing Foundation
+## Billing (Stripe) — fully built, one credential away from live
 
-- [x] Real data model, no live Stripe calls — `Subscription` /
-      `PlatformInvoice` (plan, status, MRR, trial end, invoice history)
-      read directly, exactly what a real Stripe webhook would update once
-      that integration exists.
+- [x] Plan tiers reconciled with the marketing site's actual published
+      pricing (Hub $99 / Growth $179 / Business OS $279 —
+      `src/config/pricing.ts`), replacing the old placeholder
+      free/pro/enterprise plan set
+- [x] Checkout (subscription mode), Billing Portal, self-provisioning
+      Products/Prices (no founder dashboard work needed once a key
+      exists), webhook handler (checkout completed, subscription
+      created/updated/deleted, invoice paid/payment failed), founder
+      pricing override (ad-hoc price, never touches the shared Price
+      other customers see)
 - [x] Never fabricates a payment or invoice — "Contact us to upgrade"
-      instead of a working checkout button; empty invoice history reads
-      "No invoices yet." rather than sample rows.
-- [ ] Live Stripe test-mode integration — needs the founder's own Stripe
-      account and API keys (an external credential this app can't
-      generate for itself); until then, "Contact us to upgrade" is the
-      honest ceiling of what this button can do.
+      shown whenever `STRIPE_SECRET_KEY` isn't configured; empty invoice
+      history reads "No invoices yet." rather than sample rows
+- [ ] Live Stripe — needs the founder's own Stripe account + test-mode
+      secret key + webhook secret (the app self-registers the webhook
+      endpoint once the secret key exists)
+
+## Storage (Supabase) — fully built, one credential away from live
+
+- [x] Signed, direct-to-storage uploads for avatars and workspace logos
+      (public bucket, permanent URLs) and documents (private bucket,
+      signed/expiring URLs, tenant-checked on every access)
+- [x] Real Neon metadata for every upload (`UploadedFile`) and audit
+      logging (`ActivityLogEntry` — first real writer to that table)
+- [x] Tenant isolation enforced entirely in this app's own code, never
+      Supabase RLS (Supabase Auth/Postgres are explicitly not adopted)
+- [ ] No real Supabase project/credentials exist anywhere in this
+      environment — the founder needs to create one (or provide
+      existing credentials if one already exists elsewhere) and supply
+      `SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY`
+
+## Email (Google Workspace) — fully built, one credential away from live
+
+- [x] DNS already real and verified at the domain level (confirmed by
+      direct lookup): MX to Google, two google-site-verification TXT
+      records, a published DKIM key for `3stoneai.com`
+- [x] Every email-triggering flow (verification, password reset, team
+      invitations) routes through one abstraction
+      (`src/server/services/emailService.ts`) that sends via Google
+      Workspace SMTP when configured, or logs + shows the link on-screen
+      when not — never fabricates delivery
+- [ ] Needs a Google Workspace App Password for the sending mailbox —
+      only the founder can generate it (requires 2FA + access to that
+      mailbox's Google Account security settings)
+
+## AI — audited, one real bug fixed, abstraction only
+
+- [x] Every AI feature classified: all of `src/server/ai/capabilities.ts`
+      and `src/server/ai/assistant.ts` is deterministic automation
+      (template/regex logic), not real AI — no LLM call anywhere
+- [x] **Fixed a real bug**: the AI Assistant chat widget had no
+      demo/real session check and served fabricated answers (from demo
+      data) to real customer sessions — now demo-only
+- [x] Abstraction created (`src/server/ai/aiProvider.ts`) since no
+      approved AI provider key exists in any environment — no
+      speculative model wiring done ahead of that
+
+## Founder Integration Center
+
+- [x] `/3stone-ai/integrations` — real, live-computed status for every
+      external service (never hardcoded), required env var names
+      (never values), last success/error, a "Test connection" button per
+      service. Founder manages integrations from the app itself instead
+      of checking Vercel or reading docs.
 
 ## Onboarding pipeline visibility (founder monitoring)
 
