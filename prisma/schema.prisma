@@ -135,9 +135,10 @@ model Workspace {
   aiUsageLogs        AiUsageLog[]
   storageSnapshots   StorageUsageSnapshot[]
   legalAcceptances   LegalAcceptance[]
-  onboardingState    WorkspaceOnboardingState?
+  onboardingProgress WorkspaceOnboardingProgress[]
   emailDeliveryLogs  EmailDeliveryLog[]
   announcementTargets PlatformAnnouncementTarget[]
+  convertedFromProspects SalesProspect[]
 
   @@map("workspaces")
 }
@@ -149,17 +150,46 @@ enum WorkspacePlan {
 }
 
 model User {
-  id           String    @id @default(cuid())
-  email        String    @unique
-  name         String
-  avatarUrl    String?
-  passwordHash String?
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String
+  avatarUrl     String?
+  passwordHash  String?
+  // Set once, by verifyEmail — proof of the "Email Verified" onboarding
+  // step. Deliberately not a boolean: the timestamp is itself the audit
+  // record ("verified when"), not just a flag to check.
+  emailVerifiedAt DateTime?
+  // Updated on every real (non-demo) session creation — the founder
+  // onboarding charter's "Last login" field. Never touched by demo
+  // sessions (see login/actions.ts's demoLoginAction, which never reaches
+  // recordLogin).
+  lastLoginAt  DateTime?
   createdAt    DateTime  @default(now())
 
   workspaceMemberships WorkspaceMember[]
   staffMembership      StaffMembership?
+  emailVerificationTokens EmailVerificationToken[]
 
   @@map("users")
+}
+
+// Real, single-use, expiring — the "Verify Email" step's actual
+// mechanism. See docs/16-database-operations.md / the onboarding
+// milestone report for why the email *send* is currently stubbed
+// (logged, not delivered) while this token mechanism is fully real:
+// sending requires a verified sending domain, which requires a DNS
+// change, which is an explicit approval boundary, not something to do
+// in passing here.
+model EmailVerificationToken {
+  token     String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@map("platform_email_verification_tokens")
 }
 
 model WorkspaceMember {
@@ -1281,14 +1311,64 @@ model LegalAcceptance {
   @@map("platform_legal_acceptances")
 }
 
-model WorkspaceOnboardingState {
-  workspaceId String   @id
-  workspace   Workspace @relation(fields: [workspaceId], references: [id])
-  step        String
-  completedAt DateTime?
-  updatedAt   DateTime @updatedAt
+// Customer Onboarding — every step persisted individually, not a single
+// "current step" pointer, so Customer 360's progress bar is a real
+// count of completed rows, never a fabricated percentage (docs/15 /
+// the founder's onboarding charter). The first three steps
+// (account_created, email_verified, password_created) happen before a
+// Workspace exists at all — they're derived from User fields
+// (User row existing, emailVerifiedAt, passwordHash) rather than rows
+// here; everything from workspace_created onward gets a real row the
+// moment it's actually completed.
+model OnboardingStepDefinition {
+  key       String   @id
+  label     String
+  sortOrder Int
+  progress  WorkspaceOnboardingProgress[]
 
-  @@map("platform_workspace_onboarding_states")
+  @@map("platform_onboarding_step_definitions")
+}
+
+model WorkspaceOnboardingProgress {
+  id          String   @id @default(cuid())
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id])
+  stepKey     String
+  step        OnboardingStepDefinition @relation(fields: [stepKey], references: [key])
+  completedAt DateTime @default(now())
+
+  @@unique([workspaceId, stepKey])
+  @@map("platform_workspace_onboarding_progress")
+}
+
+// 3Stone AI's OWN sales pipeline — people considering becoming a
+// customer, not customers yet. Deliberately a separate model from CRM's
+// Person/Deal (a customer's own leads, tenant-scoped, a completely
+// different concept) and separate from CustomerLifecycleStage (which
+// starts only once someone IS a customer). A prospect leaves this
+// pipeline the moment they convert — see convertedWorkspaceId.
+enum SalesPipelineStage {
+  lead
+  discovery_scheduled
+  proposal_draft
+  proposal_sent
+  negotiation
+  won
+  lost
+}
+
+model SalesProspect {
+  id                 String   @id @default(cuid())
+  name               String
+  email              String
+  businessName        String?
+  stage              SalesPipelineStage @default(lead)
+  convertedWorkspaceId String?
+  convertedWorkspace  Workspace? @relation(fields: [convertedWorkspaceId], references: [id])
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@map("platform_sales_prospects")
 }
 
 enum EmailDeliveryStatus {

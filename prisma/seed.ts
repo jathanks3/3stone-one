@@ -94,6 +94,39 @@ async function main() {
     });
   }
 
+  // --- Onboarding step definitions (the founder's onboarding charter) —
+  // the exact 15-step flow, real and ordered, so Customer 360's progress
+  // bar is a count of completed rows against this list, never a
+  // fabricated percentage. account_created / email_verified /
+  // password_created are included here for completeness and ordering,
+  // even though they're derived from User fields rather than getting
+  // their own WorkspaceOnboardingProgress row — see schema.prisma's
+  // comment on OnboardingStepDefinition. ---
+  const onboardingSteps: { key: string; label: string; sortOrder: number }[] = [
+    { key: "account_created", label: "Account Created", sortOrder: 0 },
+    { key: "email_verified", label: "Email Verified", sortOrder: 1 },
+    { key: "password_created", label: "Password Created", sortOrder: 2 },
+    { key: "workspace_created", label: "Workspace Created", sortOrder: 3 },
+    { key: "business_info_completed", label: "Business Information", sortOrder: 4 },
+    { key: "industry_selected", label: "Industry Selected", sortOrder: 5 },
+    { key: "product_selected", label: "Product Selected", sortOrder: 6 },
+    { key: "edition_selected", label: "Edition Selected", sortOrder: 7 },
+    { key: "plan_selected", label: "Plan Selected", sortOrder: 8 },
+    { key: "terms_accepted", label: "Terms Accepted", sortOrder: 9 },
+    { key: "subscription_configured", label: "Subscription Configured", sortOrder: 10 },
+    { key: "team_invited", label: "Team Invited", sortOrder: 11 },
+    { key: "first_login", label: "First Login", sortOrder: 12 },
+    { key: "first_project_created", label: "First Project Created", sortOrder: 13 },
+    { key: "active", label: "Active", sortOrder: 14 },
+  ];
+  for (const step of onboardingSteps) {
+    await prisma.onboardingStepDefinition.upsert({
+      where: { key: step.key },
+      update: { label: step.label, sortOrder: step.sortOrder },
+      create: step,
+    });
+  }
+
   // --- System workspace roles (docs/05-roles-and-permissions.md) — five
   // roles, Owner/Admin kept distinct per the founder's explicit decision. ---
   const systemRoles = ["Owner", "Admin", "Manager", "Member", "Client"];
