@@ -31,7 +31,22 @@ const emptyState: ActionState = {};
 
 function ActionMessage({ state }: { state: ActionState }) {
   if (state.error) return <p className="text-[12.5px] text-critical">{state.error}</p>;
-  if (state.success) return <p className="text-[12.5px] text-good">{state.success}</p>;
+  if (state.success) {
+    return (
+      <p className="text-[12.5px] text-good">
+        {state.success}
+        {state.link ? (
+          <>
+            {" "}
+            <a href={state.link} className="font-medium underline">
+              Open the invite link
+            </a>
+            .
+          </>
+        ) : null}
+      </p>
+    );
+  }
   return null;
 }
 

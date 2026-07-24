@@ -22,6 +22,11 @@ import type { IndustryProfileKey, WorkspacePlan } from "@/types";
 export interface ActionState {
   error?: string;
   success?: string;
+  // Only set by inviteMemberAction/resendInvitationAction, and only when
+  // email delivery isn't actually configured (see emailService.ts) — the
+  // same "show the link when it wasn't really sent" pattern used on
+  // /signup and /reset-password.
+  link?: string;
 }
 
 // Every action here re-derives workspaceId from the caller's own session
@@ -66,9 +71,12 @@ export async function inviteMemberAction(_prev: ActionState, formData: FormData)
     const email = String(formData.get("email") ?? "").trim();
     const roleName = String(formData.get("roleName") ?? "") as AssignableRoleName;
     if (!email) return { error: "Email is required." };
-    await inviteMember(workspaceId, email, roleName, userId);
+    const { inviteToken, delivered } = await inviteMember(workspaceId, email, roleName, userId);
     revalidatePath("/settings");
-    return { success: `Invitation sent to ${email}.` };
+    return {
+      success: delivered ? `Invitation emailed to ${email}.` : `Invitation created for ${email} — email delivery isn't configured yet.`,
+      link: delivered ? undefined : `/invite/accept?token=${inviteToken}`,
+    };
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Something went wrong." };
   }
@@ -78,9 +86,12 @@ export async function resendInvitationAction(_prev: ActionState, formData: FormD
   try {
     const { userId, workspaceId } = await currentWorkspaceId();
     await requireTeamManager(userId, workspaceId);
-    await resendInvitation(workspaceId, String(formData.get("invitationId") ?? ""));
+    const { inviteToken, delivered } = await resendInvitation(workspaceId, String(formData.get("invitationId") ?? ""));
     revalidatePath("/settings");
-    return { success: "Invitation resent." };
+    return {
+      success: delivered ? "Reminder emailed." : "Invitation extended — email delivery isn't configured yet.",
+      link: delivered ? undefined : `/invite/accept?token=${inviteToken}`,
+    };
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Something went wrong." };
   }

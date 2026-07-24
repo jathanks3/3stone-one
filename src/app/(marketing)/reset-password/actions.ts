@@ -5,6 +5,11 @@ import { requestPasswordReset } from "@/server/services/authService";
 
 export interface RequestResetFormState {
   submittedEmail?: string;
+  // Present only when the email matched a real account AND delivery
+  // isn't actually configured — never shown once Google Workspace SMTP
+  // is live (see emailService.ts), since handing out the raw link at
+  // that point would let anyone with page access reset a password
+  // without ever touching the real mailbox.
   devResetToken?: string;
 }
 
@@ -19,10 +24,10 @@ export async function requestResetAction(
   const email = String(formData.get("email") ?? "").trim();
   const headerList = await headers();
 
-  const { resetToken } = await requestPasswordReset(email, {
+  const { resetToken, delivered } = await requestPasswordReset(email, {
     ipAddress: headerList.get("x-forwarded-for"),
     userAgent: headerList.get("user-agent"),
   });
 
-  return { submittedEmail: email, devResetToken: resetToken };
+  return { submittedEmail: email, devResetToken: delivered ? undefined : resetToken };
 }

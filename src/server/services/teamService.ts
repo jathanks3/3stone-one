@@ -1,7 +1,16 @@
 import { randomBytes } from "node:crypto";
+import { headers } from "next/headers";
 import { db } from "@/server/db";
 import { hashPassword } from "@/lib/password";
 import { createNotification } from "@/server/services/notificationService";
+import { sendEmail } from "@/server/services/emailService";
+
+async function currentOrigin(): Promise<string> {
+  const headerList = await headers();
+  const host = headerList.get("host");
+  const protocol = host?.startsWith("localhost") ? "http" : "https";
+  return `${protocol}://${host}`;
+}
 
 const INVITATION_TTL_MS = 1000 * 60 * 60 * 24 * 7; // 7 days
 
@@ -100,7 +109,7 @@ export async function inviteMember(
   email: string,
   roleName: AssignableRoleName,
   invitedByUserId: string
-): Promise<{ invitationId: string; inviteToken: string }> {
+): Promise<{ invitationId: string; inviteToken: string; delivered: boolean }> {
   const normalizedEmail = email.trim().toLowerCase();
 
   const existingMember = await db.workspaceMember.findFirst({
@@ -139,14 +148,20 @@ export async function inviteMember(
     },
   });
 
-  // Same stubbed-delivery boundary as every other email in this app —
-  // the token itself is fully real.
-  console.log(`[stub email] You're invited to 3Stone One: /invite/accept?token=${inviteToken}`);
+  const origin = await currentOrigin();
+  const { delivered } = await sendEmail(
+    {
+      to: normalizedEmail,
+      subject: "You're invited to 3Stone One",
+      text: `You've been invited to join a workspace on 3Stone One: ${origin}/invite/accept?token=${inviteToken}`,
+    },
+    "team_invitation"
+  );
 
-  return { invitationId: invitation.id, inviteToken };
+  return { invitationId: invitation.id, inviteToken, delivered };
 }
 
-export async function resendInvitation(workspaceId: string, invitationId: string): Promise<{ inviteToken: string }> {
+export async function resendInvitation(workspaceId: string, invitationId: string): Promise<{ inviteToken: string; delivered: boolean }> {
   const invitation = await db.invitation.findFirst({ where: { id: invitationId, workspaceId, status: "pending" } });
   if (!invitation) {
     throw new Error("Invitation not found.");
@@ -157,8 +172,16 @@ export async function resendInvitation(workspaceId: string, invitationId: string
     where: { id: invitationId },
     data: { expiresAt: new Date(Date.now() + INVITATION_TTL_MS) },
   });
-  console.log(`[stub email] Reminder — you're invited to 3Stone One: /invite/accept?token=${invitation.token}`);
-  return { inviteToken: invitation.token };
+  const origin = await currentOrigin();
+  const { delivered } = await sendEmail(
+    {
+      to: invitation.email,
+      subject: "Reminder: you're invited to 3Stone One",
+      text: `Reminder — you've been invited to join a workspace on 3Stone One: ${origin}/invite/accept?token=${invitation.token}`,
+    },
+    "team_invitation_reminder"
+  );
+  return { inviteToken: invitation.token, delivered };
 }
 
 export async function revokeInvitation(workspaceId: string, invitationId: string): Promise<void> {

@@ -1,7 +1,16 @@
 import { randomBytes } from "node:crypto";
+import { headers } from "next/headers";
 import { db } from "@/server/db";
 import { hashPassword } from "@/lib/password";
+import { sendEmail } from "@/server/services/emailService";
 import type { IndustryProfileKey, WorkspacePlan } from "@/types";
+
+async function currentOrigin(): Promise<string> {
+  const headerList = await headers();
+  const host = headerList.get("host");
+  const protocol = host?.startsWith("localhost") ? "http" : "https";
+  return `${protocol}://${host}`;
+}
 
 const VERIFICATION_TOKEN_TTL_MS = 1000 * 60 * 60 * 24; // 24 hours
 
@@ -36,7 +45,7 @@ async function recordStep(workspaceId: string, stepKey: string) {
 
 // --- Step 1-3: account, before any workspace exists ---------------------
 
-export async function startSignup(email: string): Promise<{ userId: string; verificationToken: string }> {
+export async function startSignup(email: string): Promise<{ userId: string; verificationToken: string; delivered: boolean }> {
   const normalizedEmail = email.trim().toLowerCase();
   const existing = await db.user.findUnique({ where: { email: normalizedEmail } });
   if (existing?.passwordHash) {
@@ -53,15 +62,24 @@ export async function startSignup(email: string): Promise<{ userId: string; veri
     data: { token, userId: user.id, expiresAt: new Date(Date.now() + VERIFICATION_TOKEN_TTL_MS) },
   });
 
-  // Sending the actual email requires a verified Resend sending domain,
-  // which requires a DNS change on a real domain the founder owns — an
-  // explicit approval boundary, not something to do in passing here. The
-  // token mechanism itself is fully real (random, single-use, expiring);
-  // only delivery is stubbed, and clearly so — logged, not silently
-  // dropped, so the link is still usable in development/founder testing.
-  console.log(`[stub email] Verify your email: /signup/verify?token=${token}`);
+  // The token mechanism itself is fully real (random, single-use,
+  // expiring) regardless of whether delivery succeeds — sendEmail
+  // reports back whether it actually sent (Google Workspace SMTP
+  // configured) or only logged, and the caller (signup/actions.ts) only
+  // shows the raw link on-screen in the latter case. Showing it
+  // unconditionally once real delivery works would defeat the point of
+  // email verification — anyone with page access could self-verify.
+  const origin = await currentOrigin();
+  const { delivered } = await sendEmail(
+    {
+      to: normalizedEmail,
+      subject: "Verify your email — 3Stone One",
+      text: `Verify your email to continue setting up your workspace: ${origin}/signup/verify?token=${token}`,
+    },
+    "email_verification"
+  );
 
-  return { userId: user.id, verificationToken: token };
+  return { userId: user.id, verificationToken: token, delivered };
 }
 
 export async function verifyEmailToken(token: string): Promise<{ userId: string }> {

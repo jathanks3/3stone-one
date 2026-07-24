@@ -1,8 +1,17 @@
 import { randomBytes } from "node:crypto";
+import { headers } from "next/headers";
 import { db } from "@/server/db";
 import { hashPassword, verifyPassword } from "@/lib/password";
 import { createNotification } from "@/server/services/notificationService";
 import { getActiveWorkspaceIdForUser } from "@/server/services/onboardingService";
+import { sendEmail } from "@/server/services/emailService";
+
+async function currentOrigin(): Promise<string> {
+  const headerList = await headers();
+  const host = headerList.get("host");
+  const protocol = host?.startsWith("localhost") ? "http" : "https";
+  return `${protocol}://${host}`;
+}
 
 // A password-changed notification is workspace-scoped (Notification's
 // schema), but this service only knows a userId — reused from
@@ -106,7 +115,7 @@ export async function getSecurityEvents(userId: string, limit = 20) {
 export async function requestPasswordReset(
   email: string,
   context: RequestContext = {}
-): Promise<{ resetToken?: string }> {
+): Promise<{ resetToken?: string; delivered?: boolean }> {
   const normalizedEmail = email.trim().toLowerCase();
   const user = await db.user.findUnique({ where: { email: normalizedEmail } });
   if (!user || !user.passwordHash) {
@@ -131,12 +140,16 @@ export async function requestPasswordReset(
   });
   await logSecurityEvent(user.id, "password_reset_requested", context);
 
-  // Same stubbed-delivery boundary as onboardingService.startSignup's
-  // verification email: real delivery needs a verified sending domain
-  // (a DNS change), which is an explicit approval boundary, not something
-  // to fake here. The token itself is fully real.
-  console.log(`[stub email] Reset your password: /reset-password/confirm?token=${token}`);
-  return { resetToken: token };
+  const origin = await currentOrigin();
+  const { delivered } = await sendEmail(
+    {
+      to: normalizedEmail,
+      subject: "Reset your password — 3Stone One",
+      text: `Reset your password: ${origin}/reset-password/confirm?token=${token}`,
+    },
+    "password_reset"
+  );
+  return { resetToken: token, delivered };
 }
 
 export async function validateResetToken(token: string): Promise<{ userId: string }> {
