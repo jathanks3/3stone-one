@@ -8,7 +8,7 @@ import { DEMO_USER, DEMO_WORKSPACE } from "@/server/mock-data";
 export async function GET(request: Request) {
   const session = await getSession();
   if (!session) {
-    await createSession({ userId: DEMO_USER.id, workspaceId: DEMO_WORKSPACE.id, isDemo: true });
+    await createSession({ userId: DEMO_USER.id, workspaceId: DEMO_WORKSPACE.id, isDemo: true, sessionVersion: 0 });
   }
   return NextResponse.redirect(new URL("/dashboard", request.url));
 }

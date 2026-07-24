@@ -27,11 +27,93 @@ export interface SessionPayload {
   // proxy.ts and (app)/3stone-ai/layout.tsx for the enforcement layers —
   // this field alone is never sufficient authorization on its own.
   staffRole?: StaffRole;
+  // The User.sessionVersion this cookie was issued against. A password
+  // change/reset increments the DB value, which makes every
+  // previously-issued cookie's embedded number stale — that mismatch is
+  // what "session revocation" means for a stateless-cookie session model
+  // (there's no server-side session table to delete a row from). Demo
+  // sessions never carry a meaningful value here (nothing to revoke).
+  sessionVersion: number;
+}
+
+// --- Signing --------------------------------------------------------------
+//
+// The cookie used to be a plain JSON blob: `{"userId":"...","isDemo":false,
+// "staffRole":"founder"}`, readable and, worse, WRITABLE by anyone who can
+// send an HTTP request with that literal Cookie header — httpOnly only
+// blocks browser-side JS from touching it, not a client crafting the
+// request directly. That meant full account/staff impersonation for
+// anyone who could guess or observe a userId (which are not secret: they
+// appear in URLs like /3stone-ai/customers/[workspaceId]). This was found
+// and confirmed exploitable during this milestone's own adversarial
+// testing (a hand-built cookie granted real founder access, no password).
+//
+// Fixed by HMAC-signing the payload: the cookie is
+// `${base64url(payload)}.${base64url(hmac-sha256(payload))}`, verified with
+// Web Crypto's `crypto.subtle.verify` (constant-time internally — no
+// hand-rolled comparison to get wrong) before the payload is ever trusted.
+// Web Crypto (not `node:crypto`) specifically because this file is shared
+// with proxy.ts's Edge middleware, which cannot import Node builtins.
+const encoder = new TextEncoder();
+const decoder = new TextDecoder();
+
+function getSessionSecret(): string {
+  const secret = process.env.SESSION_SECRET;
+  if (!secret) {
+    throw new Error(
+      "SESSION_SECRET is not set. Every environment that creates or verifies sessions needs one " +
+        "(a long random string) — see .env.example."
+    );
+  }
+  return secret;
+}
+
+async function getHmacKey(): Promise<CryptoKey> {
+  return crypto.subtle.importKey("raw", encoder.encode(getSessionSecret()), { name: "HMAC", hash: "SHA-256" }, false, [
+    "sign",
+    "verify",
+  ]);
+}
+
+function bufferToBase64Url(buf: ArrayBuffer): string {
+  const bytes = new Uint8Array(buf);
+  let binary = "";
+  for (const b of bytes) binary += String.fromCharCode(b);
+  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+function base64UrlToBytes(b64url: string): Uint8Array {
+  const padded = b64url.replace(/-/g, "+").replace(/_/g, "/");
+  const withPadding = padded + "=".repeat((4 - (padded.length % 4)) % 4);
+  const binary = atob(withPadding);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return bytes;
+}
+
+async function signPayload(payloadB64: string): Promise<string> {
+  const key = await getHmacKey();
+  const signature = await crypto.subtle.sign("HMAC", key, encoder.encode(payloadB64));
+  return bufferToBase64Url(signature);
+}
+
+async function verifySignature(payloadB64: string, signatureB64: string): Promise<boolean> {
+  try {
+    const key = await getHmacKey();
+    const signatureBytes = base64UrlToBytes(signatureB64);
+    return await crypto.subtle.verify("HMAC", key, signatureBytes as BufferSource, encoder.encode(payloadB64) as BufferSource);
+  } catch {
+    // A malformed signature (bad base64, wrong length) must fail closed,
+    // not throw past the caller and crash the request.
+    return false;
+  }
 }
 
 export async function createSession(payload: SessionPayload) {
+  const payloadB64 = bufferToBase64Url(encoder.encode(JSON.stringify(payload)).buffer as ArrayBuffer);
+  const signature = await signPayload(payloadB64);
   const cookieStore = await cookies();
-  cookieStore.set(SESSION_COOKIE_NAME, JSON.stringify(payload), {
+  cookieStore.set(SESSION_COOKIE_NAME, `${payloadB64}.${signature}`, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
@@ -42,14 +124,23 @@ export async function createSession(payload: SessionPayload) {
 
 /**
  * The single source of truth for what counts as a valid session cookie —
- * shape-checked, not just present. Pure (no `cookies()`/Node APIs) so it can
- * run in proxy.ts's Edge middleware as well as here.
+ * signature-verified and shape-checked, not just present. Pure (no
+ * `cookies()`/Node APIs, only Web Crypto) so it can run in proxy.ts's Edge
+ * middleware as well as here.
  */
-export function parseSessionCookie(raw: string | undefined | null): SessionPayload | null {
+export async function parseSessionCookie(raw: string | undefined | null): Promise<SessionPayload | null> {
   if (!raw) return null;
+  const dotIndex = raw.lastIndexOf(".");
+  if (dotIndex === -1) return null;
+  const payloadB64 = raw.slice(0, dotIndex);
+  const signatureB64 = raw.slice(dotIndex + 1);
+
+  const validSignature = await verifySignature(payloadB64, signatureB64);
+  if (!validSignature) return null;
+
   let parsed: unknown;
   try {
-    parsed = JSON.parse(raw);
+    parsed = JSON.parse(decoder.decode(base64UrlToBytes(payloadB64)));
   } catch {
     return null;
   }
@@ -85,11 +176,14 @@ export function parseSessionCookie(raw: string | undefined | null): SessionPaylo
       ? (raw2.staffRole as StaffRole)
       : undefined;
 
+  const sessionVersion = typeof raw2.sessionVersion === "number" ? raw2.sessionVersion : 0;
+
   return {
     userId: raw2.userId,
     ...(workspaceId ? { workspaceId } : {}),
     isDemo,
     ...(staffRole ? { staffRole } : {}),
+    sessionVersion,
   };
 }
 

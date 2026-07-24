@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { verifyEmailToken, recordLogin } from "@/server/services/onboardingService";
+import { verifyEmailToken } from "@/server/services/onboardingService";
+import { recordLogin } from "@/server/services/authService";
 import { createSession } from "@/lib/session";
 
 // A Route Handler, not a page — createSession() sets a cookie, and
@@ -20,8 +21,11 @@ export async function GET(request: Request) {
 
   try {
     const { userId } = await verifyEmailToken(token);
-    await recordLogin(userId);
-    await createSession({ userId, isDemo: false });
+    const { sessionVersion } = await recordLogin(userId, {
+      ipAddress: request.headers.get("x-forwarded-for"),
+      userAgent: request.headers.get("user-agent"),
+    });
+    await createSession({ userId, isDemo: false, sessionVersion });
   } catch (e) {
     console.error("GET /signup/verify: token verification failed", e);
     return NextResponse.redirect(new URL("/signup?verifyError=invalid", request.url));

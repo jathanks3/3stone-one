@@ -3,13 +3,11 @@
 import { useActionState } from "react";
 import { Sparkles } from "lucide-react";
 import { loginAction, demoLoginAction, type LoginFormState } from "./actions";
-import { useToast } from "@/lib/toast";
 
 const initialState: LoginFormState = {};
 
 export function LoginForm() {
   const [state, formAction, pending] = useActionState(loginAction, initialState);
-  const { showToast } = useToast();
 
   return (
     <div className="w-full max-w-[400px]">
@@ -33,18 +31,9 @@ export function LoginForm() {
             <label htmlFor="password" className="text-[13px] font-medium text-ink-2">
               Password
             </label>
-            <button
-              type="button"
-              onClick={() =>
-                showToast({
-                  title: "Password reset isn't wired up yet",
-                  description: "This is a demo build — the Forgot Password flow ships with real auth.",
-                })
-              }
-              className="text-[12.5px] font-medium text-accent hover:text-accent-strong"
-            >
+            <a href="/reset-password" className="text-[12.5px] font-medium text-accent hover:text-accent-strong">
               Forgot password?
-            </button>
+            </a>
           </div>
           <input
             id="password"
@@ -93,18 +82,9 @@ export function LoginForm() {
 
       <p className="mt-6 text-center text-[13px] text-ink-3">
         New to 3Stone One?{" "}
-        <button
-          type="button"
-          onClick={() =>
-            showToast({
-              title: "Self-serve signup isn't open yet",
-              description: "Registration ships alongside real accounts — try the live demo for now.",
-            })
-          }
-          className="font-medium text-accent hover:text-accent-strong"
-        >
+        <a href="/signup" className="font-medium text-accent hover:text-accent-strong">
           Create an account
-        </button>
+        </a>
       </p>
     </div>
   );

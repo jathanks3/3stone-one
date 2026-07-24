@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getSession, hasStaffAccess } from "@/lib/session";
+import { isSessionVersionCurrent } from "@/server/auth/sessionSecurity";
 
 // Layer 2 of 4 (see docs/15-company-platform-vision.md). proxy.ts already
 // gates every /3stone-ai/* request before it reaches here — this re-check
@@ -16,6 +17,12 @@ export default async function ThreeStoneAiLayout({ children }: { children: React
   const session = await getSession();
   if (!hasStaffAccess(session)) {
     redirect(session ? "/dashboard" : "/login");
+  }
+  // A revoked-but-still-correctly-signed session (password changed/reset
+  // since this cookie was issued) must redirect to /logout, not /login —
+  // see (app)/layout.tsx's identical comment for why /login would loop.
+  if (!(await isSessionVersionCurrent(session))) {
+    redirect("/logout");
   }
 
   return (

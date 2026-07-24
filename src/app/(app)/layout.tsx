@@ -41,6 +41,20 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       redirect(hasStaffAccess(session) ? "/3stone-ai" : "/login");
     }
 
+    // Session revocation check: a password change/reset increments
+    // User.sessionVersion, which makes every cookie issued before that
+    // moment stale. membership.user is already fetched above (no extra
+    // query) — this is the one place that check has to happen for every
+    // page under the customer app, since every page renders through this
+    // layout first. Redirect to /logout, not /login — the stale cookie is
+    // still correctly signed, so proxy.ts's Edge-only check still sees it
+    // as "logged in" and would bounce a plain /login redirect straight
+    // back to /dashboard (it has no DB access to see sessionVersion
+    // itself). /logout actually deletes the cookie, breaking that loop.
+    if (membership.user.sessionVersion !== session.sessionVersion) {
+      redirect("/logout");
+    }
+
     workspace = {
       id: membership.workspace.id,
       name: membership.workspace.name,

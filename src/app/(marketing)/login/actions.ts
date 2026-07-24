@@ -1,11 +1,12 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 import { createSession } from "@/lib/session";
 import { verifyPassword } from "@/lib/password";
 import { db } from "@/server/db";
 import { DEMO_USER, DEMO_WORKSPACE } from "@/server/mock-data";
-import { recordLogin } from "@/server/services/onboardingService";
+import { recordLogin } from "@/server/services/authService";
 
 export interface LoginFormState {
   error?: string;
@@ -52,8 +53,12 @@ export async function loginAction(
   const staffMembership = await db.staffMembership.findUnique({ where: { userId: user.id } });
   const staffRole = staffMembership?.status === "active" ? staffMembership.role : undefined;
 
-  await recordLogin(user.id);
-  await createSession({ userId: user.id, isDemo: false, ...(staffRole ? { staffRole } : {}) });
+  const headerList = await headers();
+  const { sessionVersion } = await recordLogin(user.id, {
+    ipAddress: headerList.get("x-forwarded-for"),
+    userAgent: headerList.get("user-agent"),
+  });
+  await createSession({ userId: user.id, isDemo: false, sessionVersion, ...(staffRole ? { staffRole } : {}) });
   redirect("/dashboard");
 }
 
@@ -65,6 +70,6 @@ export async function loginAction(
 // of those true structurally (parseSessionCookie strips staffRole from
 // any session where isDemo is true, regardless of what's in the cookie).
 export async function demoLoginAction() {
-  await createSession({ userId: DEMO_USER.id, workspaceId: DEMO_WORKSPACE.id, isDemo: true });
+  await createSession({ userId: DEMO_USER.id, workspaceId: DEMO_WORKSPACE.id, isDemo: true, sessionVersion: 0 });
   redirect("/dashboard");
 }

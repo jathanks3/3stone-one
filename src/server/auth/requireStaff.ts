@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSession, hasStaffAccess, type SessionPayload, type StaffRole } from "@/lib/session";
+import { isSessionVersionCurrent } from "./sessionSecurity";
 
 type StaffSession = SessionPayload & { staffRole: StaffRole };
 
@@ -11,7 +12,7 @@ type StaffSession = SessionPayload & { staffRole: StaffRole };
 // reachable without that page at all.
 export async function requireStaff(): Promise<{ session: StaffSession } | { response: NextResponse }> {
   const session = await getSession();
-  if (!hasStaffAccess(session)) {
+  if (!hasStaffAccess(session) || !(await isSessionVersionCurrent(session))) {
     return { response: NextResponse.json({ error: "Forbidden" }, { status: 403 }) };
   }
   return { session };

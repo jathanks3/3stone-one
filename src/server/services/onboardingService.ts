@@ -183,10 +183,3 @@ export async function inviteTeamMember(workspaceId: string, email: string, owner
 export async function recordFirstLogin(workspaceId: string): Promise<void> {
   await recordStep(workspaceId, "first_login");
 }
-
-// Called at every real (non-demo) session creation — the source of truth
-// for the founder's "Last login" field (customerService.ts). Demo
-// sessions never call this (see login/actions.ts's demoLoginAction).
-export async function recordLogin(userId: string): Promise<void> {
-  await db.user.update({ where: { id: userId }, data: { lastLoginAt: new Date() } });
-}
