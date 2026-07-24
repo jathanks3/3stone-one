@@ -34,6 +34,7 @@ Read the rest in this order:
 13. [13-self-critique.md](13-self-critique.md) — where this design is weakest, and what we're doing about it
 14. [14-first-run-experience.md](14-first-run-experience.md) — the deliberately designed first 90 seconds, and why it's the highest-leverage screen in the product
 15. [16-database-operations.md](16-database-operations.md) — the real database, once it exists: setup, migrations, rollback, backup, credential rotation
+16. [17-production-readiness-checklist.md](17-production-readiness-checklist.md) — living checklist of what's real vs. mock, updated every milestone
 
 ## Revision note (v2)
 
