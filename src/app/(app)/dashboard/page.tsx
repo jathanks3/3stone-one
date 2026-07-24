@@ -4,6 +4,7 @@ import { DashboardClient } from "@/features/dashboard/DashboardClient";
 import { RealDashboard } from "@/features/dashboard/RealDashboard";
 import { getSession, hasStaffAccess } from "@/lib/session";
 import { getDashboardData } from "@/server/services/dashboardService";
+import { recordFirstLogin } from "@/server/services/onboardingService";
 import { db } from "@/server/db";
 
 export const metadata: Metadata = {
@@ -42,6 +43,10 @@ export default async function DashboardPage() {
     // over with demo or placeholder data.
     redirect(hasStaffAccess(session) ? "/3stone-ai" : "/login");
   }
+
+  // Idempotent (recordStep upserts) — cheap to call on every dashboard
+  // load rather than trying to detect "is this really the first one."
+  await recordFirstLogin(membership.workspaceId);
 
   const data = await getDashboardData(membership.workspaceId);
   return <RealDashboard data={data} />;
