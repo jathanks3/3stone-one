@@ -99,6 +99,7 @@ model Workspace {
 
   members            WorkspaceMember[]
   invitations        Invitation[]
+  uploadedFiles      UploadedFile[]
   roles              Role[]
   sites              Site[]
   organizations      Organization[]
@@ -201,6 +202,7 @@ model User {
   passwordResetTokens  PasswordResetToken[]
   securityEvents       SecurityEvent[]
   invitationsSent      Invitation[] @relation("InvitedBy")
+  uploadedFiles        UploadedFile[]
 
   @@map("users")
 }
@@ -1391,6 +1393,37 @@ model StorageUsageSnapshot {
 
   @@index([workspaceId, snapshotAt])
   @@map("platform_storage_usage_snapshots")
+}
+
+// Real per-file metadata for every upload — the file bytes themselves
+// live in Supabase Storage (storage only; see docs/18-architecture-inventory.md
+// for why Supabase Auth/Postgres are NOT used here), this is the Neon-side
+// record that makes tenant isolation, permissions, and audit logging
+// possible without touching Supabase's own auth system at all: every
+// signed upload/download URL is only ever issued after a check against
+// this table's workspaceId, using this app's own session/permission
+// checks, never Supabase RLS.
+enum UploadedFileKind {
+  avatar
+  logo
+  document
+}
+
+model UploadedFile {
+  id               String   @id @default(cuid())
+  workspaceId      String
+  workspace        Workspace @relation(fields: [workspaceId], references: [id])
+  uploadedByUserId String
+  uploadedBy       User     @relation(fields: [uploadedByUserId], references: [id])
+  kind             UploadedFileKind
+  storagePath      String   @unique
+  originalFilename String
+  mimeType         String
+  sizeBytes        Int
+  createdAt        DateTime @default(now())
+
+  @@index([workspaceId, kind])
+  @@map("uploaded_files")
 }
 
 enum LegalDocumentType {
