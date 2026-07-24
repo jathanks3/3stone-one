@@ -37,12 +37,20 @@ Vercel project settings) that reflects the true state of the integration.
 
 Two connection strings, both secret, never committed:
 
-- `DATABASE_URL` — **pooled** (pgbouncer) connection. Used by the running
-  app (`src/server/db.ts`) at runtime, in every environment.
-- `DIRECT_URL` — **unpooled** connection. Used only by the Prisma CLI
-  (`migrate deploy`, `migrate dev`, `db pull`, `studio`) via
-  `prisma.config.ts` — migrations need session-level features a pooled
-  connection doesn't reliably support.
+- `DATABASE_URL` — **pooled** (pgbouncer, hostname contains `-pooler`)
+  connection. Used by the running app (`src/server/db.ts`) at runtime, in
+  every environment.
+- `DATABASE_URL_UNPOOLED` — **unpooled** connection (this is Vercel's Neon
+  integration's actual variable name — not `DIRECT_URL`, which is the more
+  common Prisma convention elsewhere; `prisma.config.ts` checks
+  `DIRECT_URL` first, then falls back to this, so either works). Used
+  only by the Prisma CLI (`migrate deploy`, `migrate dev`, `db pull`,
+  `studio`) — migrations need session-level features a pooled connection
+  doesn't reliably support.
+- Neon's integration also sets several other variable names
+  (`PGHOST`/`PGUSER`/`PGPASSWORD`/`PGDATABASE`, `POSTGRES_*`,
+  `NEON_PROJECT_ID`) for compatibility with other tools' conventions —
+  this app only reads the two above.
 
 Prisma 7 moved connection configuration out of `schema.prisma` entirely;
 `prisma.config.ts` is read only by the CLI, never by the deployed app's
@@ -86,7 +94,7 @@ FOUNDER_EMAIL=you@3stoneai.com npx prisma db seed
 ### Before every migration, verify
 
 1. **Which database you're pointed at.** `echo $DATABASE_URL` /
-   `echo $DIRECT_URL` and confirm the hostname matches
+   `echo $DATABASE_URL_UNPOOLED` and confirm the hostname matches
    `3stone-one-production` (or the intended branch) — not a guess, not
    "probably." A pooled/direct URL pointed at the wrong branch is how a
    migration ends up applied to the wrong environment.
@@ -142,7 +150,7 @@ while the schema is still just seeded reference data:
 
 1. In the Neon console (`vercel integration open neon
    3stone-one-production`), reset the password for the production role.
-2. Vercel's Neon integration updates `DATABASE_URL`/`DIRECT_URL`
+2. Vercel's Neon integration updates `DATABASE_URL`/`DATABASE_URL_UNPOOLED`
    automatically for connected environments when the integration itself
    manages the credential — confirm via `vercel env ls` that the values
    changed (names only are ever visible via CLI output; treat any command
