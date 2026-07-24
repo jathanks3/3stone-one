@@ -1,7 +1,7 @@
 import { randomBytes } from "node:crypto";
 import { db } from "@/server/db";
 import { hashPassword } from "@/lib/password";
-import type { IndustryProfileKey } from "@/types";
+import type { IndustryProfileKey, WorkspacePlan } from "@/types";
 
 const VERIFICATION_TOKEN_TTL_MS = 1000 * 60 * 60 * 24; // 24 hours
 
@@ -135,7 +135,7 @@ export async function confirmProductAndEdition(workspaceId: string): Promise<voi
   await recordStep(workspaceId, "edition_selected");
 }
 
-export async function selectPlan(workspaceId: string, plan: "free" | "pro" | "enterprise"): Promise<void> {
+export async function selectPlan(workspaceId: string, plan: WorkspacePlan): Promise<void> {
   await db.workspace.update({ where: { id: workspaceId }, data: { plan } });
   await db.subscription.upsert({
     where: { workspaceId },

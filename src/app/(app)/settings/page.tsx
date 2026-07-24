@@ -5,6 +5,7 @@ import { getActiveWorkspaceIdForUser } from "@/server/services/onboardingService
 import { getWorkspaceSettings } from "@/server/services/workspaceSettingsService";
 import { listMembers, listPendingInvitations } from "@/server/services/teamService";
 import { getBillingSummary } from "@/server/services/billingService";
+import { isStripeConfigured } from "@/server/services/stripeService";
 import { RealSettingsClient } from "./RealSettingsClient";
 
 export const metadata: Metadata = { title: "Settings — 3Stone One" };
@@ -37,6 +38,7 @@ export default async function SettingsPage() {
       billing={billing}
       ownMemberId={ownMember?.id ?? ""}
       isOwner={ownMember?.roleName === "Owner"}
+      stripeConfigured={isStripeConfigured()}
     />
   );
 }

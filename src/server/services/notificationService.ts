@@ -22,6 +22,8 @@ function describe(type: string, payload: Prisma.JsonValue): { title: string; bod
       };
     case "onboarding_complete":
       return { title: "Setup complete", body: `${p.workspaceName ?? "Your workspace"} is ready to use.` };
+    case "payment_failed":
+      return { title: "A payment failed", body: "Update your payment method in Settings → Billing to avoid interruption." };
     default:
       return { title: type, body: "" };
   }
@@ -44,6 +46,7 @@ const TYPE_CATEGORY: Record<string, NotificationCategory> = {
   role_changed: "workspace",
   onboarding_complete: "workspace",
   password_changed: "security",
+  payment_failed: "security",
 };
 
 // Preferences are real and enforced here, not just decorative toggles in

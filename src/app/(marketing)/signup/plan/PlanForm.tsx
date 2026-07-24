@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import { Check, Lock } from "lucide-react";
 import { selectPlanAction, type PlanFormState } from "./actions";
+import { PLAN_TIERS, ENTERPRISE_LABEL } from "@/config/pricing";
 
 const initialState: PlanFormState = {};
 
@@ -24,19 +25,32 @@ export function PlanForm() {
           </div>
         </div>
 
-        {["Pro", "Enterprise"].map((tier) => (
-          <div key={tier} className="flex items-center justify-between rounded-[10px] border border-line-strong bg-surface px-4 py-3 opacity-60">
+        {PLAN_TIERS.map((tier) => (
+          <div key={tier.key} className="flex items-center justify-between rounded-[10px] border border-line-strong bg-surface px-4 py-3 opacity-60">
             <div className="flex items-center gap-2.5">
               <div className="flex h-7 w-7 items-center justify-center rounded-full bg-surface-raised text-ink-3">
                 <Lock size={13} />
               </div>
               <div>
-                <p className="text-[14px] font-semibold text-ink-1">{tier}</p>
+                <p className="text-[14px] font-semibold text-ink-1">
+                  {tier.label} — ${tier.priceMonthly}/mo
+                </p>
                 <p className="text-[12px] text-ink-3">Not available yet — you&rsquo;re on Free for now</p>
               </div>
             </div>
           </div>
         ))}
+        <div className="flex items-center justify-between rounded-[10px] border border-line-strong bg-surface px-4 py-3 opacity-60">
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-7 w-7 items-center justify-center rounded-full bg-surface-raised text-ink-3">
+              <Lock size={13} />
+            </div>
+            <div>
+              <p className="text-[14px] font-semibold text-ink-1">{ENTERPRISE_LABEL}</p>
+              <p className="text-[12px] text-ink-3">Custom — talk to us</p>
+            </div>
+          </div>
+        </div>
       </div>
       {state.error ? (
         <p role="alert" className="text-[13px] text-critical">

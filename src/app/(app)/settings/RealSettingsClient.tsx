@@ -8,6 +8,7 @@ import { Button } from "@/ui/Button";
 import { Badge } from "@/ui/Badge";
 import { Avatar } from "@/ui/Avatar";
 import { industryProfileList } from "@/config/industry-profiles";
+import { PLAN_TIERS } from "@/config/pricing";
 import type { WorkspaceSettings } from "@/server/services/workspaceSettingsService";
 import type { TeamMemberRow, PendingInvitationRow, AssignableRoleName } from "@/server/services/teamService";
 import type { BillingSummary } from "@/server/services/billingService";
@@ -20,6 +21,8 @@ import {
   changeRoleAction,
   removeMemberAction,
   transferOwnershipAction,
+  startCheckoutAction,
+  openBillingPortalAction,
 } from "./actions";
 
 const ASSIGNABLE_ROLES: AssignableRoleName[] = ["Admin", "Manager", "Member", "Client"];
@@ -317,14 +320,40 @@ function formatCents(cents: number) {
   return (cents / 100).toLocaleString("en-US", { style: "currency", currency: "USD" });
 }
 
-function BillingTab({ billing }: { billing: BillingSummary }) {
+function PlanCard({ plan, stripeConfigured }: { plan: (typeof PLAN_TIERS)[number]; stripeConfigured: boolean }) {
+  const [state, formAction, pending] = useActionState(startCheckoutAction, emptyState);
+  return (
+    <div className="flex items-center justify-between rounded-[10px] border border-line bg-surface px-4 py-3">
+      <div>
+        <p className="text-[13.5px] font-semibold text-ink-1">{plan.label}</p>
+        <p className="text-[12px] text-ink-3">${plan.priceMonthly}/mo · up to {plan.maxEmployees} employees</p>
+      </div>
+      {stripeConfigured ? (
+        <form action={formAction}>
+          <input type="hidden" name="planKey" value={plan.key} />
+          <Button type="submit" variant="primary" disabled={pending}>
+            {pending ? "Redirecting…" : "Upgrade"}
+          </Button>
+        </form>
+      ) : (
+        <Button variant="secondary" disabled title="Billing isn't live yet">
+          Contact us
+        </Button>
+      )}
+      {state.error ? <p className="text-[11px] text-critical">{state.error}</p> : null}
+    </div>
+  );
+}
+
+function BillingTab({ billing, stripeConfigured }: { billing: BillingSummary; stripeConfigured: boolean }) {
+  const [portalState, portalAction, portalPending] = useActionState(openBillingPortalAction, emptyState);
   return (
     <div className="flex flex-col gap-4">
       <Card className="p-5">
         <div className="flex items-center justify-between">
           <div>
             <p className="text-[15px] font-semibold capitalize text-ink-1">
-              {billing.plan} plan {billing.isFounderPricing ? <Badge tone="accent">Founder pricing</Badge> : null}
+              {billing.plan.replace("_", " ")} plan {billing.isFounderPricing ? <Badge tone="accent">Founder pricing</Badge> : null}
             </p>
             <p className="mt-1 text-[12.5px] text-ink-3 capitalize">Status: {billing.status.replace("_", " ")}</p>
             {billing.trialEndsAt ? (
@@ -336,10 +365,29 @@ function BillingTab({ billing }: { billing: BillingSummary }) {
             <span className="text-[13px] font-medium text-ink-3">/mo</span>
           </p>
         </div>
-        <Button variant="secondary" className="mt-4 w-fit" disabled>
-          Contact us to upgrade
-        </Button>
+        {stripeConfigured ? (
+          <form action={portalAction} className="mt-4">
+            <Button type="submit" variant="secondary" className="w-fit" disabled={portalPending}>
+              {portalPending ? "Opening…" : "Manage billing"}
+            </Button>
+            {portalState.error ? <p className="mt-2 text-[11px] text-critical">{portalState.error}</p> : null}
+          </form>
+        ) : (
+          <Button variant="secondary" className="mt-4 w-fit" disabled title="Billing isn't live yet">
+            Contact us to upgrade
+          </Button>
+        )}
       </Card>
+
+      <div>
+        <p className="mb-2 text-[12px] font-semibold uppercase tracking-wide text-ink-3">Plans</p>
+        <div className="flex flex-col gap-2">
+          {PLAN_TIERS.map((plan) => (
+            <PlanCard key={plan.key} plan={plan} stripeConfigured={stripeConfigured} />
+          ))}
+        </div>
+      </div>
+
       <div>
         <p className="mb-2 text-[12px] font-semibold uppercase tracking-wide text-ink-3">Invoice history</p>
         {billing.invoices.length === 0 ? (
@@ -369,6 +417,7 @@ export function RealSettingsClient({
   billing,
   ownMemberId,
   isOwner,
+  stripeConfigured,
 }: {
   settings: WorkspaceSettings;
   members: TeamMemberRow[];
@@ -376,6 +425,7 @@ export function RealSettingsClient({
   billing: BillingSummary;
   ownMemberId: string;
   isOwner: boolean;
+  stripeConfigured: boolean;
 }) {
   return (
     <div className="mx-auto max-w-4xl px-4 py-6 sm:px-6 sm:py-8">
@@ -391,7 +441,7 @@ export function RealSettingsClient({
               label: "Team",
               content: <TeamTab members={members} invitations={invitations} ownMemberId={ownMemberId} isOwner={isOwner} />,
             },
-            { key: "billing", label: "Billing", content: <BillingTab billing={billing} /> },
+            { key: "billing", label: "Billing", content: <BillingTab billing={billing} stripeConfigured={stripeConfigured} /> },
           ]}
         />
       </div>

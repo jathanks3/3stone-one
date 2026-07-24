@@ -1,6 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 import { getSession } from "@/lib/session";
 import { getActiveWorkspaceIdForUser } from "@/server/services/onboardingService";
 import {
@@ -14,7 +16,8 @@ import {
   type AssignableRoleName,
 } from "@/server/services/teamService";
 import { updateWorkspaceSettings } from "@/server/services/workspaceSettingsService";
-import type { IndustryProfileKey } from "@/types";
+import { createCheckoutSession, createBillingPortalSession } from "@/server/services/stripeService";
+import type { IndustryProfileKey, WorkspacePlan } from "@/types";
 
 export interface ActionState {
   error?: string;
@@ -132,4 +135,43 @@ export async function transferOwnershipAction(_prev: ActionState, formData: Form
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Something went wrong." };
   }
+}
+
+async function currentOrigin(): Promise<string> {
+  const headerList = await headers();
+  const host = headerList.get("host");
+  const protocol = host?.startsWith("localhost") ? "http" : "https";
+  return `${protocol}://${host}`;
+}
+
+export async function startCheckoutAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const { userId, workspaceId } = await currentWorkspaceId();
+  await requireTeamManager(userId, workspaceId);
+  const planKey = String(formData.get("planKey") ?? "") as Exclude<WorkspacePlan, "free" | "enterprise">;
+  const origin = await currentOrigin();
+
+  let url: string;
+  try {
+    ({ url } = await createCheckoutSession(workspaceId, planKey, {
+      successUrl: `${origin}/settings?billing=success`,
+      cancelUrl: `${origin}/settings?billing=cancelled`,
+    }));
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Checkout is not available yet." };
+  }
+  redirect(url);
+}
+
+export async function openBillingPortalAction(_prev: ActionState, _formData: FormData): Promise<ActionState> {
+  const { userId, workspaceId } = await currentWorkspaceId();
+  await requireTeamManager(userId, workspaceId);
+  const origin = await currentOrigin();
+
+  let url: string;
+  try {
+    ({ url } = await createBillingPortalSession(workspaceId, `${origin}/settings`));
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "No billing account yet." };
+  }
+  redirect(url);
 }

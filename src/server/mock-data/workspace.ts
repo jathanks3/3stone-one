@@ -5,7 +5,7 @@ export const DEMO_WORKSPACE: Workspace = {
   name: "Red Oak Construction",
   slug: "red-oak-construction",
   industryProfileKey: "construction",
-  plan: "pro",
+  plan: "growth",
 };
 
 export const DEMO_USER: SessionUser = {
