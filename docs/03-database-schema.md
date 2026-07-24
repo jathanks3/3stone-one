@@ -73,8 +73,35 @@ User
   id, email, name, avatarUrl, passwordHash (nullable — magic link users
   have none), emailVerifiedAt (nullable — set once, by the real signup
   wizard's verify step), lastLoginAt (nullable — updated at every real,
-  non-demo session creation; the founder's "Last login" field), createdAt
+  non-demo session creation; the founder's "Last login" field),
+  sessionVersion (int, bumped on password change/reset — every session
+  cookie embeds the version it was issued against; a mismatch means
+  "revoked", see lib/session.ts), notificationPreferences (json,
+  nullable — null means everything on), createdAt
   — global identity; a User is not workspace-scoped, WorkspaceMember is.
+
+PasswordResetToken
+  token (pk), userId (fk), expiresAt, usedAt (nullable), createdAt
+  — same real single-use/expiring shape as EmailVerificationToken; the
+    "password reset" flow's actual mechanism.
+
+SecurityEvent
+  id, userId (fk), type (login | login_failed | password_reset_requested |
+  password_changed), ipAddress (nullable), userAgent (nullable), metadata
+  (json, nullable), createdAt
+  — a user's own account-security timeline (login history + security
+    events); also what the login-attempt and password-reset-request rate
+    limiters count against.
+
+Invitation
+  id, workspaceId (fk), email, roleId (fk → Role), token (unique),
+  status (pending | accepted | revoked | expired), invitedByUserId (fk),
+  expiresAt, acceptedAt (nullable), revokedAt (nullable), createdAt
+  — a standing offer to join, not membership itself: accepting is what
+    creates/activates the WorkspaceMember row. Deliberately separate from
+    just creating a WorkspaceMember directly (the pre-invitation-model
+    behavior), so an invitation can be resent or revoked without ever
+    having touched membership.
 
 WorkspaceMember
   id, workspaceId (fk), userId (fk), roleId (fk → Role), departmentId (fk,

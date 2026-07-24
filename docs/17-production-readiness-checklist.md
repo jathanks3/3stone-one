@@ -17,9 +17,11 @@ live infrastructure where applicable), not just "written."
       currently share one database — flagged in docs/16, not yet done)
 - [ ] Structured error monitoring (Sentry or equivalent) — currently
       `console.error` only
-- [ ] Rate limiting on any endpoint
+- [x] Rate limiting on login attempts and password reset requests
+      (DB-backed, no new infra — see Authentication section)
 - [ ] Input validation library (Zod, per the original architecture docs)
-      at any API boundary
+      at any API boundary — validation today is real but hand-written
+      per service function, not centralized
 
 ## Authentication & Authorization
 
@@ -27,20 +29,52 @@ live infrastructure where applicable), not just "written."
 - [x] Real login path (`loginAction`) — DB-backed, generic error on
       failure, no user-enumeration vector, DB errors logged server-side
       only
+- [x] **Session cookies are HMAC-SHA256 signed** (Web Crypto, so the same
+      code path runs in proxy.ts's Edge middleware and everywhere else).
+      Fixed a real authentication-bypass vulnerability found during this
+      milestone's own adversarial testing: the cookie used to be a plain
+      JSON blob — httpOnly blocks browser-side JS from reading/writing it,
+      but nothing stopped a client from sending an arbitrary raw HTTP
+      request with a hand-crafted Cookie header. A forged
+      `{isDemo:false,staffRole:"founder"}` cookie granted real founder
+      access with no password. Verified fixed: the same forged cookie, and
+      a correctly-shaped-but-wrongly-signed one, are both now rejected.
+- [x] Session revocation — `User.sessionVersion`, bumped on password
+      change/reset, embedded in every session cookie; (app)/layout.tsx,
+      3stone-ai/layout.tsx, and requireStaff() all reject a cookie whose
+      embedded version no longer matches the database. Verified: a direct
+      DB bump of sessionVersion correctly logs out an existing browser
+      session (via /logout, not /login — a stale-but-correctly-signed
+      cookie still parses as "logged in" to proxy.ts's DB-free Edge check,
+      so /login alone would loop).
+- [x] Password reset — `/reset-password` (request) and
+      `/reset-password/confirm` (real, single-use, 1-hour token), same
+      anti-enumeration principle as login. Verified end-to-end including
+      old-password-rejected / new-password-works / reused-token-rejected.
+- [x] Login history / account security events — `SecurityEvent` rows for
+      login, login_failed, password_reset_requested, password_changed.
+- [x] Rate limiting — 5 failed logins per 15 minutes blocks further
+      attempts (including the correct password) for that account; 3
+      password reset requests per hour, then silent no-op. Both keyed on
+      a confirmed account, never a submitted email string, so the limiter
+      itself never becomes an enumeration vector.
 - [x] Demo/real session isolation — `isDemo: boolean`, required, defaults
       to `true` on any ambiguity; `staffRole` structurally stripped from
       any session where `isDemo` is true, regardless of cookie content
 - [x] Four-layer authorization for `/3stone-ai/*` (middleware, section
       layout, API guard, navigation) — adversarially tested (a forged
-      `{isDemo:true, staffRole:"founder"}` cookie is still denied)
-- [x] Tenant isolation — verified end-to-end with a real onboarded
-      workspace: a real session sees only its own workspace, never
-      another's, never demo's
-- [ ] Password reset / forgot-password flow (currently: founder-run
-      script only, no self-serve path, no email infrastructure)
-- [ ] Staff invitations flow (`/3stone-ai/invitations` doesn't exist yet)
+      `{isDemo:true, staffRole:"founder"}` cookie is still denied; so is
+      a stale-but-correctly-signed one)
+- [x] Tenant isolation — verified end-to-end with real onboarded
+      workspaces (team management, settings, customer 360): a real
+      session sees only its own workspace's data, never another's, never
+      demo's
+- [ ] CSRF: mitigated via SameSite=Lax + httpOnly + signed cookies (a
+      cross-site POST never carries the session cookie under Lax); no
+      separate CSRF token mechanism built, and none has been verified
+      necessary for this app's request patterns — worth a second look if
+      any route starts accepting cross-site form posts
 - [ ] Session expiration/refresh policy beyond the fixed 7-day cookie maxAge
-- [ ] Rate limiting on login attempts
 
 ## Customer Workspace (17 modules)
 
@@ -59,7 +93,7 @@ live infrastructure where applicable), not just "written."
 | Integrations | Mock only — placeholder |
 | Client Portal | Mock only — placeholder |
 | Activity | Mock only — placeholder (note: distinct from the real `platform_audit_log_entries`, which is a 3Stone AI internal thing, not this customer-facing log) |
-| Settings | Mock only — placeholder |
+| Settings | **Converted** — real Company profile, Team (invitations/roles/removal/ownership transfer), Billing (real Subscription data, no live Stripe); Branding and API Keys tabs from the mock version were dropped rather than half-converted — not yet real, called out below, not silently missing |
 | Inventory | Mock only — placeholder (no `Product`/inventory schema exists yet at all) |
 | Analytics | Mock only — placeholder |
 | Portfolio | Mock only — placeholder (this is the multi-business switcher; `WorkspaceSwitcher` in the shared shell already had to be made real-session-aware ahead of Portfolio's own conversion — see below) |
@@ -137,6 +171,80 @@ flow as every future customer.
 - [ ] Global Search (⌘K)
 - [ ] System Health
 
+## Team Management
+
+- [x] Real `Invitation` model — token/expiry/status lifecycle, distinct
+      from just creating a `WorkspaceMember` row directly. Invite, resend
+      (extends expiry, same token/link), revoke, view pending
+      invitations, view active members.
+- [x] Role change, remove member (soft — sets `status: "suspended"`,
+      preserves history, correctly disappears from the active list),
+      ownership transfer (Owner → Admin, target member → Owner).
+- [x] Accept flow (`/invite/accept`) — invitee sets a password and is
+      added as an active member in one step, then logged straight into
+      the workspace. An invitee whose email already has a password
+      (already has an account elsewhere) is told to log in and reopen the
+      link, rather than half-building a second UI branch for that case.
+- [x] Every mutation re-derives workspaceId from the caller's own session
+      (never a client-supplied field) and re-checks Owner/Admin
+      permission server-side — verified: a second, unrelated workspace's
+      owner sees neither another workspace's owner nor its members in
+      their own Team tab.
+- [ ] Converting a won `SalesProspect` into the inviter isn't wired to
+      team invitations either (see Onboarding section) — sales pipeline
+      and team invitations are two separate real mechanisms today, never
+      fabricated to look connected.
+
+## User Profile
+
+- [x] Edit display name and avatar URL (persisted to `User`).
+- [x] Change password from within an authenticated session — re-creates
+      the current browser's session with the bumped sessionVersion so the
+      acting user stays signed in, while every other session (a different
+      browser/device) is invalidated. Verified: old password/other
+      sessions rejected, new password works, current browser stays logged
+      in.
+- [x] Notification preference toggles (workspace events, security
+      events) — enforced at write time
+      (`notificationService.createNotification` checks preferences before
+      creating a row), not a decorative UI toggle with no effect.
+- [ ] Email address change — not built (would need its own
+      re-verification flow); called out in the UI itself, not silently
+      broken.
+
+## Notifications
+
+- [x] Real, in-app, DB-backed (`Notification` model existed in schema;
+      nothing read or wrote it before this milestone).
+- [x] Wired to real triggers: invitation accepted (notifies the inviter),
+      role changed (notifies the affected member), password changed
+      (notifies the account owner). Truthful empty state ("No
+      notifications yet.") when none exist.
+- [x] **Fixed a real demo-data-leak bug** found while building this:
+      `NotificationsMenu` rendered `DEMO_NOTIFICATIONS` unconditionally
+      for every session — the same class of bug `WorkspaceSwitcher` had
+      earlier. Now reads `isDemo` from `IndustryProvider` and fetches real
+      data via `/api/notifications` for real sessions.
+- [ ] Onboarding-event and workspace-event notification types beyond the
+      three wired above (e.g. a notification when a new teammate's first
+      login happens) — the framework supports adding these without a
+      migration; none exist yet because nothing calls `createNotification`
+      for them.
+
+## Billing Foundation
+
+- [x] Real data model, no live Stripe calls — `Subscription` /
+      `PlatformInvoice` (plan, status, MRR, trial end, invoice history)
+      read directly, exactly what a real Stripe webhook would update once
+      that integration exists.
+- [x] Never fabricates a payment or invoice — "Contact us to upgrade"
+      instead of a working checkout button; empty invoice history reads
+      "No invoices yet." rather than sample rows.
+- [ ] Live Stripe test-mode integration — needs the founder's own Stripe
+      account and API keys (an external credential this app can't
+      generate for itself); until then, "Contact us to upgrade" is the
+      honest ceiling of what this button can do.
+
 ## Onboarding pipeline visibility (founder monitoring)
 
 Every field is a real, already-recorded timestamp or a threshold applied
@@ -164,8 +272,9 @@ as onboarding percentage). See `customerService.getMonitoringSignals()`.
 
 ## Legal / Compliance
 
-- [ ] Real Terms of Service / Privacy Policy acceptance flow tied to onboarding
-- [ ] `LegalAcceptance` rows actually written anywhere
+- [x] Real Terms of Service / Privacy Policy acceptance flow tied to
+      onboarding (`/signup/terms`) — `LegalAcceptance` rows are written
+      with a real IP address, verified by querying the row back
 - [ ] Marketing site's Terms/Privacy "Last updated" date fixed (still
       computed as `new Date()` on every load — flagged in the earlier
       production-readiness audit, not yet fixed)
