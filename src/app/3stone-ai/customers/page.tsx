@@ -1,13 +1,33 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { getSession, hasStaffAccess } from "@/lib/session";
 import { listCustomers } from "@/server/platform/services/customerService";
 import { recordAuditEntry } from "@/server/platform/services/auditLogService";
+import { Badge } from "@/ui/Badge";
+import type { WorkspaceHealth } from "@/server/platform/services/customerService";
 
 export const metadata: Metadata = { title: "Customers — 3Stone AI" };
 
 function formatMoney(cents: number) {
   return (cents / 100).toLocaleString("en-US", { style: "currency", currency: "USD" });
 }
+
+function formatDate(date: Date | null) {
+  return date ? date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "—";
+}
+
+const HEALTH_TONE: Record<WorkspaceHealth, "good" | "warning" | "critical" | "neutral"> = {
+  healthy: "good",
+  at_risk: "warning",
+  stalled_onboarding: "warning",
+  cancelled: "neutral",
+};
+const HEALTH_LABEL: Record<WorkspaceHealth, string> = {
+  healthy: "Healthy",
+  at_risk: "At Risk",
+  stalled_onboarding: "Stalled",
+  cancelled: "Cancelled",
+};
 
 // Real data, real audit trail — the first page in this section that
 // actually reads Postgres instead of returning a placeholder. Viewing the
@@ -46,23 +66,44 @@ export default async function CustomersPage() {
               <th className="px-4 py-2.5 font-medium">Lifecycle</th>
               <th className="px-4 py-2.5 font-medium">Plan</th>
               <th className="px-4 py-2.5 font-medium">MRR</th>
+              <th className="px-4 py-2.5 font-medium">Onboarding</th>
+              <th className="px-4 py-2.5 font-medium">Health</th>
+              <th className="px-4 py-2.5 font-medium">Last activity</th>
+              <th className="px-4 py-2.5 font-medium">Last login</th>
             </tr>
           </thead>
           <tbody>
             {customers.map((c) => (
-              <tr key={c.id} className="border-b border-line last:border-0">
-                <td className="px-4 py-2.5 font-medium text-ink-1">{c.name}</td>
+              <tr key={c.id} className="border-b border-line last:border-0 hover:bg-surface">
+                <td className="px-4 py-2.5 font-medium text-ink-1">
+                  <Link href={`/3stone-ai/customers/${c.id}`} className="hover:text-accent">
+                    {c.name}
+                  </Link>
+                </td>
                 <td className="px-4 py-2.5 text-ink-2">{c.productName}</td>
                 <td className="px-4 py-2.5 text-ink-2">{c.editionName}</td>
                 <td className="px-4 py-2.5 text-ink-2">{c.lifecycleStage}</td>
                 <td className="px-4 py-2.5 text-ink-2">{c.plan}</td>
                 <td className="px-4 py-2.5 text-ink-2">{formatMoney(c.mrrCents)}</td>
+                <td className="px-4 py-2.5 text-ink-2">
+                  {c.onboardingPercentComplete}%
+                  {c.onboardingPercentComplete < 100 ? (
+                    <span className="ml-1.5 text-ink-3">({c.onboardingCurrentStepLabel})</span>
+                  ) : null}
+                </td>
+                <td className="px-4 py-2.5">
+                  <Badge tone={HEALTH_TONE[c.workspaceHealth]} className={c.blocker ? "cursor-help" : undefined}>
+                    <span title={c.blocker ?? undefined}>{HEALTH_LABEL[c.workspaceHealth]}</span>
+                  </Badge>
+                </td>
+                <td className="px-4 py-2.5 text-ink-2">{formatDate(c.lastActivityAt)}</td>
+                <td className="px-4 py-2.5 text-ink-2">{formatDate(c.lastLoginAt)}</td>
               </tr>
             ))}
             {customers.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-4 py-6 text-center text-ink-3">
-                  No workspaces yet.
+                <td colSpan={10} className="px-4 py-6 text-center text-ink-3">
+                  No customers have signed up yet.
                 </td>
               </tr>
             ) : null}

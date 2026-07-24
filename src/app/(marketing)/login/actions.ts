@@ -5,6 +5,7 @@ import { createSession } from "@/lib/session";
 import { verifyPassword } from "@/lib/password";
 import { db } from "@/server/db";
 import { DEMO_USER, DEMO_WORKSPACE } from "@/server/mock-data";
+import { recordLogin } from "@/server/services/onboardingService";
 
 export interface LoginFormState {
   error?: string;
@@ -51,6 +52,7 @@ export async function loginAction(
   const staffMembership = await db.staffMembership.findUnique({ where: { userId: user.id } });
   const staffRole = staffMembership?.status === "active" ? staffMembership.role : undefined;
 
+  await recordLogin(user.id);
   await createSession({ userId: user.id, isDemo: false, ...(staffRole ? { staffRole } : {}) });
   redirect("/dashboard");
 }
