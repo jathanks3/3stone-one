@@ -12,7 +12,12 @@ navigation, roles, APIs, integrations, state management, wireframes, and a
 phased build plan. Each is its own file in this `docs/` folder so it can be
 updated independently as the product evolves.
 
-Read them in this order:
+Read [15-company-platform-vision.md](15-company-platform-vision.md) first
+— it's the company-level source of truth this product and its internal
+operations section sit inside, and it takes precedence over anything below
+that it conflicts with.
+
+Read the rest in this order:
 
 1. [01-architecture.md](01-architecture.md) — the system as a whole, and *why* each major technology and structural choice was made
 2. [02-folder-structure.md](02-folder-structure.md) — how the codebase will be organized

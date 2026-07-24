@@ -1,0 +1,1307 @@
+// 3Stone One — Prisma schema
+//
+// This is the real target schema described in docs/03-database-schema.md,
+// extended per docs/15-company-platform-vision.md with:
+//   - Product / Edition modeling (foundational, not a future migration —
+//     every Workspace defaults to Product "3stone_one" / Edition "business")
+//   - Customer Lifecycle as a data-driven lookup table (CustomerLifecycleStage),
+//     not a hardcoded enum — same reasoning docs/13-self-critique.md #1 already
+//     applied to industry pipeline stages: extensible without a migration.
+//   - The "3Stone AI" internal operations tables (platform_* — see the
+//     PLATFORM section below), for founder/staff use only, never customer-visible.
+//
+// Multi-tenancy: every workspace-scoped model carries workspaceId and is
+// scoped to it at the service layer (see docs/01-architecture.md §3).
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// =============================================================================
+// PRODUCT / EDITION — foundational (docs/15): 3Stone AI is a multi-product
+// company. Every Workspace belongs to exactly one Product and one Edition of
+// that product. Today only 3stone_one/business is real; Bet AI and future
+// editions are rows, not code branches, so adding one is data, not a migration.
+// =============================================================================
+
+model Product {
+  key       String    @id
+  name      String
+  createdAt DateTime  @default(now())
+  editions  Edition[]
+  workspaces Workspace[]
+
+  @@map("products")
+}
+
+model Edition {
+  key        String    @id
+  productKey String
+  product    Product   @relation(fields: [productKey], references: [key])
+  name       String
+  createdAt  DateTime  @default(now())
+  workspaces Workspace[]
+
+  @@unique([productKey, key])
+  @@map("editions")
+}
+
+// =============================================================================
+// CUSTOMER LIFECYCLE — foundational (docs/15): data-driven, not an enum, so
+// adding a stage later is a seed insert, never a schema migration.
+// Seeded stages: lead, demo_scheduled, trial, active, power_user, at_risk,
+// cancelled, former_customer.
+// =============================================================================
+
+model CustomerLifecycleStage {
+  key        String      @id
+  label      String
+  sortOrder  Int
+  isTerminal Boolean     @default(false)
+  workspaces Workspace[]
+
+  @@map("customer_lifecycle_stages")
+}
+
+// =============================================================================
+// TENANCY & IDENTITY
+// =============================================================================
+
+model Workspace {
+  id                 String    @id @default(cuid())
+  name               String
+  slug               String    @unique
+  industryProfileKey String?
+  industryProfile    IndustryProfile? @relation(fields: [industryProfileKey], references: [key])
+  productKey         String    @default("3stone_one")
+  product            Product   @relation(fields: [productKey], references: [key])
+  editionKey         String    @default("business")
+  edition            Edition   @relation(fields: [editionKey], references: [key])
+  lifecycleStageKey  String    @default("lead")
+  lifecycleStage     CustomerLifecycleStage @relation(fields: [lifecycleStageKey], references: [key])
+  logoUrl            String?
+  plan               WorkspacePlan @default(free)
+  createdAt          DateTime  @default(now())
+
+  members            WorkspaceMember[]
+  roles              Role[]
+  sites              Site[]
+  organizations      Organization[]
+  people             Person[]
+  deals              Deal[]
+  projects           Project[]
+  tasks              Task[]
+  departments        Department[]
+  announcements      Announcement[]
+  documents          Document[]
+  notifications      Notification[]
+  activityLog        ActivityLogEntry[]
+  searchIndex        SearchIndexEntry[]
+  workflows          WorkflowDefinition[]
+  integrations       Integration[]
+  apiKeys            ApiKey[]
+  aiConversations    AiConversation[]
+  aiActionLogs       AiActionLog[]
+  reports            ReportDefinition[]
+  approvalRequests   ApprovalRequest[]
+  vendors            Vendor[]
+  expenses           Expense[]
+  invoices           Invoice[]
+  purchaseRequests   PurchaseRequest[]
+  budgets            Budget[]
+  emailMessages      EmailMessage[]
+  chatChannels       ChatChannel[]
+  callNotes          CallNote[]
+  meetings           Meeting[]
+  knowledgeArticles  KnowledgeArticle[]
+  installations      WorkspaceInstallation[]
+  branding           Branding?
+
+  // platform-side relations (see PLATFORM section)
+  subscription       Subscription?
+  platformInvoices   PlatformInvoice[]
+  supportTickets     SupportTicket[]
+  featureOverrides   WorkspaceFeatureOverride[]
+  aiUsageLogs        AiUsageLog[]
+  storageSnapshots   StorageUsageSnapshot[]
+  legalAcceptances   LegalAcceptance[]
+  onboardingState    WorkspaceOnboardingState?
+  emailDeliveryLogs  EmailDeliveryLog[]
+  announcementTargets PlatformAnnouncementTarget[]
+
+  @@map("workspaces")
+}
+
+enum WorkspacePlan {
+  free
+  pro
+  enterprise
+}
+
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  name         String
+  avatarUrl    String?
+  passwordHash String?
+  createdAt    DateTime  @default(now())
+
+  workspaceMemberships WorkspaceMember[]
+  staffMembership      StaffMembership?
+
+  @@map("users")
+}
+
+model WorkspaceMember {
+  id           String    @id @default(cuid())
+  workspaceId  String
+  workspace    Workspace @relation(fields: [workspaceId], references: [id])
+  userId       String
+  user         User      @relation(fields: [userId], references: [id])
+  roleId       String
+  role         Role      @relation(fields: [roleId], references: [id])
+  departmentId String?
+  department   Department? @relation(fields: [departmentId], references: [id])
+  siteId       String?
+  site         Site?     @relation(fields: [siteId], references: [id])
+  status       MemberStatus @default(active)
+  joinedAt     DateTime  @default(now())
+
+  @@unique([workspaceId, userId])
+  @@map("workspace_members")
+}
+
+enum MemberStatus {
+  active
+  invited
+  suspended
+}
+
+model IndustryProfile {
+  key                String  @id
+  label              String
+  terminologyMap     Json
+  moduleVisibility   Json
+  customFieldSchemas Json
+  pipelineStages     Json
+  workspaces         Workspace[]
+
+  @@map("industry_profiles")
+}
+
+// =============================================================================
+// ROLES & PERMISSIONS — see docs/05-roles-and-permissions.md.
+// Five workspace roles (Owner, Admin, Manager, Member, Client) — kept as-is
+// per the founder's explicit decision not to merge Owner/Admin.
+// =============================================================================
+
+model Role {
+  id           String    @id @default(cuid())
+  workspaceId  String?
+  workspace    Workspace? @relation(fields: [workspaceId], references: [id])
+  name         String
+  isSystemRole Boolean   @default(false)
+  members      WorkspaceMember[]
+  permissions  Permission[]
+
+  @@map("roles")
+}
+
+model Permission {
+  id       String @id @default(cuid())
+  roleId   String
+  role     Role   @relation(fields: [roleId], references: [id])
+  module   String
+  action   PermissionAction
+  scope    PermissionScope
+
+  @@map("permissions")
+}
+
+enum PermissionAction {
+  view
+  create
+  edit
+  delete
+  approve
+  export
+  manage_settings
+}
+
+enum PermissionScope {
+  all
+  department
+  own
+  shared
+}
+
+// =============================================================================
+// CRM
+// =============================================================================
+
+model Organization {
+  id           String   @id @default(cuid())
+  workspaceId  String
+  workspace    Workspace @relation(fields: [workspaceId], references: [id])
+  name         String
+  domain       String?
+  industry     String?
+  ownerId      String?
+  customFields Json?
+  createdAt    DateTime @default(now())
+
+  people       Person[]
+  deals        Deal[]
+  projects     Project[]
+  documents    Document[]
+  invoices     Invoice[]
+  emailMessages EmailMessage[]
+  callNotes    CallNote[]
+
+  @@map("organizations")
+}
+
+enum PersonType {
+  lead
+  customer
+  contact
+  employee
+  client
+}
+
+model Person {
+  id             String    @id @default(cuid())
+  workspaceId    String
+  workspace      Workspace @relation(fields: [workspaceId], references: [id])
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id])
+  personType     PersonType
+  firstName      String
+  lastName       String
+  email          String?
+  phone          String?
+  stageKey       String?
+  ownerId        String?
+  customFields   Json?
+  createdAt      DateTime  @default(now())
+
+  deals          Deal[]
+  invoices       Invoice[]
+  uploadedDocuments Document[] @relation("DocumentUploadedByPerson")
+  callNotes      CallNote[]
+  chatMessages   ChatMessage[] @relation("ChatMessageAuthorPerson")
+  approvalRequests ApprovalRequest[] @relation("ApprovalRequestedByPerson")
+  legalAcceptances LegalAcceptance[]
+
+  @@map("people")
+}
+
+model Deal {
+  id               String    @id @default(cuid())
+  workspaceId      String
+  workspace        Workspace @relation(fields: [workspaceId], references: [id])
+  personId         String
+  person           Person    @relation(fields: [personId], references: [id])
+  organizationId   String?
+  organization     Organization? @relation(fields: [organizationId], references: [id])
+  title            String
+  value            Decimal   @db.Decimal(12, 2)
+  stageKey         String
+  ownerId          String?
+  expectedCloseDate DateTime?
+  status           DealStatus @default(open)
+  createdAt        DateTime  @default(now())
+
+  @@map("deals")
+}
+
+enum DealStatus {
+  open
+  won
+  lost
+}
+
+// =============================================================================
+// PROJECTS & TASKS (relabeled per industry)
+// =============================================================================
+
+model Project {
+  id             String    @id @default(cuid())
+  workspaceId    String
+  workspace      Workspace @relation(fields: [workspaceId], references: [id])
+  siteId         String?
+  site           Site?     @relation(fields: [siteId], references: [id])
+  name           String
+  description    String?
+  statusKey      String
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id])
+  ownerId        String?
+  startDate      DateTime?
+  dueDate        DateTime?
+  customFields   Json?
+  createdAt      DateTime  @default(now())
+
+  milestones     ProjectMilestone[]
+  tasks          Task[]
+  documents      Document[]
+  budgets        Budget[]
+
+  @@map("projects")
+}
+
+enum MilestoneStatus {
+  pending
+  in_progress
+  approved
+  rejected
+}
+
+model ProjectMilestone {
+  id                String    @id @default(cuid())
+  workspaceId       String
+  projectId         String
+  project           Project   @relation(fields: [projectId], references: [id])
+  title             String
+  dueDate           DateTime?
+  status            MilestoneStatus @default(pending)
+  approvalRequestId String?   @unique
+  approvalRequest   ApprovalRequest? @relation(fields: [approvalRequestId], references: [id])
+  createdAt         DateTime  @default(now())
+
+  @@map("project_milestones")
+}
+
+enum TaskStatus {
+  todo
+  in_progress
+  done
+}
+
+model Task {
+  id          String    @id @default(cuid())
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id])
+  projectId   String?
+  project     Project?  @relation(fields: [projectId], references: [id])
+  title       String
+  description String?
+  assigneeId  String?
+  status      TaskStatus @default(todo)
+  dueDate     DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@map("tasks")
+}
+
+// =============================================================================
+// PEOPLE / EMPLOYEE PORTAL
+// =============================================================================
+
+model Department {
+  id          String   @id @default(cuid())
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id])
+  name        String
+  leadUserId  String?
+
+  members       WorkspaceMember[]
+  announcements Announcement[]
+  budgets       Budget[]
+  chatChannels  ChatChannel[]
+
+  @@map("departments")
+}
+
+model Announcement {
+  id           String   @id @default(cuid())
+  workspaceId  String
+  workspace    Workspace @relation(fields: [workspaceId], references: [id])
+  authorId     String?
+  title        String
+  body         String
+  departmentId String?
+  department   Department? @relation(fields: [departmentId], references: [id])
+  publishedAt  DateTime @default(now())
+
+  @@map("announcements")
+}
+
+enum DocumentVisibility {
+  internal
+  shared_with_client
+}
+
+model Document {
+  id                 String   @id @default(cuid())
+  workspaceId        String
+  workspace          Workspace @relation(fields: [workspaceId], references: [id])
+  name               String
+  storageKey         String
+  mimeType           String
+  sizeBytes          Int
+  uploadedById       String?
+  uploadedByPersonId String?
+  uploadedByPerson   Person?  @relation("DocumentUploadedByPerson", fields: [uploadedByPersonId], references: [id])
+  projectId          String?
+  project            Project? @relation(fields: [projectId], references: [id])
+  organizationId     String?
+  organization       Organization? @relation(fields: [organizationId], references: [id])
+  visibility         DocumentVisibility @default(internal)
+  createdAt          DateTime @default(now())
+
+  @@map("documents")
+}
+
+// =============================================================================
+// NOTIFICATIONS, ACTIVITY, SEARCH
+// =============================================================================
+
+model Notification {
+  id          String   @id @default(cuid())
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id])
+  userId      String
+  type        String
+  payload     Json?
+  readAt      DateTime?
+  createdAt   DateTime @default(now())
+
+  @@map("notifications")
+}
+
+model ActivityLogEntry {
+  id          String   @id @default(cuid())
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id])
+  actorId     String?
+  action      String
+  entityType  String
+  entityId    String
+  metadata    Json?
+  createdAt   DateTime @default(now())
+
+  @@index([workspaceId, createdAt])
+  @@map("activity_log_entries")
+}
+
+// SearchIndexEntry: the real column also needs a Postgres `tsvector` +
+// GIN index, added by raw SQL in the initial migration (Prisma models a
+// tsvector column as Unsupported — see the generated migration for the
+// ALTER TABLE / CREATE INDEX statements).
+model SearchIndexEntry {
+  id           String   @id @default(cuid())
+  workspaceId  String
+  workspace    Workspace @relation(fields: [workspaceId], references: [id])
+  entityType   String
+  entityId     String
+  title        String
+  snippet      String?
+  updatedAt    DateTime @updatedAt
+  // Generated column, added by raw SQL in the initial migration — Prisma
+  // has no native tsvector type, and Unsupported fields are excluded from
+  // the generated client but keep `migrate diff` from thinking this column
+  // shouldn't exist.
+  searchVector Unsupported("tsvector")?
+
+  @@unique([workspaceId, entityType, entityId])
+  @@map("search_index_entries")
+}
+
+// =============================================================================
+// AUTOMATION
+// =============================================================================
+
+model WorkflowDefinition {
+  id          String   @id @default(cuid())
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id])
+  name        String
+  isActive    Boolean  @default(true)
+  graph       Json
+  createdById String?
+  createdAt   DateTime @default(now())
+
+  runs        WorkflowRun[]
+
+  @@map("workflow_definitions")
+}
+
+enum WorkflowRunStatus {
+  running
+  success
+  failed
+}
+
+model WorkflowRun {
+  id                   String   @id @default(cuid())
+  workflowDefinitionId String
+  workflowDefinition   WorkflowDefinition @relation(fields: [workflowDefinitionId], references: [id])
+  triggeredAt          DateTime @default(now())
+  status               WorkflowRunStatus
+  log                  Json?
+
+  @@map("workflow_runs")
+}
+
+// =============================================================================
+// INTEGRATIONS (customer's own connected tools — distinct from platform
+// System Health, which tracks 3Stone AI's own integration health)
+// =============================================================================
+
+enum IntegrationStatus {
+  not_connected
+  connected
+  error
+}
+
+model Integration {
+  id          String   @id @default(cuid())
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id])
+  provider    String
+  status      IntegrationStatus @default(not_connected)
+  connectedAt DateTime?
+  config      Json?
+
+  @@unique([workspaceId, provider])
+  @@map("integrations")
+}
+
+model ApiKey {
+  id          String   @id @default(cuid())
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id])
+  label       String
+  hashedKey   String
+  createdById String?
+  lastUsedAt  DateTime?
+  revokedAt   DateTime?
+  createdAt   DateTime @default(now())
+
+  @@map("api_keys")
+}
+
+// =============================================================================
+// AI (assistant + per-module capabilities) — see docs/01-architecture.md §5
+// =============================================================================
+
+enum AiMessageRole {
+  user
+  assistant
+}
+
+model AiConversation {
+  id          String   @id @default(cuid())
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id])
+  userId      String
+  title       String?
+  createdAt   DateTime @default(now())
+
+  messages    AiMessage[]
+
+  @@map("ai_conversations")
+}
+
+model AiMessage {
+  id             String   @id @default(cuid())
+  conversationId String
+  conversation   AiConversation @relation(fields: [conversationId], references: [id])
+  role           AiMessageRole
+  content        String
+  createdAt      DateTime @default(now())
+
+  @@map("ai_messages")
+}
+
+model AiActionLog {
+  id            String   @id @default(cuid())
+  workspaceId   String
+  workspace     Workspace @relation(fields: [workspaceId], references: [id])
+  capabilityKey String
+  entityType    String?
+  entityId      String?
+  input         Json?
+  output        Json?
+  invokedById   String?
+  createdAt     DateTime @default(now())
+
+  @@map("ai_action_logs")
+}
+
+// =============================================================================
+// REPORTING
+// =============================================================================
+
+model ReportDefinition {
+  id          String   @id @default(cuid())
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id])
+  name        String
+  type        String
+  parameters  Json?
+  config      Json
+  generatedAt DateTime?
+  createdById String?
+  createdAt   DateTime @default(now())
+
+  @@map("report_definitions")
+}
+
+// =============================================================================
+// SITES (multi-location)
+// =============================================================================
+
+enum SiteType {
+  office
+  restaurant
+  warehouse
+  job_site
+  clinic
+  other
+}
+
+model Site {
+  id           String   @id @default(cuid())
+  workspaceId  String
+  workspace    Workspace @relation(fields: [workspaceId], references: [id])
+  name         String
+  address      String?
+  type         SiteType @default(other)
+  customFields Json?
+  createdAt    DateTime @default(now())
+
+  members      WorkspaceMember[]
+  projects     Project[]
+
+  @@map("sites")
+}
+
+// =============================================================================
+// APPROVALS — one generic mechanism, reused by ProjectMilestone + PurchaseRequest
+// =============================================================================
+
+enum ApprovalEntityType {
+  project_milestone
+  purchase_request
+}
+
+enum ApprovalStatus {
+  pending
+  approved
+  rejected
+}
+
+model ApprovalRequest {
+  id                  String   @id @default(cuid())
+  workspaceId         String
+  workspace           Workspace @relation(fields: [workspaceId], references: [id])
+  entityType          ApprovalEntityType
+  entityId            String
+  requestedById       String?
+  requestedByPersonId String?
+  requestedByPerson   Person?  @relation("ApprovalRequestedByPerson", fields: [requestedByPersonId], references: [id])
+  approverId          String?
+  status              ApprovalStatus @default(pending)
+  decidedAt           DateTime?
+  notes               String?
+  createdAt           DateTime @default(now())
+
+  projectMilestone    ProjectMilestone?
+  purchaseRequest     PurchaseRequest?
+
+  @@map("approval_requests")
+}
+
+// =============================================================================
+// FINANCE — decision support, not a ledger (docs/01-architecture.md §8)
+// =============================================================================
+
+model Vendor {
+  id          String   @id @default(cuid())
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id])
+  name        String
+  contactInfo Json?
+  createdAt   DateTime @default(now())
+
+  expenses    Expense[]
+  purchaseRequests PurchaseRequest[]
+
+  @@map("vendors")
+}
+
+enum RecordSource {
+  manual
+  quickbooks_sync
+}
+
+model Expense {
+  id          String   @id @default(cuid())
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id])
+  vendorId    String?
+  vendor      Vendor?  @relation(fields: [vendorId], references: [id])
+  amount      Decimal  @db.Decimal(12, 2)
+  category    String
+  date        DateTime
+  source      RecordSource @default(manual)
+  createdAt   DateTime @default(now())
+
+  @@map("expenses")
+}
+
+enum InvoiceStatus {
+  draft
+  sent
+  paid
+  overdue
+  void
+}
+
+// The CUSTOMER's own accounts-receivable invoice (they bill their clients) —
+// distinct from PlatformInvoice below (3Stone AI billing the workspace itself).
+model Invoice {
+  id                     String   @id @default(cuid())
+  workspaceId            String
+  workspace              Workspace @relation(fields: [workspaceId], references: [id])
+  organizationId         String?
+  organization           Organization? @relation(fields: [organizationId], references: [id])
+  personId               String?
+  person                 Person?  @relation(fields: [personId], references: [id])
+  amount                 Decimal  @db.Decimal(12, 2)
+  status                 InvoiceStatus @default(draft)
+  dueDate                DateTime?
+  source                 RecordSource @default(manual)
+  stripePaymentIntentId  String?
+  createdAt              DateTime @default(now())
+
+  payments               Payment[]
+
+  @@map("invoices")
+}
+
+model Payment {
+  id        String   @id @default(cuid())
+  invoiceId String
+  invoice   Invoice  @relation(fields: [invoiceId], references: [id])
+  amount    Decimal  @db.Decimal(12, 2)
+  provider  String
+  status    String
+  paidAt    DateTime?
+
+  @@map("payments")
+}
+
+model PurchaseRequest {
+  id                String   @id @default(cuid())
+  workspaceId       String
+  workspace         Workspace @relation(fields: [workspaceId], references: [id])
+  requestedById     String?
+  vendorId          String?
+  vendor            Vendor?  @relation(fields: [vendorId], references: [id])
+  amount            Decimal  @db.Decimal(12, 2)
+  justification     String?
+  approvalRequestId String   @unique
+  approvalRequest   ApprovalRequest @relation(fields: [approvalRequestId], references: [id])
+  createdAt         DateTime @default(now())
+
+  @@map("purchase_requests")
+}
+
+model Budget {
+  id           String   @id @default(cuid())
+  workspaceId  String
+  workspace    Workspace @relation(fields: [workspaceId], references: [id])
+  departmentId String?
+  department   Department? @relation(fields: [departmentId], references: [id])
+  projectId    String?
+  project      Project? @relation(fields: [projectId], references: [id])
+  period       String
+  amount       Decimal  @db.Decimal(12, 2)
+  createdAt    DateTime @default(now())
+
+  @@map("budgets")
+}
+
+// =============================================================================
+// COMMUNICATIONS CENTER
+// =============================================================================
+
+model EmailMessage {
+  id             String   @id @default(cuid())
+  workspaceId    String
+  workspace      Workspace @relation(fields: [workspaceId], references: [id])
+  threadId       String
+  fromAddress    String
+  toAddresses    Json
+  subject        String?
+  body           String
+  personId       String?
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id])
+  sentAt         DateTime @default(now())
+
+  @@map("email_messages")
+}
+
+model ChatChannel {
+  id              String   @id @default(cuid())
+  workspaceId     String
+  workspace       Workspace @relation(fields: [workspaceId], references: [id])
+  name            String
+  departmentId    String?
+  department      Department? @relation(fields: [departmentId], references: [id])
+  isDirect        Boolean  @default(false)
+  isClientChannel Boolean  @default(false)
+
+  messages        ChatMessage[]
+
+  @@map("chat_channels")
+}
+
+model ChatMessage {
+  id             String   @id @default(cuid())
+  channelId      String
+  channel        ChatChannel @relation(fields: [channelId], references: [id])
+  authorId       String?
+  authorPersonId String?
+  authorPerson   Person?  @relation("ChatMessageAuthorPerson", fields: [authorPersonId], references: [id])
+  body           String
+  createdAt      DateTime @default(now())
+
+  @@map("chat_messages")
+}
+
+model CallNote {
+  id             String   @id @default(cuid())
+  workspaceId    String
+  workspace      Workspace @relation(fields: [workspaceId], references: [id])
+  personId       String?
+  person         Person?  @relation(fields: [personId], references: [id])
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id])
+  authorId       String?
+  summary        String
+  occurredAt     DateTime @default(now())
+
+  @@map("call_notes")
+}
+
+// =============================================================================
+// MEETINGS
+// =============================================================================
+
+model Meeting {
+  id              String   @id @default(cuid())
+  workspaceId     String
+  workspace       Workspace @relation(fields: [workspaceId], references: [id])
+  title           String
+  scheduledAt     DateTime
+  attendeeIds     Json
+  agenda          String?
+  calendarEventId String?
+  createdAt       DateTime @default(now())
+
+  actionItems     MeetingActionItem[]
+  decisions       Decision[]
+
+  @@map("meetings")
+}
+
+enum MeetingActionItemStatus {
+  todo
+  in_progress
+  done
+}
+
+model MeetingActionItem {
+  id         String   @id @default(cuid())
+  meetingId  String
+  meeting    Meeting  @relation(fields: [meetingId], references: [id])
+  title      String
+  assigneeId String?
+  dueDate    DateTime?
+  status     MeetingActionItemStatus @default(todo)
+
+  @@map("meeting_action_items")
+}
+
+model Decision {
+  id        String   @id @default(cuid())
+  meetingId String
+  meeting   Meeting  @relation(fields: [meetingId], references: [id])
+  summary   String
+  decidedAt DateTime @default(now())
+
+  @@map("decisions")
+}
+
+// =============================================================================
+// KNOWLEDGE CENTER
+// =============================================================================
+
+enum KnowledgeCategory {
+  policy
+  training
+  process
+  sop
+  video
+}
+
+model KnowledgeArticle {
+  id        String   @id @default(cuid())
+  workspaceId String
+  workspace Workspace @relation(fields: [workspaceId], references: [id])
+  title     String
+  body      String
+  category  KnowledgeCategory
+  videoUrl  String?
+  authorId  String?
+  updatedAt DateTime @updatedAt
+
+  @@map("knowledge_articles")
+}
+
+// =============================================================================
+// MARKETPLACE
+// =============================================================================
+
+enum MarketplaceListingType {
+  module
+  industry_template
+  automation_template
+  ai_agent
+}
+
+model MarketplaceListing {
+  key         String   @id
+  type        MarketplaceListingType
+  label       String
+  description String?
+
+  installations WorkspaceInstallation[]
+
+  @@map("marketplace_listings")
+}
+
+model WorkspaceInstallation {
+  id          String   @id @default(cuid())
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id])
+  listingKey  String
+  listing     MarketplaceListing @relation(fields: [listingKey], references: [key])
+  installedAt DateTime @default(now())
+  config      Json?
+
+  @@unique([workspaceId, listingKey])
+  @@map("workspace_installations")
+}
+
+// =============================================================================
+// WHITE-LABEL
+// =============================================================================
+
+model Branding {
+  workspaceId      String   @id
+  workspace        Workspace @relation(fields: [workspaceId], references: [id])
+  logoUrl          String?
+  faviconUrl       String?
+  primaryColor     String?
+  customDomain     String?  @unique
+  domainVerifiedAt DateTime?
+
+  @@map("branding")
+}
+
+// =============================================================================
+// PLATFORM ("3Stone AI" internal operations) — docs/15-company-platform-vision.md
+//
+// Every model below is prefixed platform_ at the table-name level (@@map) so
+// the boundary between "workspace product data" and "internal operator data"
+// is mechanical and greppable — the seam that would let this be extracted
+// into its own service later without touching the tables above.
+//
+// None of this is visible to a customer under any circumstance — enforced in
+// application code by a four-layer gate (middleware, section layout, API,
+// nav), not by anything in this schema, but the *data* boundary starts here.
+// =============================================================================
+
+enum StaffRole {
+  founder
+  operations
+  support
+}
+
+enum StaffMembershipStatus {
+  active
+  revoked
+}
+
+model StaffMembership {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  user            User     @relation(fields: [userId], references: [id])
+  role            StaffRole
+  status          StaffMembershipStatus @default(active)
+  grantedAt       DateTime @default(now())
+  grantedByUserId String?
+  revokedAt       DateTime?
+
+  @@map("platform_staff_memberships")
+}
+
+enum SubscriptionStatus {
+  trialing
+  active
+  past_due
+  canceled
+  paused
+}
+
+model Subscription {
+  id                   String   @id @default(cuid())
+  workspaceId          String   @unique
+  workspace            Workspace @relation(fields: [workspaceId], references: [id])
+  stripeCustomerId     String?
+  stripeSubscriptionId String?
+  plan                 WorkspacePlan @default(free)
+  status               SubscriptionStatus @default(trialing)
+  isFounderPricing     Boolean  @default(false)
+  priceOverrideCents   Int?
+  mrrCents             Int      @default(0)
+  trialEndsAt          DateTime?
+  currentPeriodEnd     DateTime?
+  createdAt            DateTime @default(now())
+
+  @@map("platform_subscriptions")
+}
+
+// 3Stone AI -> workspace billing — distinct from the workspace's own Invoice
+// (which is that customer's AR to *their* clients).
+enum PlatformInvoiceStatus {
+  draft
+  open
+  paid
+  void
+  uncollectible
+}
+
+model PlatformInvoice {
+  id              String   @id @default(cuid())
+  workspaceId     String
+  workspace       Workspace @relation(fields: [workspaceId], references: [id])
+  stripeInvoiceId String?
+  amountCents     Int
+  status          PlatformInvoiceStatus @default(draft)
+  dueDate         DateTime?
+  paidAt          DateTime?
+  createdAt       DateTime @default(now())
+
+  @@map("platform_invoices")
+}
+
+enum SupportTicketStatus {
+  open
+  pending
+  resolved
+  closed
+}
+
+enum SupportTicketPriority {
+  low
+  normal
+  high
+  urgent
+}
+
+model SupportTicket {
+  id                String   @id @default(cuid())
+  workspaceId       String
+  workspace         Workspace @relation(fields: [workspaceId], references: [id])
+  requestedByEmail  String
+  subject           String
+  status            SupportTicketStatus @default(open)
+  priority          SupportTicketPriority @default(normal)
+  assignedStaffId   String?
+  createdAt         DateTime @default(now())
+  resolvedAt        DateTime?
+
+  messages          SupportTicketMessage[]
+
+  @@map("platform_support_tickets")
+}
+
+enum SupportAuthorType {
+  staff
+  customer
+}
+
+model SupportTicketMessage {
+  id         String   @id @default(cuid())
+  ticketId   String
+  ticket     SupportTicket @relation(fields: [ticketId], references: [id])
+  authorType SupportAuthorType
+  authorId   String?
+  body       String
+  createdAt  DateTime @default(now())
+
+  @@map("platform_support_ticket_messages")
+}
+
+model FeatureFlag {
+  key            String   @id
+  label          String
+  description    String?
+  defaultEnabled Boolean  @default(false)
+  createdAt      DateTime @default(now())
+
+  overrides      WorkspaceFeatureOverride[]
+
+  @@map("platform_feature_flags")
+}
+
+model WorkspaceFeatureOverride {
+  id          String   @id @default(cuid())
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id])
+  flagKey     String
+  flag        FeatureFlag @relation(fields: [flagKey], references: [key])
+  enabled     Boolean
+
+  @@unique([workspaceId, flagKey])
+  @@map("platform_workspace_feature_overrides")
+}
+
+enum AnnouncementAudience {
+  all
+  plan_tier
+  specific_workspaces
+}
+
+model PlatformAnnouncement {
+  id          String   @id @default(cuid())
+  title       String
+  body        String
+  audience    AnnouncementAudience @default(all)
+  publishedAt DateTime?
+  createdAt   DateTime @default(now())
+
+  targets     PlatformAnnouncementTarget[]
+
+  @@map("platform_announcements")
+}
+
+// Join table — which specific workspaces an audience:"specific_workspaces"
+// announcement targets, and (once read-tracking exists) who's seen it.
+model PlatformAnnouncementTarget {
+  id             String   @id @default(cuid())
+  announcementId String
+  announcement   PlatformAnnouncement @relation(fields: [announcementId], references: [id])
+  workspaceId    String
+  workspace      Workspace @relation(fields: [workspaceId], references: [id])
+  viewedAt       DateTime?
+
+  @@unique([announcementId, workspaceId])
+  @@map("platform_announcement_targets")
+}
+
+// Every staff action, cross-tenant. This is the audit trail for "who looked
+// at what, who changed what" — including Open Workspace entries, which must
+// always write a row here (docs/15: "every entry is audited").
+model PlatformAuditLogEntry {
+  id                String   @id @default(cuid())
+  staffUserId       String
+  action            String
+  targetWorkspaceId String?
+  targetEntityType  String?
+  targetEntityId    String?
+  metadata          Json?
+  createdAt         DateTime @default(now())
+
+  @@index([targetWorkspaceId, createdAt])
+  @@index([staffUserId, createdAt])
+  @@map("platform_audit_log_entries")
+}
+
+model AiUsageLog {
+  id           String   @id @default(cuid())
+  workspaceId  String
+  workspace    Workspace @relation(fields: [workspaceId], references: [id])
+  date         DateTime @db.Date
+  aiCallCount  Int      @default(0)
+  tokensUsed   Int      @default(0)
+  costCents    Int      @default(0)
+
+  @@unique([workspaceId, date])
+  @@map("platform_ai_usage_logs")
+}
+
+model StorageUsageSnapshot {
+  id          String   @id @default(cuid())
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id])
+  bytesUsed   BigInt
+  snapshotAt  DateTime @default(now())
+
+  @@index([workspaceId, snapshotAt])
+  @@map("platform_storage_usage_snapshots")
+}
+
+enum LegalDocumentType {
+  tos
+  privacy
+  saas_agreement
+  dpa
+}
+
+model LegalAcceptance {
+  id              String   @id @default(cuid())
+  workspaceId     String?
+  workspace       Workspace? @relation(fields: [workspaceId], references: [id])
+  userId          String?
+  personId        String?
+  person          Person?  @relation(fields: [personId], references: [id])
+  documentType    LegalDocumentType
+  documentVersion String
+  acceptedAt      DateTime @default(now())
+  ipAddress       String?
+
+  @@map("platform_legal_acceptances")
+}
+
+model WorkspaceOnboardingState {
+  workspaceId String   @id
+  workspace   Workspace @relation(fields: [workspaceId], references: [id])
+  step        String
+  completedAt DateTime?
+  updatedAt   DateTime @updatedAt
+
+  @@map("platform_workspace_onboarding_states")
+}
+
+enum EmailDeliveryStatus {
+  sent
+  delivered
+  bounced
+  failed
+}
+
+model EmailDeliveryLog {
+  id          String   @id @default(cuid())
+  toAddress   String
+  template    String
+  provider    String
+  status      EmailDeliveryStatus
+  workspaceId String?
+  workspace   Workspace? @relation(fields: [workspaceId], references: [id])
+  sentAt      DateTime @default(now())
+
+  @@map("platform_email_delivery_logs")
+}
