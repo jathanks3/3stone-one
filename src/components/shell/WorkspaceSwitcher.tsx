@@ -11,7 +11,7 @@ import { useEscapeKey } from "@/lib/useEscapeKey";
 import { cn } from "@/lib/utils";
 
 export function WorkspaceSwitcher() {
-  const { profile, currentBusinessId, setBusinessId, setIndustryKey } = useIndustry();
+  const { profile, currentBusinessId, setBusinessId, setIndustryKey, isDemo, workspaceName } = useIndustry();
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
@@ -20,9 +20,30 @@ export function WorkspaceSwitcher() {
   useOnClickOutside(ref, close);
   useEscapeKey(open, close);
 
-  const currentName = getBusinessName(
-    DEMO_BUSINESSES.find((b) => b.id === currentBusinessId) ?? DEMO_BUSINESSES[0]
-  );
+  // The "My Businesses" switcher below is Portfolio's UI, and Portfolio
+  // is still entirely mock (multi-business isn't a real feature yet) — a
+  // real session gets its own real workspace name, not a business picked
+  // by matching against DEMO_BUSINESSES (which a real workspace's id
+  // never matches, and previously fell through to DEMO_BUSINESSES[0] —
+  // silently showing every real customer the demo's business name until
+  // this was caught by testing tenant isolation end-to-end).
+  const currentName = isDemo
+    ? getBusinessName(DEMO_BUSINESSES.find((b) => b.id === currentBusinessId) ?? DEMO_BUSINESSES[0])
+    : workspaceName;
+
+  if (!isDemo) {
+    return (
+      <div className="flex items-center gap-2 rounded-[10px] px-2 py-1.5">
+        <span className="flex h-7 w-7 items-center justify-center rounded-[8px] bg-accent-wash text-[12px] font-bold text-accent">
+          {currentName.slice(0, 2).toUpperCase()}
+        </span>
+        <span className="hidden flex-col items-start leading-tight sm:flex">
+          <span className="text-[13.5px] font-semibold text-ink-1">{currentName}</span>
+          <span className="text-[11px] text-ink-3">{profile.label}</span>
+        </span>
+      </div>
+    );
+  }
 
   return (
     <div className="relative" ref={ref}>
