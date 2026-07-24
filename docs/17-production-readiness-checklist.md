@@ -76,22 +76,56 @@ explicit `isDemo`/`workspaceName`, not by special-casing the switcher.
 
 ## Onboarding
 
-- [x] `workspaceOnboardingService.onboardWorkspace()` — the one real path,
-      used identically for every workspace (no special-casing)
-- [x] Script entry point (`prisma/scripts/onboard-workspace.ts`) — today's
-      caller, until a self-serve form exists
-- [ ] Self-serve signup form (calls the same service function)
-- [ ] Email verification
-- [ ] Carl's actual workspace (blocked on his real business details — see
-      milestone report)
+Self-service is now the primary path (the founder's onboarding-revision
+charter: "the founder does not create customers, the founder monitors
+customers"). `src/server/services/onboardingService.ts` is the one real
+mechanism — every function is used identically for customer #1 and
+customer #20,000, nothing branches on identity. Carl is not a special
+case anywhere in this code; he onboards through the exact same `/signup`
+flow as every future customer.
+
+- [x] Self-serve signup wizard, all 8 user-facing steps, live at `/signup/*`:
+      Sign Up → Verify Email → Password → Workspace → Business Info →
+      Industry → Plan → Terms → Enter Workspace — end-to-end tested
+      against the live database (9/9 checks pass, zero console errors)
+- [x] Email verification — real, single-use, expiring (24h) tokens
+      (`EmailVerificationToken`); delivery itself is stubbed (logged +
+      shown on-screen, clearly labeled) pending a verified sending domain
+      (a DNS change — an explicit approval boundary, not done in passing)
+- [x] All 15 onboarding steps persisted as real rows
+      (`OnboardingStepDefinition` / `WorkspaceOnboardingProgress`), not an
+      enum — percentage is always `completedCount / totalSteps`, never a
+      fabricated number
+- [x] `workspaceOnboardingService.onboardWorkspace()` retained as the
+      founder's **secondary** path (exceptional circumstances, imports,
+      enterprise onboarding, support only) — composes the same
+      `onboardingService` primitives rather than duplicating logic
+- [x] Sales Pipeline (prospects, not yet customers) kept structurally
+      separate from Customer Onboarding — `SalesProspect` model, stages
+      Lead → Discovery Scheduled → Proposal Draft → Proposal Sent →
+      Negotiation → Won/Lost, `/3stone-ai/prospects`
+- [ ] Converting a `SalesProspect` to a real `Workspace` on "Won" is not
+      wired up yet (the schema's `convertedWorkspaceId` field exists;
+      nothing sets it) — today a won prospect and their eventual signup
+      are two unconnected facts
+- [ ] Carl's actual workspace does not exist yet — no fabricated
+      workspace was created for him; he onboards himself through
+      `/signup` when he's ready, same as any other customer
 
 ## Internal "3Stone AI" section
 
 - [x] Named correctly (`3Stone AI`, not `Platform`), route prefix `/3stone-ai/*`
-- [x] Customers list — real data (`customerService.listCustomers()`)
+- [x] Customers list — real data (`customerService.listCustomers()`),
+      including onboarding %, current step, workspace health, last
+      activity, last login (see "Onboarding pipeline visibility" below);
+      truthful empty state ("No customers have signed up yet.")
+- [x] Customer 360 (`/3stone-ai/customers/[workspaceId]`) — business
+      profile, real onboarding progress bar + full step checklist,
+      health badge, blocker banner when one is real
+- [x] Sales Pipeline (`/3stone-ai/prospects`) — separate from Customers;
+      truthful empty state ("No active prospects.")
 - [x] Audit log — real writes, verified by querying rows back after a
       real staff action
-- [ ] Customer 360 (single-customer deep view)
 - [ ] Revenue, Billing, Subscriptions (schema exists, zero real rows,
       no Stripe integration)
 - [ ] Support (ticketing UI; schema exists)
@@ -102,6 +136,31 @@ explicit `isDemo`/`workspaceName`, not by special-casing the switcher.
       no real signup flow with ToS acceptance exists yet either)
 - [ ] Global Search (⌘K)
 - [ ] System Health
+
+## Onboarding pipeline visibility (founder monitoring)
+
+Every field is a real, already-recorded timestamp or a threshold applied
+to one — never an invented score (the founder's onboarding-revision
+charter: "Workspace health" / "Any blockers" must be real signals, same
+as onboarding percentage). See `customerService.getMonitoringSignals()`.
+
+- [x] Last login — `User.lastLoginAt`, updated at every real (non-demo)
+      session creation (`loginAction`, `/signup/verify`); never touched
+      by demo sessions
+- [x] Last activity — `max(lastLoginAt, most recent
+      WorkspaceOnboardingProgress.completedAt, workspace.createdAt)`
+- [x] Workspace health — `healthy` / `at_risk` (from the real
+      `CustomerLifecycleStage.key`) / `stalled_onboarding` (no onboarding
+      progress in 48h while still incomplete) / `cancelled` (from
+      `CustomerLifecycleStage.isTerminal`)
+- [x] Blocker text — populated only when onboarding is genuinely stalled
+      (e.g. "No onboarding progress in over 48 hours — stuck on
+      \"Business Information\"."); `null` otherwise, never a placeholder
+      string
+- [ ] Real support/billing failure signals feeding into health (today the
+      only real signal is onboarding staleness + lifecycle stage —
+      nothing yet detects a failed payment or an open support ticket,
+      since Billing/Support aren't real yet either)
 
 ## Legal / Compliance
 

@@ -71,7 +71,9 @@ Workspace
 
 User
   id, email, name, avatarUrl, passwordHash (nullable — magic link users
-  have none), createdAt
+  have none), emailVerifiedAt (nullable — set once, by the real signup
+  wizard's verify step), lastLoginAt (nullable — updated at every real,
+  non-demo session creation; the founder's "Last login" field), createdAt
   — global identity; a User is not workspace-scoped, WorkspaceMember is.
 
 WorkspaceMember
@@ -407,8 +409,34 @@ LegalAcceptance
   nullable), documentType (tos | privacy | saas_agreement | dpa),
   documentVersion, acceptedAt, ipAddress (nullable)
 
-WorkspaceOnboardingState
-  workspaceId (pk/fk), step, completedAt (nullable), updatedAt
+OnboardingStepDefinition
+  key (pk), label, sortOrder
+  — data, not an enum: the 15 real steps of the self-service onboarding
+    charter (Account Created ... Active), seeded once, extendable without
+    a migration.
+
+WorkspaceOnboardingProgress
+  id, workspaceId (fk), stepKey (fk → OnboardingStepDefinition),
+  completedAt
+  — one real row per completed step per workspace (unique on
+    workspaceId+stepKey). The first 3 steps (account_created,
+    email_verified, password_created) are derived from User fields
+    instead of a row here — see onboardingProgressService.ts.
+
+EmailVerificationToken
+  token (pk), userId (fk), expiresAt, usedAt (nullable), createdAt
+  — real, single-use, expiring (24h); the actual email send is stubbed
+    (logged + shown on-screen) pending a verified sending domain.
+
+SalesProspect
+  id, name, email, businessName (nullable), stage (lead |
+  discovery_scheduled | proposal_draft | proposal_sent | negotiation |
+  won | lost), convertedWorkspaceId (fk, nullable), createdAt, updatedAt
+  — prospects who are NOT customers yet; deliberately a separate concept
+    from Workspace/onboarding (15-company-platform-vision.md /
+    17-production-readiness-checklist.md's onboarding-revision section).
+    A prospect that converts moves its stage to "won"; nothing yet wires
+    that stage change to actually setting convertedWorkspaceId.
 
 EmailDeliveryLog
   id, toAddress, template, provider, status (sent | delivered | bounced |
