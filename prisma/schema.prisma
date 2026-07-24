@@ -148,9 +148,20 @@ model Workspace {
   @@map("workspaces")
 }
 
+// Matches the published tiers on the marketing site's pricing page
+// (3stone-website/src/pricing/data/tiers.ts + published-pricing.ts) —
+// the source of truth for plan names and prices, per the founder's
+// stack-reconciliation charter ("read the existing pricing page, treat
+// those prices as authoritative"). `free` is not one of the marketing
+// site's sellable tiers; it's this app's own trial/starter state before
+// a workspace picks a paid tier. `enterprise` has no fixed Stripe Price —
+// the marketing site models it as `tierKey: null` ("price is a discovery
+// call"), so Stripe checkout never runs for it; it's handled manually.
 enum WorkspacePlan {
   free
-  pro
+  hub
+  growth
+  business_os
   enterprise
 }
 
@@ -1197,6 +1208,8 @@ model Subscription {
   workspace            Workspace @relation(fields: [workspaceId], references: [id])
   stripeCustomerId     String?
   stripeSubscriptionId String?
+  stripePriceId        String?
+  cancelAtPeriodEnd    Boolean  @default(false)
   plan                 WorkspacePlan @default(free)
   status               SubscriptionStatus @default(trialing)
   isFounderPricing     Boolean  @default(false)
@@ -1223,7 +1236,7 @@ model PlatformInvoice {
   id              String   @id @default(cuid())
   workspaceId     String
   workspace       Workspace @relation(fields: [workspaceId], references: [id])
-  stripeInvoiceId String?
+  stripeInvoiceId String?  @unique
   amountCents     Int
   status          PlatformInvoiceStatus @default(draft)
   dueDate         DateTime?
