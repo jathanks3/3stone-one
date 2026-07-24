@@ -1,6 +1,7 @@
 import { randomBytes } from "node:crypto";
 import { db } from "@/server/db";
 import { hashPassword } from "@/lib/password";
+import { createNotification } from "@/server/services/notificationService";
 
 const INVITATION_TTL_MS = 1000 * 60 * 60 * 24 * 7; // 7 days
 
@@ -177,7 +178,11 @@ export async function changeRole(workspaceId: string, memberId: string, roleName
     throw new Error("Use ownership transfer to change the workspace owner's role.");
   }
   const role = await getAssignableRole(roleName);
-  await db.workspaceMember.update({ where: { id: memberId }, data: { roleId: role.id } });
+  const [workspace] = await db.$transaction([
+    db.workspace.findUniqueOrThrow({ where: { id: workspaceId } }),
+    db.workspaceMember.update({ where: { id: memberId }, data: { roleId: role.id } }),
+  ]);
+  await createNotification(workspaceId, member.userId, "role_changed", { roleName, workspaceName: workspace.name });
 }
 
 export async function removeMember(workspaceId: string, memberId: string): Promise<void> {
@@ -273,6 +278,12 @@ export async function acceptInvitationWithNewPassword(
     }),
     db.invitation.update({ where: { token }, data: { status: "accepted", acceptedAt: new Date() } }),
   ]);
+
+  const role = await db.role.findUnique({ where: { id: invitation.roleId } });
+  await createNotification(invitation.workspaceId, invitation.invitedByUserId, "invitation_accepted", {
+    memberName: user.name,
+    roleName: role?.name ?? "a member",
+  });
 
   return { userId: user.id, sessionVersion: updatedUser.sessionVersion };
 }

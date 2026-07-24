@@ -1,6 +1,20 @@
 import { randomBytes } from "node:crypto";
 import { db } from "@/server/db";
 import { hashPassword, verifyPassword } from "@/lib/password";
+import { createNotification } from "@/server/services/notificationService";
+import { getActiveWorkspaceIdForUser } from "@/server/services/onboardingService";
+
+// A password-changed notification is workspace-scoped (Notification's
+// schema), but this service only knows a userId — reused from
+// onboardingService rather than duplicated. A pure staff-only account
+// with no workspace membership yet simply gets no notification; nothing
+// breaks, there's just nowhere to put it.
+async function notifyPasswordChanged(userId: string, via: "reset" | "profile"): Promise<void> {
+  const workspaceId = await getActiveWorkspaceIdForUser(userId);
+  if (workspaceId) {
+    await createNotification(workspaceId, userId, "password_changed", { via });
+  }
+}
 
 const RESET_TOKEN_TTL_MS = 1000 * 60 * 60; // 1 hour — shorter than email verification's 24h; a reset token grants account takeover, not just proof of email ownership.
 
@@ -116,6 +130,7 @@ export async function completePasswordReset(
     db.passwordResetToken.update({ where: { token }, data: { usedAt: new Date() } }),
   ]);
   await logSecurityEvent(userId, "password_changed", context, { via: "reset" });
+  await notifyPasswordChanged(userId, "reset");
 
   return { userId, sessionVersion: user.sessionVersion };
 }
@@ -147,6 +162,7 @@ export async function changePassword(
     select: { sessionVersion: true },
   });
   await logSecurityEvent(userId, "password_changed", context, { via: "profile" });
+  await notifyPasswordChanged(userId, "profile");
 
   return { sessionVersion: updated.sessionVersion };
 }

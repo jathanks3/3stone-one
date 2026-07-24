@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
-import { ChevronsUpDown, LogOut, Monitor, Moon, Sun } from "lucide-react";
+import { ChevronsUpDown, LogOut, Monitor, Moon, Sun, User } from "lucide-react";
 import { useOnClickOutside } from "@/lib/useOnClickOutside";
 import { useEscapeKey } from "@/lib/useEscapeKey";
 import { useTheme, type ThemeMode } from "@/lib/theme";
@@ -61,6 +61,14 @@ export function AccountMenu({ user }: { user: SessionUser }) {
               </button>
             ))}
           </div>
+          <div className="my-1 h-px bg-line" />
+          <a
+            href="/profile"
+            className="flex w-full items-center gap-2 rounded-[8px] px-2.5 py-2 text-left text-[13.5px] font-medium text-ink-1 hover:bg-surface-raised"
+          >
+            <User size={15} />
+            Profile
+          </a>
           <div className="my-1 h-px bg-line" />
           <form action={logoutAction}>
             <button
