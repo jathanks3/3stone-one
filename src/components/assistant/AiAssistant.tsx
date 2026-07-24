@@ -34,6 +34,20 @@ const EXECUTIVE_SUGGESTIONS = [
 
 export function AiAssistant() {
   const [open, setOpen] = useState(false);
+  const { isDemo } = useIndustry();
+
+  // Real bug found during this milestone's AI audit: this widget answers
+  // every question from DEMO_VENDORS / getIndustryDataset(profile.key) —
+  // entirely fictional data — with no isDemo check at all. A real
+  // customer opening it got confident, specific answers ("X owes a
+  // $500 deposit") about a business that isn't theirs, and the panel
+  // header even read the demo org's name. Same class of bug
+  // WorkspaceSwitcher and NotificationsMenu had earlier — fixed the same
+  // way: hide entirely for real sessions rather than serve fake data.
+  // There's no real backing data (or a real AI provider — see
+  // src/server/ai/aiProvider.ts) to answer a real customer's questions
+  // with yet, so "not shown" is the honest state, not "shown but wrong."
+  if (!isDemo) return null;
 
   return (
     <>
