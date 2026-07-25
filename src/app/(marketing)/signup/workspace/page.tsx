@@ -4,7 +4,7 @@ import { getSession } from "@/lib/session";
 import { SignupShell } from "../SignupShell";
 import { WorkspaceForm } from "./WorkspaceForm";
 
-export const metadata: Metadata = { title: "Create your workspace — 3Stone One" };
+export const metadata: Metadata = { title: "Create your workspace — 3Stone Workspace" };
 
 export default async function SignupWorkspacePage() {
   const session = await getSession();

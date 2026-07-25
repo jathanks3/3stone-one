@@ -75,7 +75,7 @@ async function ensurePriceForPlan(tier: PlanTier): Promise<string> {
   const product =
     existingProduct ??
     (await stripe.products.create({
-      name: `3Stone One — ${tier.label}`,
+      name: `3Stone Workspace — ${tier.label}`,
       metadata: { app: "3stone-one", planKey: tier.key },
     }));
   const price = await stripe.prices.create({
@@ -113,7 +113,7 @@ export async function createCheckoutSession(
             currency: "usd",
             unit_amount: subscription.priceOverrideCents,
             recurring: { interval: "month" as const },
-            product_data: { name: `3Stone One — ${tier.label} (founder pricing)` },
+            product_data: { name: `3Stone Workspace — ${tier.label} (founder pricing)` },
           },
           quantity: 1,
         }

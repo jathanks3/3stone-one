@@ -3,7 +3,7 @@ import { AnalyticsClient } from "@/features/analytics/AnalyticsClient";
 import { getSession } from "@/lib/session";
 import { NotYetConnected } from "@/components/shell/NotYetConnected";
 
-export const metadata: Metadata = { title: "Analytics & Reports — 3Stone One" };
+export const metadata: Metadata = { title: "Analytics & Reports — 3Stone Workspace" };
 
 export default async function AnalyticsPage() {
   const session = await getSession();

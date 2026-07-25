@@ -3,7 +3,7 @@ import { CrmClient } from "@/features/crm/CrmClient";
 import { getSession } from "@/lib/session";
 import { NotYetConnected } from "@/components/shell/NotYetConnected";
 
-export const metadata: Metadata = { title: "CRM — 3Stone One" };
+export const metadata: Metadata = { title: "CRM — 3Stone Workspace" };
 
 export default async function CrmPage() {
   const session = await getSession();

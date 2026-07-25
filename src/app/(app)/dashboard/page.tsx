@@ -8,7 +8,7 @@ import { recordFirstLogin } from "@/server/services/onboardingService";
 import { db } from "@/server/db";
 
 export const metadata: Metadata = {
-  title: "Dashboard — 3Stone One",
+  title: "Dashboard — 3Stone Workspace",
 };
 
 // First module converted per the founder's charter's conversion order.

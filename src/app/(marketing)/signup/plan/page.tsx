@@ -4,7 +4,7 @@ import { getSession } from "@/lib/session";
 import { SignupShell } from "../SignupShell";
 import { PlanForm } from "./PlanForm";
 
-export const metadata: Metadata = { title: "Select your plan — 3Stone One" };
+export const metadata: Metadata = { title: "Select your plan — 3Stone Workspace" };
 
 export default async function SignupPlanPage() {
   const session = await getSession();

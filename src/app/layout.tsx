@@ -17,7 +17,7 @@ const plexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "3Stone One — One place to run your business",
+  title: "3Stone Workspace — One place to run your business",
   description:
     "The operating system for a business: CRM, projects, finance, and your team, in one place.",
 };

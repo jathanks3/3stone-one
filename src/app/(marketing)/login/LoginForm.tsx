@@ -81,7 +81,7 @@ export function LoginForm() {
       </p>
 
       <p className="mt-6 text-center text-[13px] text-ink-3">
-        New to 3Stone One?{" "}
+        New to 3Stone Workspace?{" "}
         <a href="/signup" className="font-medium text-accent hover:text-accent-strong">
           Create an account
         </a>

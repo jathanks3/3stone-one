@@ -3,7 +3,7 @@ import { validateResetToken } from "@/server/services/authService";
 import { ResetPasswordShell } from "../ResetPasswordShell";
 import { ConfirmResetForm } from "./ConfirmResetForm";
 
-export const metadata: Metadata = { title: "Set a new password — 3Stone One" };
+export const metadata: Metadata = { title: "Set a new password — 3Stone Workspace" };
 
 export default async function ConfirmResetPage({
   searchParams,

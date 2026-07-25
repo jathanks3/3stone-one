@@ -401,7 +401,7 @@ export type IntegrationCategory =
   | "Commerce"
   | "CRM";
 
-// "connected" = Connect path (owner keeps the tool, 3Stone One syncs from it).
+// "connected" = Connect path (owner keeps the tool, 3Stone Workspace syncs from it).
 // "transformed" = Transform path (owner has replaced it with a native 3Stone
 // One module — migration earned, never forced). "not_connected" = untouched.
 export interface IntegrationProvider {

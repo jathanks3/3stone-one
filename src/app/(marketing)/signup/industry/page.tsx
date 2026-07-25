@@ -5,7 +5,7 @@ import { industryProfileList } from "@/config/industry-profiles";
 import { SignupShell } from "../SignupShell";
 import { IndustryForm } from "./IndustryForm";
 
-export const metadata: Metadata = { title: "Choose your industry — 3Stone One" };
+export const metadata: Metadata = { title: "Choose your industry — 3Stone Workspace" };
 
 export default async function SignupIndustryPage() {
   const session = await getSession();

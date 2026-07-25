@@ -4,7 +4,7 @@ import { getSession } from "@/lib/session";
 import { SignupShell } from "../SignupShell";
 import { PasswordForm } from "./PasswordForm";
 
-export const metadata: Metadata = { title: "Create a password — 3Stone One" };
+export const metadata: Metadata = { title: "Create a password — 3Stone Workspace" };
 
 export default async function SignupPasswordPage() {
   const session = await getSession();

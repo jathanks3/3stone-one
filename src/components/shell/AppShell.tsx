@@ -30,7 +30,7 @@ export function AppShell({
         <aside className="hidden w-64 flex-shrink-0 border-r border-line bg-surface lg:flex lg:flex-col">
           <div className="flex h-14 flex-shrink-0 items-center gap-2 border-b border-line px-4">
             <Image src="/branding/monogram.svg" alt="" width={24} height={24} />
-            <span className="text-[14px] font-bold text-ink-1">3Stone One</span>
+            <span className="text-[14px] font-bold text-ink-1">3Stone Workspace</span>
           </div>
           <div className="flex-1 overflow-y-auto">
             <Sidebar />

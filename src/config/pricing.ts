@@ -27,7 +27,7 @@ export const PLAN_TIERS: PlanTier[] = [
     label: "Hub",
     priceMonthly: 99,
     maxEmployees: 16,
-    blurb: "One place to see the business. Keep every tool you have — 3Stone One connects them, adds your client portal, documents, and scheduling.",
+    blurb: "One place to see the business. Keep every tool you have — 3Stone Workspace connects them, adds your client portal, documents, and scheduling.",
     stripePriceEnvVar: "STRIPE_PRICE_HUB",
   },
   {

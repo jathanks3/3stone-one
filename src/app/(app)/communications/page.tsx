@@ -3,7 +3,7 @@ import { CommunicationsClient } from "@/features/communications/CommunicationsCl
 import { getSession } from "@/lib/session";
 import { NotYetConnected } from "@/components/shell/NotYetConnected";
 
-export const metadata: Metadata = { title: "Communications — 3Stone One" };
+export const metadata: Metadata = { title: "Communications — 3Stone Workspace" };
 
 export default async function CommunicationsPage() {
   const session = await getSession();

@@ -33,7 +33,7 @@ export function IntegrationsClient() {
     const provider = providers.find((p) => p.key === key)!;
     setProviders((prev) => prev.map((p) => (p.key === key ? { ...p, status: "transformed", lastSync: null } : p)));
     showToast({
-      title: `${provider.name} replaced by 3Stone One`,
+      title: `${provider.name} replaced by 3Stone Workspace`,
       description: "Migration earned, not forced — you can revert to Connect any time.",
     });
   }
@@ -44,7 +44,7 @@ export function IntegrationsClient() {
       <p className="mt-1 max-w-[680px] text-[14px] text-ink-2">
         Two ways to work with the tools you already use: <strong className="text-ink-1">Connect</strong> keeps
         them and brings their information into one command center. <strong className="text-ink-1">Transform</strong>{" "}
-        replaces them with a native 3Stone One module when you&rsquo;re ready — migration is earned, never forced.
+        replaces them with a native 3Stone Workspace module when you&rsquo;re ready — migration is earned, never forced.
       </p>
 
       <div className="mt-6 flex flex-col gap-8">
@@ -69,7 +69,7 @@ export function IntegrationsClient() {
                       </Badge>
                     </div>
                     <p className="text-[12.5px] leading-relaxed text-ink-3">
-                      {p.status === "transformed" ? `Replaced by 3Stone One's native module. ${p.blurb}` : p.blurb}
+                      {p.status === "transformed" ? `Replaced by 3Stone Workspace's native module. ${p.blurb}` : p.blurb}
                     </p>
                     {p.lastSync ? <p className="text-[11.5px] text-ink-3">Last synced {p.lastSync}</p> : null}
 

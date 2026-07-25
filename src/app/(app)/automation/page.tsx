@@ -3,7 +3,7 @@ import { AutomationClient } from "@/features/automation/AutomationClient";
 import { getSession } from "@/lib/session";
 import { NotYetConnected } from "@/components/shell/NotYetConnected";
 
-export const metadata: Metadata = { title: "Automation — 3Stone One" };
+export const metadata: Metadata = { title: "Automation — 3Stone Workspace" };
 
 export default async function AutomationPage() {
   const session = await getSession();

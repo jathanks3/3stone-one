@@ -4,7 +4,7 @@ import { getSession } from "@/lib/session";
 import { SignupShell } from "../SignupShell";
 import { TermsForm } from "./TermsForm";
 
-export const metadata: Metadata = { title: "Accept terms — 3Stone One" };
+export const metadata: Metadata = { title: "Accept terms — 3Stone Workspace" };
 
 export default async function SignupTermsPage() {
   const session = await getSession();

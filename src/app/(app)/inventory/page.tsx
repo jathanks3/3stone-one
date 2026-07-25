@@ -3,7 +3,7 @@ import { InventoryClient } from "@/features/inventory/InventoryClient";
 import { getSession } from "@/lib/session";
 import { NotYetConnected } from "@/components/shell/NotYetConnected";
 
-export const metadata: Metadata = { title: "Inventory — 3Stone One" };
+export const metadata: Metadata = { title: "Inventory — 3Stone Workspace" };
 
 export default async function InventoryPage() {
   const session = await getSession();
