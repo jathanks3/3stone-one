@@ -24,9 +24,10 @@ export default function ThreeStoneAiDashboardPage() {
       <h1 className="text-[22px] font-bold text-ink-1">3Stone AI Founder Platform</h1>
       <p className="mt-2 text-[14px] text-ink-2">
         The company-wide control center for 3Stone AI — not a second product. Feature Flags,
-        Audit Log, System Health, Sales Pipeline, and Integrations are real and live here — Feature
-        Flags already reaches BetAI in production. Revenue, Billing, Subscriptions, Support, AI
-        Usage, Storage Usage, Announcements, Staff, Roles, Invitations, and Legal are still ahead.
+        Announcements, Staff, Audit Log, System Health, Sales Pipeline, and Integrations are real
+        and live here — Feature Flags and Announcements already reach BetAI in production. Revenue,
+        Billing, Subscriptions, Support, AI Usage, Storage Usage, Roles/Permissions granularity, and
+        Legal are still ahead.
       </p>
       <p className="mt-2 text-[13px] text-ink-3">
         Customers below reflects this app&apos;s own (now-frozen) data only — it does not yet see
