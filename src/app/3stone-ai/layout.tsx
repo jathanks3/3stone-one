@@ -50,6 +50,9 @@ export default async function ThreeStoneAiLayout({ children }: { children: React
           <Link href="/3stone-ai/feature-flags" className="hover:text-ink-1">
             Feature Flags
           </Link>
+          <Link href="/3stone-ai/announcements" className="hover:text-ink-1">
+            Announcements
+          </Link>
           <Link href="/3stone-ai/audit-log" className="hover:text-ink-1">
             Audit Log
           </Link>
