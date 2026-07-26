@@ -70,3 +70,36 @@ export async function listWorkspaceCustomers(): Promise<WorkspaceCustomer[]> {
     activatedAt: r.activated_at,
   }));
 }
+
+export interface WorkspaceMetrics {
+  revenueCollectedCents: number;
+  invoiceCount: number;
+  activeProjectCount: number;
+  openLeadCount: number;
+}
+
+// Real aggregate reads only — no estimates, no projections. Revenue is
+// sum(amount) where status='paid', not sum(amount_paid): verified
+// against real data first and found amount_paid is 0.00 even on invoices
+// with status='paid' in this schema, so it's not the reliable signal it
+// looks like. "Open" leads excludes won/lost/archived, same definition
+// this app's own salesPipelineService.ts already uses for its own
+// (unrelated) sales pipeline.
+export async function getWorkspaceMetrics(): Promise<WorkspaceMetrics> {
+  const pool = getPool();
+  const [revenue, projects, leads] = await Promise.all([
+    pool.query<{ total_cents: string | null; invoice_count: string }>(
+      `select coalesce(sum(amount), 0) as total_cents, count(*) as invoice_count from invoices where status = 'paid'`
+    ),
+    pool.query<{ count: string }>(`select count(*) from projects where status not in ('completed', 'cancelled')`),
+    pool.query<{ count: string }>(
+      `select count(*) from leads where stage not in ('won', 'lost') and archived_at is null`
+    ),
+  ]);
+  return {
+    revenueCollectedCents: Math.round(Number(revenue.rows[0]?.total_cents ?? 0) * 100),
+    invoiceCount: Number(revenue.rows[0]?.invoice_count ?? 0),
+    activeProjectCount: Number(projects.rows[0]?.count ?? 0),
+    openLeadCount: Number(leads.rows[0]?.count ?? 0),
+  };
+}

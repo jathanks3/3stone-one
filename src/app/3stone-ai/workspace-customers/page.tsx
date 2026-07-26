@@ -1,7 +1,15 @@
 import type { Metadata } from "next";
 import { getSession, hasStaffAccess } from "@/lib/session";
-import { isWorkspaceDbConfigured, listWorkspaceCustomers } from "@/server/platform/services/workspaceCustomerService";
+import {
+  isWorkspaceDbConfigured,
+  listWorkspaceCustomers,
+  getWorkspaceMetrics,
+} from "@/server/platform/services/workspaceCustomerService";
 import { recordAuditEntry } from "@/server/platform/services/auditLogService";
+
+function formatCents(cents: number): string {
+  return (cents / 100).toLocaleString("en-US", { style: "currency", currency: "USD" });
+}
 
 export const metadata: Metadata = { title: "Workspace Customers — 3Stone AI" };
 
@@ -24,15 +32,34 @@ export default async function WorkspaceCustomersPage() {
     );
   }
 
-  const customers = await listWorkspaceCustomers();
+  const [customers, metrics] = await Promise.all([listWorkspaceCustomers(), getWorkspaceMetrics()]);
   await recordAuditEntry({ staffUserId: session.userId, action: "viewed_workspace_customers" });
 
   return (
     <div>
       <h1 className="text-[22px] font-bold text-ink-1">Workspace Customers</h1>
       <p className="mt-1 text-[13.5px] text-ink-2">
-        Real customers of workspace.3stoneai.com, read directly from that product's own database.
+        Real customers of workspace.3stoneai.com, read directly from that product&apos;s own database.
       </p>
+
+      <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div className="rounded-[12px] border border-line bg-surface p-4">
+          <span className="text-[11px] font-medium uppercase tracking-wide text-ink-3">Revenue Collected</span>
+          <p className="mt-1 text-[20px] font-bold text-ink-1">{formatCents(metrics.revenueCollectedCents)}</p>
+        </div>
+        <div className="rounded-[12px] border border-line bg-surface p-4">
+          <span className="text-[11px] font-medium uppercase tracking-wide text-ink-3">Paid Invoices</span>
+          <p className="mt-1 text-[20px] font-bold text-ink-1">{metrics.invoiceCount}</p>
+        </div>
+        <div className="rounded-[12px] border border-line bg-surface p-4">
+          <span className="text-[11px] font-medium uppercase tracking-wide text-ink-3">Active Projects</span>
+          <p className="mt-1 text-[20px] font-bold text-ink-1">{metrics.activeProjectCount}</p>
+        </div>
+        <div className="rounded-[12px] border border-line bg-surface p-4">
+          <span className="text-[11px] font-medium uppercase tracking-wide text-ink-3">Open Leads</span>
+          <p className="mt-1 text-[20px] font-bold text-ink-1">{metrics.openLeadCount}</p>
+        </div>
+      </div>
 
       <div className="mt-5 overflow-x-auto rounded-[12px] border border-line">
         <table className="w-full text-[13px]">
