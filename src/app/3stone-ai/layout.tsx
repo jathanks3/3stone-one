@@ -41,6 +41,9 @@ export default async function ThreeStoneAiLayout({ children }: { children: React
           <Link href="/3stone-ai/customers" className="hover:text-ink-1">
             Customers
           </Link>
+          <Link href="/3stone-ai/workspace-customers" className="hover:text-ink-1">
+            Workspace Customers
+          </Link>
           <Link href="/3stone-ai/prospects" className="hover:text-ink-1">
             Sales Pipeline
           </Link>

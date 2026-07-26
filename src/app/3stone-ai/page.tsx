@@ -12,33 +12,27 @@ export const metadata: Metadata = { title: "3Stone AI — Internal" };
 // 2026-07-25 founder decision: this app (3stone-one) is no longer a
 // second customer-facing product competing with workspace.3stoneai.com —
 // workspace.3stoneai.com is canonical. This /3stone-ai section is now the
-// company-wide Founder Platform. The Customers page below still only
-// reads 3stone-one's own (now-frozen, empty) Workspace table — it does
-// NOT yet see real Workspace-product customers, since that requires
-// workspace.3stoneai.com to expose an API for this app to call. That
-// cross-product integration is a real, not-yet-started milestone, not
-// something to fake here.
+// company-wide Founder Platform. "Customers" (3stone-one's own frozen,
+// empty Workspace table) is now superseded by "Workspace Customers",
+// which reads real data directly from workspace.3stoneai.com's own
+// database (read-only, see workspaceCustomerService.ts) — the cross-
+// product integration this comment used to describe as not-yet-started.
 export default function ThreeStoneAiDashboardPage() {
   return (
     <div className="mx-auto max-w-2xl">
       <h1 className="text-[22px] font-bold text-ink-1">3Stone AI Founder Platform</h1>
       <p className="mt-2 text-[14px] text-ink-2">
         The company-wide control center for 3Stone AI — not a second product. Feature Flags,
-        Announcements, Staff, Audit Log, System Health, Sales Pipeline, and Integrations are real
-        and live here — Feature Flags and Announcements already reach BetAI in production. Revenue,
-        Billing, Subscriptions, Support, AI Usage, Storage Usage, Roles/Permissions granularity, and
-        Legal are still ahead.
-      </p>
-      <p className="mt-2 text-[13px] text-ink-3">
-        Customers below reflects this app&apos;s own (now-frozen) data only — it does not yet see
-        real workspace.3stoneai.com customers. That requires a real API integration with that
-        product, not built yet.
+        Announcements, Staff, Audit Log, System Health, Sales Pipeline, Integrations, and now real
+        Workspace Customers are live here — Feature Flags and Announcements already reach BetAI in
+        production. Revenue, Billing, Subscriptions, Support, AI Usage, Roles/Permissions
+        granularity, and Legal are still ahead.
       </p>
       <Link
-        href="/3stone-ai/customers"
+        href="/3stone-ai/workspace-customers"
         className="mt-5 inline-flex h-10 items-center rounded-[10px] bg-accent px-4 text-[13.5px] font-semibold text-on-accent hover:opacity-90"
       >
-        View Customers →
+        View Workspace Customers →
       </Link>
     </div>
   );
