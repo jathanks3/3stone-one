@@ -4,11 +4,14 @@ import { Pool } from "pg";
 // (Prisma/Neon) client used everywhere else in this app. This one reaches
 // the REAL Workspace product's own Postgres (Supabase), a completely
 // different database owned by a different codebase
-// (/Users/jathan/3stone-workspace). Read-only by construction: every
-// query in this file is a SELECT, nothing here ever writes to another
-// product's database. Reuses the same Supabase project this app's
-// Storage integration already connects to (see storageService.ts) — same
-// credentials, different purpose.
+// (/Users/jathan/3stone-workspace). Every query in this file is a SELECT
+// except offboardWorkspaceClient below, which is the one deliberate,
+// explicit write — and even that never touches a table directly; it
+// calls that product's own offboard_client(uuid) Postgres function
+// (SECURITY DEFINER), the same dependency-ordered, audited offboarding
+// path that product's own admin would use. Reuses the same Supabase
+// project this app's Storage integration already connects to (see
+// storageService.ts) — same credentials, different purpose.
 let _pool: Pool | null = null;
 
 function getPool(): Pool {
@@ -102,4 +105,16 @@ export async function getWorkspaceMetrics(): Promise<WorkspaceMetrics> {
     activeProjectCount: Number(projects.rows[0]?.count ?? 0),
     openLeadCount: Number(leads.rows[0]?.count ?? 0),
   };
+}
+
+// Irreversible — calls the real product's own offboard_client(uuid)
+// function, which dependency-orders deletes across every table that
+// references this client (invoices, documents, messages, projects,
+// etc.) before removing the client row itself, and writes its own
+// audit_log row on that side too. The caller (the actions.ts file that
+// calls this) is responsible for requiring the founder to type the
+// client's exact name before this ever runs — there is no undo.
+export async function offboardWorkspaceClient(clientId: string): Promise<void> {
+  const pool = getPool();
+  await pool.query("select offboard_client($1)", [clientId]);
 }

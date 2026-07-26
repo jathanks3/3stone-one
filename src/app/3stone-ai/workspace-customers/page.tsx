@@ -6,6 +6,7 @@ import {
   getWorkspaceMetrics,
 } from "@/server/platform/services/workspaceCustomerService";
 import { recordAuditEntry } from "@/server/platform/services/auditLogService";
+import { OffboardButton } from "./OffboardButton";
 
 function formatCents(cents: number): string {
   return (cents / 100).toLocaleString("en-US", { style: "currency", currency: "USD" });
@@ -71,6 +72,7 @@ export default async function WorkspaceCustomersPage() {
               <th className="px-4 py-2.5 font-medium">Lifecycle</th>
               <th className="px-4 py-2.5 font-medium">Created</th>
               <th className="px-4 py-2.5 font-medium">Activated</th>
+              <th className="px-4 py-2.5 font-medium"></th>
             </tr>
           </thead>
           <tbody>
@@ -84,11 +86,14 @@ export default async function WorkspaceCustomersPage() {
                 <td className="whitespace-nowrap px-4 py-2.5 text-ink-3">
                   {c.activatedAt ? c.activatedAt.toLocaleDateString() : "—"}
                 </td>
+                <td className="px-4 py-2.5 text-right">
+                  <OffboardButton clientId={c.id} clientName={c.name} />
+                </td>
               </tr>
             ))}
             {customers.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-4 py-6 text-center text-ink-3">
+                <td colSpan={7} className="px-4 py-6 text-center text-ink-3">
                   No customers yet.
                 </td>
               </tr>
