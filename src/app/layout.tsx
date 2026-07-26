@@ -17,9 +17,9 @@ const plexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "3Stone Workspace — One place to run your business",
+  title: "3Stone AI — Practical AI for better business",
   description:
-    "The operating system for a business: CRM, projects, finance, and your team, in one place.",
+    "3Stone AI builds practical intelligence into the decisions, workflows, and products businesses use every day.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
