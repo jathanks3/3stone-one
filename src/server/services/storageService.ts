@@ -17,6 +17,11 @@ import type { UploadedFileKind } from "../../../generated/prisma/client";
 // no expiry to manage. Documents are the opposite: private bucket, every
 // access goes through createSignedDownloadUrl's tenant check below, and
 // the signed URL itself expires.
+// Internal infra identifiers (never user-facing), deliberately kept
+// distinct from "3stone-workspace" — that string is already the name of
+// the *other* product's real Vercel project, and reusing it here for a
+// bucket in a shared Supabase project would be a confusing collision in
+// dashboards/logs later.
 const PUBLIC_BUCKET = "3stone-one-public";
 const PRIVATE_BUCKET = "3stone-one-private";
 
