@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/session";
-import { getActiveWorkspaceIdForUser, confirmProductAndEdition } from "@/server/services/onboardingService";
+import { getActiveWorkspaceIdForUser, confirmProductAndEdition, selectIndustry } from "@/server/services/onboardingService";
 
 export interface ProductFormState {
   error?: string;
@@ -26,5 +26,15 @@ export async function selectEditionAction(_prevState: ProductFormState, formData
   }
 
   await confirmProductAndEdition(workspaceId, editionKey);
+
+  // "Which industry are you in" only makes sense for the flagship product
+  // - Workspace and Student each have exactly one fixed profile (see
+  // src/config/industry-profiles/workplace.ts, student.ts), so there's
+  // nothing to ask; skip straight to plan selection instead of showing a
+  // construction/restaurant/etc picker that doesn't apply to them.
+  if (editionKey === "business") {
+    redirect("/signup/industry");
+  }
+  await selectIndustry(workspaceId, editionKey === "workspace" ? "workplace" : "student");
   redirect("/signup/plan");
 }

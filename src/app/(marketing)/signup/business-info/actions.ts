@@ -27,5 +27,5 @@ export async function setBusinessInfoAction(
   }
 
   await setBusinessInfo(workspaceId, businessName);
-  redirect("/signup/industry");
+  redirect("/signup/product");
 }

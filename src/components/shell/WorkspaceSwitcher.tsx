@@ -11,7 +11,7 @@ import { useEscapeKey } from "@/lib/useEscapeKey";
 import { cn } from "@/lib/utils";
 
 export function WorkspaceSwitcher() {
-  const { profile, currentBusinessId, setBusinessId, setIndustryKey, isDemo, workspaceName } = useIndustry();
+  const { profile, currentBusinessId, setBusinessId, setIndustryKey, isDemo, workspaceName, editionKey } = useIndustry();
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
@@ -27,11 +27,20 @@ export function WorkspaceSwitcher() {
   // never matches, and previously fell through to DEMO_BUSINESSES[0] —
   // silently showing every real customer the demo's business name until
   // this was caught by testing tenant isolation end-to-end).
-  const currentName = isDemo
-    ? getBusinessName(DEMO_BUSINESSES.find((b) => b.id === currentBusinessId) ?? DEMO_BUSINESSES[0])
-    : workspaceName;
+  const currentName =
+    isDemo && editionKey === "business"
+      ? getBusinessName(DEMO_BUSINESSES.find((b) => b.id === currentBusinessId) ?? DEMO_BUSINESSES[0])
+      : workspaceName;
 
-  if (!isDemo) {
+  // "My Businesses" (switching businesses, previewing an unrelated
+  // real-world industry pack) is flagship-only demo UI - it has nothing
+  // to do with a Workspace/Student edition preview, whose whole identity
+  // is a single fixed workspace with its own theming (see
+  // src/config/industry-profiles/workplace.ts and student.ts). Showing
+  // it there would let a prospective Student customer "preview the
+  // Restaurant industry pack" mid-demo, which breaks the very theming
+  // they're there to evaluate. Same simple display as a real session.
+  if (!isDemo || editionKey !== "business") {
     return (
       <div className="flex items-center gap-2 rounded-[10px] px-2 py-1.5">
         <span className="flex h-7 w-7 items-center justify-center rounded-[8px] bg-accent-wash text-[12px] font-bold text-accent">

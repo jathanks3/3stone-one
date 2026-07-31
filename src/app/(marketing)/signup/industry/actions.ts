@@ -25,5 +25,5 @@ export async function selectIndustryAction(_prevState: IndustryFormState, formDa
   }
 
   await selectIndustry(workspaceId, industryProfileKey);
-  redirect("/signup/product");
+  redirect("/signup/plan");
 }

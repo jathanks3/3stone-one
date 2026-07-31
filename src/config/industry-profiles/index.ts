@@ -8,6 +8,8 @@ import { medicalProfile } from "./medical";
 import { propertyManagementProfile } from "./propertyManagement";
 import { clothingBrandProfile } from "./clothingBrand";
 import { salonProfile } from "./salon";
+import { workplaceProfile } from "./workplace";
+import { studentProfile } from "./student";
 
 export const industryProfiles: Record<IndustryProfileKey, IndustryProfile> = {
   construction: constructionProfile,
@@ -19,6 +21,8 @@ export const industryProfiles: Record<IndustryProfileKey, IndustryProfile> = {
   property_management: propertyManagementProfile,
   clothing_brand: clothingBrandProfile,
   salon: salonProfile,
+  workplace: workplaceProfile,
+  student: studentProfile,
 };
 
 export const industryProfileList: IndustryProfile[] = [

@@ -6,6 +6,8 @@ import { SECURITY_DATASET } from "./security";
 import { EVENT_CENTER_DATASET } from "./eventCenter";
 import { MEDICAL_DATASET } from "./medical";
 import { PROPERTY_MANAGEMENT_DATASET } from "./propertyManagement";
+import { WORKPLACE_DATASET } from "./workplace";
+import { STUDENT_DATASET } from "./student";
 
 const REGISTRY: Record<IndustryProfileKey, IndustryDataset> = {
   construction: CONSTRUCTION_DATASET,
@@ -17,6 +19,8 @@ const REGISTRY: Record<IndustryProfileKey, IndustryDataset> = {
   property_management: PROPERTY_MANAGEMENT_DATASET,
   clothing_brand: { ...RESTAURANT_DATASET, profileKey: "clothing_brand", orgName: "North & Pine Apparel", greetingSubtitle: "Here’s what matters across North & Pine’s collections today." },
   salon: { ...MEDICAL_DATASET, profileKey: "salon", orgName: "Luma Beauty Collective", greetingSubtitle: "Here’s what matters across Luma’s services and retail today." },
+  workplace: WORKPLACE_DATASET,
+  student: STUDENT_DATASET,
 };
 
 export function getIndustryDataset(key: IndustryProfileKey): IndustryDataset {

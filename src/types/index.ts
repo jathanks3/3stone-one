@@ -7,7 +7,13 @@ export type IndustryProfileKey =
   | "medical"
   | "property_management"
   | "clothing_brand"
-  | "salon";
+  | "salon"
+  // Not real-world industries — the fixed profile every Workspace/Student
+  // edition workspace gets automatically, since "which industry" doesn't
+  // apply the way it does for the flagship product. See
+  // src/config/industry-profiles/workplace.ts and student.ts.
+  | "workplace"
+  | "student";
 
 export interface IndustryTerms {
   project: string;

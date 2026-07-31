@@ -7,7 +7,18 @@ import { Sidebar } from "./Sidebar";
 import { MobileNav } from "./MobileNav";
 import { CommandPalette } from "./CommandPalette";
 import { AiAssistant } from "@/components/assistant/AiAssistant";
+import { useIndustry } from "@/lib/industry";
+import { cn } from "@/lib/utils";
 import type { SessionUser } from "@/types";
+
+// Edition-scoped accent classes (see globals.css) - Workspace/Student
+// read as their own product in the actual app, not the flagship
+// re-skinned. Business edition gets no class, so it's pixel-identical
+// to before this existed.
+const EDITION_CLASS: Record<string, string | undefined> = {
+  workspace: "edition-workspace",
+  student: "edition-student",
+};
 
 export function AppShell({
   user,
@@ -18,9 +29,10 @@ export function AppShell({
 }) {
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const { editionKey } = useIndustry();
 
   return (
-    <div className="flex h-screen flex-col">
+    <div className={cn("flex h-screen flex-col", EDITION_CLASS[editionKey])}>
       <TopBar
         user={user}
         onOpenPalette={() => setPaletteOpen(true)}

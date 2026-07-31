@@ -24,6 +24,30 @@ const DARK_BRAND_STYLE = {
   "--on-accent": "#050505",
 } as CSSProperties;
 
+const EDITIONS = [
+  {
+    id: "business",
+    name: "3Stone One",
+    tagline: "The full operating system - CRM, projects, finance, inventory, automation, and analytics.",
+    demoHref: "/demo?edition=business",
+    learnMoreHref: null,
+  },
+  {
+    id: "workspace",
+    name: "3Stone One Workspace",
+    tagline: "For day-to-day workers, CEOs, and managers - documents, projects, and meetings, without the back office.",
+    demoHref: "/demo?edition=workspace",
+    learnMoreHref: "/workspace",
+  },
+  {
+    id: "student",
+    name: "3Stone One Student",
+    tagline: "Documents, projects, and meetings for coursework and group work - AI available as a paid add-on.",
+    demoHref: "/demo?edition=student",
+    learnMoreHref: "/student",
+  },
+] as const;
+
 const PRINCIPLES = [
   {
     icon: Building2,
@@ -104,6 +128,31 @@ export default function HomePage() {
               <p className="mt-1.5 text-[13.5px] leading-relaxed text-ink-2">{p.detail}</p>
             </div>
           ))}
+        </div>
+
+        <div className="mt-20">
+          <h2 className="text-[24px] font-bold text-ink-1">Three editions, one platform</h2>
+          <p className="mx-auto mt-2 max-w-[520px] text-[14px] text-ink-2">
+            Same product foundation, priced and scoped for who's using it - try any of them, no signup required.
+          </p>
+          <div className="mt-8 grid gap-5 text-left sm:grid-cols-3">
+            {EDITIONS.map((edition) => (
+              <div key={edition.id} className="flex flex-col rounded-[14px] border border-line bg-surface p-5">
+                <p className="text-[14.5px] font-semibold text-ink-1">{edition.name}</p>
+                <p className="mt-1.5 flex-1 text-[13px] leading-relaxed text-ink-2">{edition.tagline}</p>
+                <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1.5">
+                  <Link href={edition.demoHref} className="text-[13px] font-semibold text-accent hover:underline">
+                    Try the demo &rarr;
+                  </Link>
+                  {edition.learnMoreHref ? (
+                    <Link href={edition.learnMoreHref} className="text-[13px] font-semibold text-ink-2 hover:text-ink-1">
+                      Learn more
+                    </Link>
+                  ) : null}
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
 
         <div className="mt-20 rounded-[16px] border border-line bg-surface p-8">

@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { DEMO_USER, DEMO_WORKSPACE } from "@/server/mock-data";
+import { getIndustryDataset } from "@/server/mock-data/industries";
 import { getSession, hasStaffAccess } from "@/lib/session";
 import { db } from "@/server/db";
 import { IndustryProvider } from "@/lib/industry";
@@ -32,12 +33,19 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     // Unchanged from the mock-only era — demo never touches the database.
     // Edition comes from the session (set by /demo?edition=... - see
     // src/app/(marketing)/demo/route.ts), defaulting to the full
-    // original product when no demo edition was requested.
+    // original product when no demo edition was requested. Workspace and
+    // Student each get their own fixed profile/dataset (see
+    // src/config/industry-profiles/workplace.ts, student.ts) instead of
+    // always showing the flagship's default construction-industry demo -
+    // a prospective Workspace/Student customer should see a demo themed
+    // for them, not "Jobs"/"Technicians" wording from an unrelated trade.
+    const demoEditionKey = session?.demoEditionKey ?? "business";
+    const demoIndustryProfileKey = demoEditionKey === "workspace" ? "workplace" : demoEditionKey === "student" ? "student" : DEMO_WORKSPACE.industryProfileKey;
     workspace = {
       id: DEMO_WORKSPACE.id,
-      name: DEMO_WORKSPACE.name,
-      industryProfileKey: DEMO_WORKSPACE.industryProfileKey,
-      editionKey: session?.demoEditionKey ?? "business",
+      name: demoEditionKey === "business" ? DEMO_WORKSPACE.name : getIndustryDataset(demoIndustryProfileKey).orgName,
+      industryProfileKey: demoIndustryProfileKey,
+      editionKey: demoEditionKey,
     };
     user = DEMO_USER;
     // Demo has no real Subscription row — always true so a prospective
