@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { SESSION_COOKIE_NAME, parseSessionCookie, hasStaffAccess } from "@/lib/session";
 
-const PUBLIC_ROUTES = ["/login", "/demo"];
+const PUBLIC_ROUTES = ["/login"];
 const STAFF_PREFIX = "/3stone-ai";
 // Routes reachable regardless of session state — neither "logged-out
 // only" (like /login) nor "logged-in only": a brand new visitor can
@@ -11,7 +11,20 @@ const STAFF_PREFIX = "/3stone-ai";
 // not-yet-workspace-having, session. None of these should ever trigger
 // the "already logged in, go to /dashboard" rule below, or the flow
 // would boot them out the moment they have a session at all.
-const ALWAYS_ACCESSIBLE_PREFIXES = ["/signup", "/reset-password", "/invite", "/pricing", "/workspace", "/student"];
+//
+// /demo belongs here, not in PUBLIC_ROUTES: unlike /login (where an
+// already-logged-in visit makes no sense), /demo is meant to be hit
+// repeatedly by someone who already has a demo session, specifically to
+// switch editions (see (marketing)/demo/route.ts, which re-issues the
+// session cookie when ?edition= differs from the current one). Real
+// (non-demo) bug found and fixed here: /demo used to be in
+// PUBLIC_ROUTES, so the "already logged in -> /dashboard" rule below
+// intercepted every edition-switch attempt before the Route Handler
+// ever ran - the session was never recreated, no matter how the link
+// was clicked. The Route Handler itself already safely no-ops for a
+// real (non-demo) session, so making it always-reachable doesn't risk
+// clobbering a real customer's session.
+const ALWAYS_ACCESSIBLE_PREFIXES = ["/signup", "/reset-password", "/invite", "/pricing", "/workspace", "/student", "/demo"];
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
