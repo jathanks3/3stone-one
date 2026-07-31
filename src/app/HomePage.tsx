@@ -24,11 +24,17 @@ const DARK_BRAND_STYLE = {
   "--on-accent": "#050505",
 } as CSSProperties;
 
+// Colors match the real in-app per-edition accent (globals.css
+// .edition-workspace/.edition-student) and the marketing pages at
+// /workspace and /student - one visual identity per edition, not just
+// on the page selling it.
 const EDITIONS = [
   {
     id: "business",
     name: "3Stone One",
     tagline: "The full operating system - CRM, projects, finance, inventory, automation, and analytics.",
+    fromPrice: 99,
+    accent: "#6e93d6",
     demoHref: "/demo?edition=business",
     learnMoreHref: null,
   },
@@ -36,13 +42,17 @@ const EDITIONS = [
     id: "workspace",
     name: "3Stone One Workspace",
     tagline: "For day-to-day workers, CEOs, and managers - documents, projects, and meetings, without the back office.",
+    fromPrice: 69,
+    accent: "#5cbf99",
     demoHref: "/demo?edition=workspace",
     learnMoreHref: "/workspace",
   },
   {
     id: "student",
     name: "3Stone One Student",
-    tagline: "Documents, projects, and meetings for coursework and group work - AI available as a paid add-on.",
+    tagline: "Documents, projects, a calendar, notes, and a GPA calculator for coursework - AI available as a paid add-on.",
+    fromPrice: 55,
+    accent: "#a594f5",
     demoHref: "/demo?edition=student",
     learnMoreHref: "/student",
   },
@@ -71,7 +81,21 @@ export default function HomePage() {
     <div style={DARK_BRAND_STYLE} className="relative min-h-screen overflow-hidden bg-bg">
       <div
         aria-hidden
-        className="pointer-events-none absolute left-1/2 top-[-14%] h-[560px] w-[900px] -translate-x-1/2 rounded-full bg-accent opacity-[0.09] blur-[130px]"
+        className="pointer-events-none absolute inset-0 -z-10"
+        style={{
+          backgroundImage:
+            "radial-gradient(ellipse 640px 420px at 20% 0%, rgba(110, 147, 214, 0.15), transparent 60%), radial-gradient(ellipse 520px 420px at 88% 22%, rgba(47, 224, 168, 0.06), transparent 60%)",
+        }}
+      />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[560px]"
+        style={{
+          backgroundImage: "radial-gradient(rgba(255,255,255,0.05) 1px, transparent 1px)",
+          backgroundSize: "26px 26px",
+          maskImage: "linear-gradient(to bottom, black, transparent 80%)",
+          WebkitMaskImage: "linear-gradient(to bottom, black, transparent 80%)",
+        }}
       />
 
       <header className="relative mx-auto flex max-w-5xl items-center justify-between px-6 py-8">
@@ -124,8 +148,11 @@ export default function HomePage() {
 
         <div className="mt-20 grid gap-5 text-left sm:grid-cols-3">
           {PRINCIPLES.map((p) => (
-            <div key={p.title} className="rounded-[14px] border border-line bg-surface p-5">
-              <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-[10px] bg-accent-wash text-accent">
+            <div
+              key={p.title}
+              className="group rounded-[14px] border border-line bg-surface p-5 transition-all duration-200 hover:-translate-y-0.5 hover:border-line-strong hover:shadow-[0_20px_45px_-25px_rgba(0,0,0,0.7)]"
+            >
+              <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-[10px] bg-accent-wash text-accent transition-colors group-hover:bg-accent-wash-strong">
                 <p.icon size={18} strokeWidth={1.9} />
               </div>
               <p className="text-[14.5px] font-semibold text-ink-1">{p.title}</p>
@@ -141,11 +168,25 @@ export default function HomePage() {
           </p>
           <div className="mt-8 grid gap-5 text-left sm:grid-cols-3">
             {EDITIONS.map((edition) => (
-              <div key={edition.id} className="flex flex-col rounded-[14px] border border-line bg-surface p-5">
-                <p className="text-[14.5px] font-semibold text-ink-1">{edition.name}</p>
+              <div
+                key={edition.id}
+                className="group relative flex flex-col overflow-hidden rounded-[14px] border border-line bg-surface p-5 transition-all duration-200 hover:-translate-y-0.5 hover:border-line-strong hover:shadow-[0_20px_45px_-25px_rgba(0,0,0,0.7)]"
+              >
+                <span className="absolute inset-x-0 top-0 h-[3px]" style={{ background: edition.accent }} />
+                <span
+                  className="inline-flex w-fit items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[10.5px] font-semibold"
+                  style={{ color: edition.accent, borderColor: `${edition.accent}4d`, backgroundColor: `${edition.accent}24` }}
+                >
+                  <span className="h-1.5 w-1.5 rounded-full bg-current" />
+                  Live product
+                </span>
+                <p className="mt-2.5 text-[14.5px] font-semibold text-ink-1">{edition.name}</p>
+                <p className="mt-1 text-[13px] text-ink-3">
+                  <span className="text-[18px] font-bold text-ink-1">${edition.fromPrice}</span>/mo to start
+                </p>
                 <p className="mt-1.5 flex-1 text-[13px] leading-relaxed text-ink-2">{edition.tagline}</p>
                 <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1.5">
-                  <a href={edition.demoHref} className="text-[13px] font-semibold text-accent hover:underline">
+                  <a href={edition.demoHref} className="text-[13px] font-semibold hover:underline" style={{ color: edition.accent }}>
                     Try the demo &rarr;
                   </a>
                   {edition.learnMoreHref ? (

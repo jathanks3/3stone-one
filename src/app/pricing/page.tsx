@@ -34,6 +34,7 @@ const EDITIONS: {
   tiers: PlanTier[];
   showEnterprise: boolean;
   learnMoreHref?: string;
+  accent: string;
 }[] = [
   {
     id: "business",
@@ -41,6 +42,7 @@ const EDITIONS: {
     tagline: "The full operating system - CRM, projects, finance, inventory, automation, and analytics.",
     tiers: PLAN_TIERS,
     showEnterprise: true,
+    accent: "#6e93d6",
   },
   {
     id: "workspace",
@@ -49,14 +51,16 @@ const EDITIONS: {
     tiers: WORKSPACE_PLAN_TIERS,
     showEnterprise: false,
     learnMoreHref: "/workspace",
+    accent: "#5cbf99",
   },
   {
     id: "student",
     name: "3Stone One Student",
-    tagline: "Documents, projects, a calendar, and notes for coursework and group work. AI is available as a paid add-on.",
+    tagline: "Documents, projects, a calendar, notes, and a GPA calculator for coursework. AI is available as a paid add-on.",
     tiers: STUDENT_PLAN_TIERS,
     showEnterprise: false,
     learnMoreHref: "/student",
+    accent: "#a594f5",
   },
 ];
 
@@ -65,7 +69,11 @@ export default function PricingPage() {
     <div style={DARK_BRAND_STYLE} className="relative min-h-screen overflow-hidden bg-bg">
       <div
         aria-hidden
-        className="pointer-events-none absolute left-1/2 top-[-14%] h-[560px] w-[900px] -translate-x-1/2 rounded-full bg-accent opacity-[0.09] blur-[130px]"
+        className="pointer-events-none absolute inset-0 -z-10"
+        style={{
+          backgroundImage:
+            "radial-gradient(ellipse 640px 420px at 20% 0%, rgba(110, 147, 214, 0.15), transparent 60%), radial-gradient(ellipse 520px 420px at 88% 22%, rgba(47, 224, 168, 0.06), transparent 60%)",
+        }}
       />
 
       <header className="relative mx-auto flex max-w-5xl items-center justify-between px-6 py-8">
@@ -100,7 +108,10 @@ export default function PricingPage() {
             <section key={edition.id}>
               <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
                 <div>
-                  <h2 className="text-[24px] font-bold text-ink-1">{edition.name}</h2>
+                  <div className="flex items-center gap-2">
+                    <span className="h-2 w-2 rounded-full" style={{ background: edition.accent }} />
+                    <h2 className="text-[24px] font-bold text-ink-1">{edition.name}</h2>
+                  </div>
                   <p className="mt-1 max-w-[560px] text-[13.5px] text-ink-2">{edition.tagline}</p>
                 </div>
                 <div className="flex flex-shrink-0 items-center gap-3">
