@@ -13,12 +13,15 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Invalid staff key." }, { status: 401 });
   }
 
-  const [totalSignups, activeSubscriptions] = await Promise.all([
+  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+  const [totalSignups, activeSubscriptions, totalPageviews, pageviews7d] = await Promise.all([
     db.user.count(),
     db.subscription.findMany({
       where: { status: "active" },
       select: { mrrCents: true, workspace: { select: { editionKey: true } } },
     }),
+    db.pageEvent.count({ where: { eventType: "pageview" } }),
+    db.pageEvent.count({ where: { eventType: "pageview", occurredAt: { gte: sevenDaysAgo } } }),
   ]);
 
   const byEdition: Record<string, { subscribers: number; mrrCents: number }> = {};
@@ -36,6 +39,8 @@ export async function GET(req: NextRequest) {
     activeSubscribers: activeSubscriptions.length,
     mrr: mrrCents / 100,
     byEdition,
+    totalPageviews,
+    pageviews7d,
     generatedAt: new Date().toISOString(),
   });
 }

@@ -1558,3 +1558,21 @@ model EmailDeliveryLog {
 
   @@map("platform_email_delivery_logs")
 }
+
+// Minimal page-view/click analytics feeding the founder's Company
+// Revenue/Analytics rollup in 3Stone Admin. No PII: sessionId is a
+// random client-generated token (sessionStorage), never a real account
+// or IP. Written only by api/track's route handler (validated/rate-
+// limited there, not a raw client insert), read only by
+// api/staff/stats's route handler behind the same staff-key gate as the
+// rest of that endpoint.
+model PageEvent {
+  id         String   @id @default(cuid())
+  eventType  String
+  path       String
+  sessionId  String
+  occurredAt DateTime @default(now())
+
+  @@index([occurredAt])
+  @@map("page_events")
+}
