@@ -11,7 +11,7 @@ const STAFF_PREFIX = "/3stone-ai";
 // not-yet-workspace-having, session. None of these should ever trigger
 // the "already logged in, go to /dashboard" rule below, or the flow
 // would boot them out the moment they have a session at all.
-const ALWAYS_ACCESSIBLE_PREFIXES = ["/signup", "/reset-password", "/invite"];
+const ALWAYS_ACCESSIBLE_PREFIXES = ["/signup", "/reset-password", "/invite", "/pricing"];
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
