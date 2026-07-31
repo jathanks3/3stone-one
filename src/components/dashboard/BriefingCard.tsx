@@ -9,10 +9,17 @@ import { HealthMeter } from "@/ui/HealthMeter";
 
 export function BriefingCard() {
   const { showToast } = useToast();
-  const { profile } = useIndustry();
+  const { profile, editionKey } = useIndustry();
   const dataset = getIndustryDataset(profile.key);
   const health = getBusinessHealthScoreForDataset(dataset);
-  const briefing = generateMorningBriefing(dataset);
+  // Same edition gating as DashboardClient/AttentionCard - Student has no
+  // Finance module, and neither Workspace nor Student has "CRM contacts to
+  // follow up with" as a concept the way the flagship does.
+  const includeInvoices = editionKey === "business";
+  const includeOverdueJobs = editionKey !== "student";
+  const hasAttentionCard = includeOverdueJobs || includeInvoices;
+  const hasCrmFollowUp = editionKey === "business" || editionKey === "workspace";
+  const briefing = generateMorningBriefing(dataset, { includeOverdueJobs, includeInvoices });
   const topOverdue = dataset.jobs.find((j) => j.overdue);
 
   function scrollToAttention() {
@@ -29,23 +36,27 @@ export function BriefingCard() {
           </div>
           <p className="mt-3 max-w-[640px] text-[15px] leading-relaxed text-ink-1">{briefing}</p>
           <div className="mt-4 flex flex-wrap gap-2">
-            <button
-              onClick={() =>
-                showToast({
-                  title: `Drafting a follow-up to ${topOverdue?.client ?? dataset.organizations[0]?.name ?? "your client"}`,
-                  description: "Email drafts ship with a real backend — this is a convincing preview today.",
-                })
-              }
-              className="rounded-[9px] bg-accent px-3.5 py-2 text-[13px] font-semibold text-on-accent hover:opacity-90"
-            >
-              Draft a follow-up
-            </button>
-            <button
-              onClick={scrollToAttention}
-              className="rounded-[9px] border border-accent-wash-strong bg-surface px-3.5 py-2 text-[13px] font-semibold text-accent hover:bg-accent-wash-strong"
-            >
-              See what needs attention
-            </button>
+            {hasCrmFollowUp ? (
+              <button
+                onClick={() =>
+                  showToast({
+                    title: `Drafting a follow-up to ${topOverdue?.client ?? dataset.organizations[0]?.name ?? "your client"}`,
+                    description: "Email drafts ship with a real backend — this is a convincing preview today.",
+                  })
+                }
+                className="rounded-[9px] bg-accent px-3.5 py-2 text-[13px] font-semibold text-on-accent hover:opacity-90"
+              >
+                Draft a follow-up
+              </button>
+            ) : null}
+            {hasAttentionCard ? (
+              <button
+                onClick={scrollToAttention}
+                className="rounded-[9px] border border-accent-wash-strong bg-surface px-3.5 py-2 text-[13px] font-semibold text-accent hover:bg-accent-wash-strong"
+              >
+                See what needs attention
+              </button>
+            ) : null}
           </div>
         </div>
 

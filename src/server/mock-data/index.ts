@@ -117,8 +117,17 @@ export function getBusinessHealthScoreForDataset(dataset: IndustryDataset): Busi
  * A morning-briefing paragraph generated from the active industry's own
  * data — real overdue jobs, real invoice amounts, real notifications —
  * instead of a single hardcoded sentence.
+ *
+ * includeOverdueJobs/includeInvoices let the Workspace/Student editions
+ * (see src/lib/editionModules.ts) drop sentences that don't fit them -
+ * Student has no Finance module at all, and its shared demo job records
+ * ("Downtown Lofts" etc.) read as business clients, not assignments.
  */
-export function generateMorningBriefing(dataset: IndustryDataset): string {
+export function generateMorningBriefing(
+  dataset: IndustryDataset,
+  options: { includeOverdueJobs?: boolean; includeInvoices?: boolean } = {}
+): string {
+  const { includeOverdueJobs = true, includeInvoices = true } = options;
   const months = dataset.monthlyChart.months;
   const latest = months[months.length - 1];
   const prior = months[months.length - 2];
@@ -127,12 +136,14 @@ export function generateMorningBriefing(dataset: IndustryDataset): string {
   const overdueInvoices = dataset.invoices.filter((i) => i.status === "overdue");
 
   const revenueSentence = `${dataset.monthlyChart.primaryLabel} is ${revenuePct >= 0 ? "up" : "down"} ${Math.abs(revenuePct)}% this month.`;
-  const jobsSentence =
-    overdueJobs.length > 0
+  const jobsSentence = !includeOverdueJobs
+    ? ""
+    : overdueJobs.length > 0
       ? ` ${overdueJobs.length} ${overdueJobs.length === 1 ? "item is" : "items are"} behind schedule — ${overdueJobs.map((j) => j.client).join(", ")}.`
       : ` Nothing is behind schedule right now.`;
-  const invoiceSentence =
-    overdueInvoices.length > 0
+  const invoiceSentence = !includeInvoices
+    ? ""
+    : overdueInvoices.length > 0
       ? ` ${overdueInvoices[0].client}'s invoice is overdue at ${formatCurrency(overdueInvoices[0].amount, { compact: true })}.`
       : ` All invoices are current.`;
 
