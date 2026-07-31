@@ -4,7 +4,7 @@ import { DEMO_PEOPLE, DEMO_DEALS } from "../crm";
 import { DEMO_JOBS } from "../jobs";
 import { DEMO_INVOICES } from "../finance";
 import { DEMO_EMPLOYEES } from "../people";
-import { DEMO_ACTIVITY } from "../activity";
+import { STUDENT_ACTIVITY } from "../activity";
 
 // Demo-only dataset for the Student edition (see
 // src/config/industry-profiles/student.ts) — used exclusively by
@@ -75,7 +75,7 @@ export const STUDENT_DATASET: IndustryDataset = {
   jobs: DEMO_JOBS,
   invoices: DEMO_INVOICES,
   employees: DEMO_EMPLOYEES,
-  notifications: DEMO_ACTIVITY,
+  notifications: STUDENT_ACTIVITY,
   aiRecommendations: [
     "Your Capstone Proposal draft hasn't been touched in 4 days and is due soon — a short session today keeps it from becoming a scramble.",
     "Two group members haven't checked in on the Marketing 401 project this week — a quick message keeps everyone aligned before the next meeting.",

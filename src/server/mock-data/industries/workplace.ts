@@ -4,17 +4,18 @@ import { DEMO_PEOPLE, DEMO_DEALS } from "../crm";
 import { DEMO_JOBS } from "../jobs";
 import { DEMO_INVOICES } from "../finance";
 import { DEMO_EMPLOYEES } from "../people";
-import { DEMO_ACTIVITY } from "../activity";
+import { WORKPLACE_ACTIVITY } from "../activity";
 
 // Demo-only dataset for the Workspace edition (see
 // src/config/industry-profiles/workplace.ts) — used exclusively by
 // /demo?edition=workspace (see (app)/layout.tsx). Real Workspace
 // customers' dashboards read real data via dashboardService, never this.
-// Reuses the same underlying demo entities as the construction dataset
-// (organizations/people/deals/jobs/employees/activity) since Workspace
-// still has CRM/Projects/People/Client Portal — only the Dashboard's own
-// KPIs/charts are re-themed away from "revenue and expenses" (Finance
-// isn't in this edition) toward project/team-of-workers framing.
+// Reuses the same underlying organizations/people/deals/jobs/employees
+// as the construction dataset, since Workspace still has CRM/Projects/
+// People/Client Portal — but the Dashboard's own KPIs/charts and the
+// "Recent activity" feed (WORKPLACE_ACTIVITY) are its own content, re-
+// themed away from "revenue and expenses" (Finance isn't in this
+// edition) toward project/team-of-workers framing.
 const projectsByStatus = (status: (typeof DEMO_JOBS)[number]["status"]) =>
   DEMO_JOBS.filter((j) => j.status === status).length;
 const behindScheduleProjects = DEMO_JOBS.filter((j) => j.overdue);
@@ -75,7 +76,7 @@ export const WORKPLACE_DATASET: IndustryDataset = {
   jobs: DEMO_JOBS,
   invoices: DEMO_INVOICES,
   employees: DEMO_EMPLOYEES,
-  notifications: DEMO_ACTIVITY,
+  notifications: WORKPLACE_ACTIVITY,
   aiRecommendations: [
     "The Downtown Lofts project hasn't been updated in 4 days — a quick status check keeps it visible to the rest of the team.",
     "Two meetings this week still have no agenda — adding one now saves time once everyone's in the room.",
