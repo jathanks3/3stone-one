@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import type { CSSProperties } from "react";
-import { Users2, FolderKanban, MessagesSquare } from "lucide-react";
+import { Users2, FolderKanban, MessagesSquare, Calendar } from "lucide-react";
 import { WORKSPACE_PLAN_TIERS } from "@/config/pricing";
 import { TierGrid } from "@/components/marketing/TierGrid";
 
@@ -43,6 +43,11 @@ const FEATURES = [
     icon: MessagesSquare,
     title: "Communications and meetings",
     detail: "Team chat, call notes, and meeting summaries live next to the work they're about, not in a separate app.",
+  },
+  {
+    icon: Calendar,
+    title: "A real calendar and a notes space",
+    detail: "Add, move, and delete what's on the schedule, plus a lightweight notes space separate from shared documents.",
   },
 ];
 
@@ -102,7 +107,7 @@ export default function WorkspaceMarketingPage() {
           </a>
         </div>
 
-        <div className="mt-20 grid gap-5 text-left sm:grid-cols-3">
+        <div className="mt-20 grid gap-5 text-left sm:grid-cols-2 lg:grid-cols-4">
           {FEATURES.map((f) => (
             <div key={f.title} className="rounded-[14px] border border-line bg-surface p-5">
               <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-[10px] bg-accent-wash text-accent">

@@ -12,7 +12,9 @@
 export const EDITION_MODULES: Record<string, string[] | null> = {
   business: null,
   // Day-to-day workers, CEOs, and managers - no finance/accounting,
-  // inventory, automation, or analytics.
+  // inventory, automation, or analytics. Calendar/Notes added alongside
+  // Meetings/Documents - a real add/delete calendar and a lightweight
+  // notes space, not just the heavier Meetings/Documents modules.
   workspace: [
     "portfolio",
     "dashboard",
@@ -21,7 +23,9 @@ export const EDITION_MODULES: Record<string, string[] | null> = {
     "people",
     "communications",
     "meetings",
+    "calendar",
     "documents",
+    "notes",
     "knowledge",
     "integrations",
     "client-portal",
@@ -30,7 +34,10 @@ export const EDITION_MODULES: Record<string, string[] | null> = {
   ],
   // Same philosophy as Workspace, lighter still - no CRM, people, client
   // portal, or integrations (nothing here to manage clients/a team with).
-  student: ["dashboard", "projects", "meetings", "documents", "knowledge", "activity", "settings"],
+  // No Meetings either - a student doesn't run agendas/AI summaries the
+  // way a workplace does; Calendar covers classes/deadlines/study
+  // sessions instead, and Notes covers quick study notes.
+  student: ["dashboard", "projects", "calendar", "documents", "notes", "knowledge", "activity", "settings"],
 };
 
 export function getAllowedModuleKeys(editionKey: string): Set<string> | null {

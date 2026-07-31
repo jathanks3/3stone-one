@@ -369,6 +369,31 @@ export interface Meeting {
   status: "upcoming" | "past";
 }
 
+// ---- Calendar ----
+// Workspace and Student editions (see src/lib/editionModules.ts) - a
+// day-to-day worker or student wants a real add/delete calendar more
+// than a full Meetings module built around agendas and AI summaries.
+
+export interface CalendarEvent {
+  id: string;
+  title: string;
+  date: string; // "YYYY-MM-DD"
+  time: string; // display string, e.g. "10:00 AM"
+}
+
+// ---- Notes ----
+// Same two editions - a lightweight place to jot something down,
+// distinct from the heavier Documents module (files, categories,
+// sharing tiers).
+
+export interface Note {
+  id: string;
+  title: string;
+  body: string;
+  updatedAt: string;
+  pinned?: boolean;
+}
+
 // ---- Knowledge Center ----
 
 export type KnowledgeCategory = "policy" | "training" | "process" | "sop" | "video";

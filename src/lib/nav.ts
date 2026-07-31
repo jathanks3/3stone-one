@@ -58,11 +58,25 @@ export function getNavSections(profile: IndustryProfile, allowedModuleKeys: Set<
           description: "Agendas, action items, AI summaries, and decisions.",
         },
         {
+          key: "calendar",
+          href: "/calendar",
+          label: "Calendar",
+          icon: "Calendar",
+          description: "Add, move, and delete what's coming up.",
+        },
+        {
           key: "documents",
           href: "/documents",
           label: "Documents",
           icon: "FileText",
           description: "Company and project files, shareable with clients.",
+        },
+        {
+          key: "notes",
+          href: "/notes",
+          label: "Notes",
+          icon: "StickyNote",
+          description: "Quick notes and drafts, separate from shared documents.",
         },
         {
           key: "knowledge",

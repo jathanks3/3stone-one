@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import type { CSSProperties } from "react";
-import { FolderKanban, Calendar, Sparkles } from "lucide-react";
+import { FolderKanban, Calendar, StickyNote, Sparkles } from "lucide-react";
 import { STUDENT_PLAN_TIERS, AI_ADD_ON_PRICE_MONTHLY } from "@/config/pricing";
 import { TierGrid } from "@/components/marketing/TierGrid";
 
@@ -11,9 +11,11 @@ export const metadata: Metadata = { title: "3Stone One Student — coursework an
 // Dedicated marketing page for the Student edition - same dark-brand
 // treatment as the homepage/pricing/login (DARK_BRAND_STYLE). Feature set
 // drawn from the real allowed-module list (EDITION_MODULES.student in
-// src/lib/editionModules.ts): dashboard, projects, meetings, documents,
-// knowledge, activity, settings - no CRM/people/client-portal, since a
-// student has no clients or team to manage.
+// src/lib/editionModules.ts): dashboard, projects, calendar, documents,
+// notes, knowledge, activity, settings - no CRM/people/client-portal
+// (nothing here to manage a team or clients with) and no Meetings - a
+// student doesn't run agendas/AI summaries the way a workplace does;
+// Calendar covers classes/deadlines/study sessions instead.
 const DARK_BRAND_STYLE = {
   "--bg": "#050505",
   "--surface": "#0c0c0d",
@@ -38,8 +40,13 @@ const FEATURES = [
   },
   {
     icon: Calendar,
-    title: "Meetings and documents together",
-    detail: "Study sessions and group meetings, plus the documents behind them, live in the same place.",
+    title: "A calendar that's actually yours",
+    detail: "Add, move, and delete classes, deadlines, and study sessions - no meetings to run, just what's on your plate.",
+  },
+  {
+    icon: StickyNote,
+    title: "Quick notes, always at hand",
+    detail: "Jot down a thought mid-lecture or outline an idea, kept separate from your shared documents.",
   },
   {
     icon: Sparkles,
@@ -83,8 +90,8 @@ export default function StudentMarketingPage() {
           Coursework and group projects, in one place.
         </h1>
         <p className="mx-auto mt-5 max-w-[560px] text-[16px] leading-relaxed text-ink-2">
-          Built for college and grad school - documents, projects, and meetings for a semester or a whole
-          program, with real AI help available as an add-on.
+          Built for college and grad school - documents, projects, a real calendar, and notes for a semester
+          or a whole program, with real AI help available as an add-on.
         </p>
         <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
           <Link
@@ -104,7 +111,7 @@ export default function StudentMarketingPage() {
           </a>
         </div>
 
-        <div className="mt-20 grid gap-5 text-left sm:grid-cols-3">
+        <div className="mt-20 grid gap-5 text-left sm:grid-cols-2 lg:grid-cols-4">
           {FEATURES.map((f) => (
             <div key={f.title} className="rounded-[14px] border border-line bg-surface p-5">
               <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-[10px] bg-accent-wash text-accent">

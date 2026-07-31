@@ -16,6 +16,8 @@ import {
   Settings,
   Eye,
   PackageSearch,
+  Calendar,
+  StickyNote,
   type LucideIcon,
 } from "lucide-react";
 
@@ -37,4 +39,6 @@ export const NAV_ICONS: Record<string, LucideIcon> = {
   Settings,
   Eye,
   PackageSearch,
+  Calendar,
+  StickyNote,
 };

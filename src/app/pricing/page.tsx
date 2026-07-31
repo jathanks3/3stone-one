@@ -53,7 +53,7 @@ const EDITIONS: {
   {
     id: "student",
     name: "3Stone One Student",
-    tagline: "Documents, projects, and meetings for coursework and group work. AI is available as a paid add-on.",
+    tagline: "Documents, projects, a calendar, and notes for coursework and group work. AI is available as a paid add-on.",
     tiers: STUDENT_PLAN_TIERS,
     showEnterprise: false,
     learnMoreHref: "/student",
