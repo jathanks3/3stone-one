@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import type { CSSProperties } from "react";
 import { PLAN_TIERS, WORKSPACE_PLAN_TIERS, STUDENT_PLAN_TIERS, ENTERPRISE_LABEL, type PlanTier } from "@/config/pricing";
+import { TierGrid } from "@/components/marketing/TierGrid";
 
 export const metadata: Metadata = { title: "Pricing — 3Stone One" };
 
@@ -26,7 +27,14 @@ const DARK_BRAND_STYLE = {
   "--on-accent": "#050505",
 } as CSSProperties;
 
-const EDITIONS: { id: string; name: string; tagline: string; tiers: PlanTier[]; showEnterprise: boolean }[] = [
+const EDITIONS: {
+  id: string;
+  name: string;
+  tagline: string;
+  tiers: PlanTier[];
+  showEnterprise: boolean;
+  learnMoreHref?: string;
+}[] = [
   {
     id: "business",
     name: "3Stone One",
@@ -40,6 +48,7 @@ const EDITIONS: { id: string; name: string; tagline: string; tiers: PlanTier[]; 
     tagline: "For day-to-day workers, CEOs, and managers - documents, projects, and meetings, without the back office.",
     tiers: WORKSPACE_PLAN_TIERS,
     showEnterprise: false,
+    learnMoreHref: "/workspace",
   },
   {
     id: "student",
@@ -47,41 +56,9 @@ const EDITIONS: { id: string; name: string; tagline: string; tiers: PlanTier[]; 
     tagline: "Documents, projects, and meetings for coursework and group work. AI is available as a paid add-on.",
     tiers: STUDENT_PLAN_TIERS,
     showEnterprise: false,
+    learnMoreHref: "/student",
   },
 ];
-
-function TierGrid({ tiers }: { tiers: PlanTier[] }) {
-  return (
-    <div className="grid gap-5 sm:grid-cols-3">
-      {tiers.map((tier, idx) => (
-        <div
-          key={tier.key}
-          className={`flex flex-col rounded-[16px] border p-6 ${
-            idx === 1 ? "border-accent bg-accent-wash" : "border-line bg-surface"
-          }`}
-        >
-          <h3 className="text-[18px] font-bold text-ink-1">{tier.label}</h3>
-          <p className="mt-2 flex items-baseline gap-1">
-            <span className="text-[32px] font-extrabold text-ink-1">${tier.priceMonthly}</span>
-            <span className="text-[13px] text-ink-3">/month</span>
-          </p>
-          <p className="mt-1 text-[12.5px] text-ink-3">Up to {tier.maxEmployees} seats</p>
-          <p className="mt-4 flex-1 text-[13.5px] leading-relaxed text-ink-2">{tier.blurb}</p>
-          <Link
-            href="/signup"
-            className={`mt-6 inline-flex h-10 items-center justify-center rounded-[10px] text-[13.5px] font-semibold ${
-              idx === 1
-                ? "bg-accent text-on-accent hover:opacity-90"
-                : "border border-line-strong text-ink-1 hover:bg-surface-raised"
-            }`}
-          >
-            Get started
-          </Link>
-        </div>
-      ))}
-    </div>
-  );
-}
 
 export default function PricingPage() {
   return (
@@ -126,14 +103,21 @@ export default function PricingPage() {
                   <h2 className="text-[24px] font-bold text-ink-1">{edition.name}</h2>
                   <p className="mt-1 max-w-[560px] text-[13.5px] text-ink-2">{edition.tagline}</p>
                 </div>
-                <Link
-                  href={`/demo?edition=${edition.id}`}
-                  className="inline-flex h-9 flex-shrink-0 items-center rounded-[10px] border border-line-strong px-4 text-[13px] font-semibold text-ink-1 hover:bg-surface-raised"
-                >
-                  Try the demo &rarr;
-                </Link>
+                <div className="flex flex-shrink-0 items-center gap-3">
+                  {edition.learnMoreHref ? (
+                    <Link href={edition.learnMoreHref} className="text-[13px] font-semibold text-ink-2 hover:text-ink-1">
+                      Learn more
+                    </Link>
+                  ) : null}
+                  <Link
+                    href={`/demo?edition=${edition.id}`}
+                    className="inline-flex h-9 items-center rounded-[10px] border border-line-strong px-4 text-[13px] font-semibold text-ink-1 hover:bg-surface-raised"
+                  >
+                    Try the demo &rarr;
+                  </Link>
+                </div>
               </div>
-              <TierGrid tiers={edition.tiers} />
+              <TierGrid tiers={edition.tiers} signupHref="/signup" />
               {edition.showEnterprise ? (
                 <div className="mt-5 flex flex-col rounded-[16px] border border-line bg-surface p-6">
                   <div className="flex flex-wrap items-center justify-between gap-4">
