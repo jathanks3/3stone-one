@@ -91,12 +91,15 @@ export default function WorkspaceMarketingPage() {
           >
             Get started
           </Link>
-          <Link
+          {/* Plain <a>, not Link - a client-side transition here can
+              serve a cached /dashboard from before the session cookie
+              changed (see HomePage.tsx for the full explanation). */}
+          <a
             href="/demo?edition=workspace"
             className="inline-flex h-11 items-center rounded-[10px] border border-line-strong px-6 text-[14.5px] font-semibold text-ink-1 hover:bg-surface"
           >
             Try the live demo
-          </Link>
+          </a>
         </div>
 
         <div className="mt-20 grid gap-5 text-left sm:grid-cols-3">

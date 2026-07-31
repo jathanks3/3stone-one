@@ -110,12 +110,16 @@ export default function HomePage() {
           >
             Get started
           </Link>
-          <Link
+          {/* Plain <a>, not Link - /demo issues a new session cookie and
+              redirects to /dashboard. A client-side transition can serve
+              a cached /dashboard from before the cookie changed; a real
+              navigation never does. */}
+          <a
             href="/demo"
             className="inline-flex h-11 items-center rounded-[10px] border border-line-strong px-6 text-[14.5px] font-semibold text-ink-1 hover:bg-surface"
           >
             Try the live demo
-          </Link>
+          </a>
         </div>
 
         <div className="mt-20 grid gap-5 text-left sm:grid-cols-3">
@@ -141,9 +145,9 @@ export default function HomePage() {
                 <p className="text-[14.5px] font-semibold text-ink-1">{edition.name}</p>
                 <p className="mt-1.5 flex-1 text-[13px] leading-relaxed text-ink-2">{edition.tagline}</p>
                 <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1.5">
-                  <Link href={edition.demoHref} className="text-[13px] font-semibold text-accent hover:underline">
+                  <a href={edition.demoHref} className="text-[13px] font-semibold text-accent hover:underline">
                     Try the demo &rarr;
-                  </Link>
+                  </a>
                   {edition.learnMoreHref ? (
                     <Link href={edition.learnMoreHref} className="text-[13px] font-semibold text-ink-2 hover:text-ink-1">
                       Learn more

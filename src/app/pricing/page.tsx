@@ -109,12 +109,15 @@ export default function PricingPage() {
                       Learn more
                     </Link>
                   ) : null}
-                  <Link
+                  {/* Plain <a>, not Link - see HomePage.tsx for why a
+                      client-side transition here can serve a cached
+                      /dashboard from before the session cookie changed. */}
+                  <a
                     href={`/demo?edition=${edition.id}`}
                     className="inline-flex h-9 items-center rounded-[10px] border border-line-strong px-4 text-[13px] font-semibold text-ink-1 hover:bg-surface-raised"
                   >
                     Try the demo &rarr;
-                  </Link>
+                  </a>
                 </div>
               </div>
               <TierGrid tiers={edition.tiers} signupHref="/signup" />

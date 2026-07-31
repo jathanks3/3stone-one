@@ -45,7 +45,13 @@ export function WorkspaceSwitcher() {
   function goToEdition(key: string) {
     setOpen(false);
     if (key === editionKey) return;
-    router.push(`/demo?edition=${key}`);
+    // A real full navigation, not router.push. /demo re-issues the
+    // session cookie for the new edition, but Next's client-side router
+    // can still serve /dashboard from its own cache after the redirect -
+    // it doesn't know the cookie changed just because the URL matches
+    // one it already has cached. window.location forces an actual fresh
+    // request, the same way clicking a plain <a> tag does.
+    window.location.href = `/demo?edition=${key}`;
   }
 
   // Real (non-demo) sessions get a static, non-interactive display -
