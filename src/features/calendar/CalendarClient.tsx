@@ -1,10 +1,25 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { CalendarDays, Plus, Trash2, X } from "lucide-react";
+import {
+  CalendarDays,
+  ChevronLeft,
+  ChevronRight,
+  Download,
+  ExternalLink,
+  MoreHorizontal,
+  Plus,
+  Trash2,
+  X,
+} from "lucide-react";
 import { Card } from "@/ui/Card";
 import { EmptyState } from "@/ui/EmptyState";
 import { useIndustry } from "@/lib/industry";
+import { useOnClickOutside } from "@/lib/useOnClickOutside";
+import { useEscapeKey } from "@/lib/useEscapeKey";
+import { cn } from "@/lib/utils";
+import { buildIcsCalendar, googleCalendarAddUrl } from "@/lib/ics";
+import { downloadTextFile } from "@/lib/download";
 import { DEMO_CALENDAR_EVENTS, STUDENT_CALENDAR_EVENTS } from "@/server/mock-data/calendar";
 import type { CalendarEvent } from "@/types";
 
@@ -13,16 +28,24 @@ function parseLocalDate(iso: string): Date {
   return new Date(y, m - 1, d);
 }
 
+function toIsoDate(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+function formatTime12h(time24: string): string {
+  const [h, m] = time24.split(":").map(Number);
+  const period = h >= 12 ? "PM" : "AM";
+  const hour12 = h % 12 === 0 ? 12 : h % 12;
+  return `${hour12}:${String(m).padStart(2, "0")} ${period}`;
+}
+
 function formatDateHeading(iso: string): string {
   return parseLocalDate(iso).toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" });
 }
 
 function dayBadge(iso: string): { weekday: string; day: string } {
   const d = parseLocalDate(iso);
-  return {
-    weekday: d.toLocaleDateString(undefined, { weekday: "short" }).toUpperCase(),
-    day: String(d.getDate()),
-  };
+  return { weekday: d.toLocaleDateString(undefined, { weekday: "short" }).toUpperCase(), day: String(d.getDate()) };
 }
 
 function groupByDate(events: CalendarEvent[]): [string, CalendarEvent[]][] {
@@ -36,24 +59,112 @@ function groupByDate(events: CalendarEvent[]): [string, CalendarEvent[]][] {
   return Array.from(groups.entries());
 }
 
+// 6 full weeks (42 cells), including the leading/trailing days from
+// adjacent months - the standard, always-consistent month-grid shape.
+function getMonthMatrix(monthCursor: Date): Date[] {
+  const year = monthCursor.getFullYear();
+  const month = monthCursor.getMonth();
+  const firstOfMonth = new Date(year, month, 1);
+  const start = new Date(year, month, 1 - firstOfMonth.getDay());
+  return Array.from({ length: 42 }, (_, i) => {
+    const d = new Date(start);
+    d.setDate(start.getDate() + i);
+    return d;
+  });
+}
+
+function EventRow({
+  event,
+  onDelete,
+}: {
+  event: CalendarEvent;
+  onDelete: (id: string) => void;
+}) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  useOnClickOutside(ref, () => setMenuOpen(false));
+  useEscapeKey(menuOpen, () => setMenuOpen(false));
+  const badge = dayBadge(event.date);
+
+  return (
+    <Card className="group flex items-center gap-3.5 p-3.5">
+      <div className="flex h-11 w-11 flex-shrink-0 flex-col items-center justify-center rounded-[10px] bg-accent-wash text-accent">
+        <span className="text-[9.5px] font-bold leading-none">{badge.weekday}</span>
+        <span className="text-[15px] font-extrabold leading-none">{badge.day}</span>
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-[14px] font-semibold text-ink-1">{event.title}</p>
+        <p className="text-[12.5px] text-ink-3">{formatTime12h(event.time)}</p>
+      </div>
+      <div className="relative flex flex-shrink-0 items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100" ref={ref}>
+        <button
+          onClick={() => setMenuOpen((v) => !v)}
+          aria-label="Export this event"
+          className="flex h-8 w-8 items-center justify-center rounded-[8px] text-ink-3 hover:bg-surface-raised hover:text-ink-1"
+        >
+          <MoreHorizontal size={15} />
+        </button>
+        {menuOpen ? (
+          <div className="absolute right-0 top-[calc(100%+4px)] z-20 w-52 rounded-[10px] border border-line bg-surface p-1 shadow-[var(--shadow)]">
+            <a
+              href={googleCalendarAddUrl(event)}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => setMenuOpen(false)}
+              className="flex items-center gap-2 rounded-[7px] px-2.5 py-2 text-left text-[12.5px] text-ink-2 hover:bg-surface-raised hover:text-ink-1"
+            >
+              <ExternalLink size={14} />
+              Add to Google Calendar
+            </a>
+            <button
+              onClick={() => {
+                downloadTextFile(`${event.title.replace(/[^\w-]+/g, "_")}.ics`, buildIcsCalendar([event], event.title), "text/calendar");
+                setMenuOpen(false);
+              }}
+              className="flex w-full items-center gap-2 rounded-[7px] px-2.5 py-2 text-left text-[12.5px] text-ink-2 hover:bg-surface-raised hover:text-ink-1"
+            >
+              <Download size={14} />
+              Download .ics (Apple/Outlook)
+            </button>
+          </div>
+        ) : null}
+        <button
+          onClick={() => onDelete(event.id)}
+          aria-label="Delete event"
+          className="flex h-8 w-8 items-center justify-center rounded-[8px] text-ink-3 hover:bg-critical-wash hover:text-critical"
+        >
+          <Trash2 size={15} />
+        </button>
+      </div>
+    </Card>
+  );
+}
+
 export function CalendarClient() {
   const { editionKey } = useIndustry();
   const seed = editionKey === "student" ? STUDENT_CALENDAR_EVENTS : DEMO_CALENDAR_EVENTS;
   const [events, setEvents] = useState<CalendarEvent[]>(seed);
+  const [view, setView] = useState<"month" | "list">("month");
+  const [monthCursor, setMonthCursor] = useState<Date>(() => (seed[0] ? parseLocalDate(seed[0].date) : new Date()));
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
   const [title, setTitle] = useState("");
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
   const nextId = useRef(seed.length);
 
+  function startAdding(prefillDate?: string) {
+    setTitle("");
+    setDate(prefillDate ?? "");
+    setTime("");
+    setAdding(true);
+  }
+
   function addEvent(e: React.FormEvent) {
     e.preventDefault();
     if (!title.trim() || !date || !time) return;
     nextId.current += 1;
     setEvents((prev) => [...prev, { id: `local_${nextId.current}`, title: title.trim(), date, time }]);
-    setTitle("");
-    setDate("");
-    setTime("");
     setAdding(false);
   }
 
@@ -61,7 +172,15 @@ export function CalendarClient() {
     setEvents((prev) => prev.filter((ev) => ev.id !== id));
   }
 
+  function exportAll() {
+    const calendarName = editionKey === "student" ? "3Stone One Student" : "3Stone One Workspace";
+    downloadTextFile("calendar.ics", buildIcsCalendar(events, calendarName), "text/calendar");
+  }
+
   const groups = groupByDate(events);
+  const monthDays = getMonthMatrix(monthCursor);
+  const monthLabel = monthCursor.toLocaleDateString(undefined, { month: "long", year: "numeric" });
+  const selectedDayEvents = selectedDate ? events.filter((e) => e.date === selectedDate).sort((a, b) => a.time.localeCompare(b.time)) : [];
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-6 sm:px-6 sm:py-8">
@@ -69,16 +188,47 @@ export function CalendarClient() {
         <div>
           <h1 className="text-[22px] font-bold text-ink-1">Calendar</h1>
           <p className="mt-1 text-[14px] text-ink-2">
-            {editionKey === "student" ? "Classes, deadlines, and study sessions — yours to add and remove." : "Your team's schedule — add, move, and delete what's coming up."}
+            {editionKey === "student"
+              ? "Classes, deadlines, and study sessions — yours to add and remove."
+              : "Your team's schedule — add, move, and delete what's coming up."}
           </p>
         </div>
-        <button
-          onClick={() => setAdding((v) => !v)}
-          className="flex h-9 flex-shrink-0 items-center gap-1.5 rounded-[10px] bg-accent px-3.5 text-[13px] font-semibold text-on-accent hover:opacity-90"
-        >
-          {adding ? <X size={15} /> : <Plus size={15} />}
-          {adding ? "Cancel" : "Add event"}
-        </button>
+        <div className="flex flex-shrink-0 items-center gap-2">
+          <div className="flex rounded-[10px] border border-line-strong p-0.5">
+            <button
+              onClick={() => setView("month")}
+              className={cn(
+                "rounded-[7px] px-3 py-1.5 text-[12.5px] font-semibold transition-colors",
+                view === "month" ? "bg-accent text-on-accent" : "text-ink-2 hover:text-ink-1"
+              )}
+            >
+              Calendar
+            </button>
+            <button
+              onClick={() => setView("list")}
+              className={cn(
+                "rounded-[7px] px-3 py-1.5 text-[12.5px] font-semibold transition-colors",
+                view === "list" ? "bg-accent text-on-accent" : "text-ink-2 hover:text-ink-1"
+              )}
+            >
+              List
+            </button>
+          </div>
+          <button
+            onClick={exportAll}
+            className="flex h-9 flex-shrink-0 items-center gap-1.5 rounded-[10px] border border-line-strong px-3 text-[13px] font-semibold text-ink-1 hover:bg-surface-raised"
+          >
+            <Download size={15} />
+            Export all
+          </button>
+          <button
+            onClick={() => (adding ? setAdding(false) : startAdding(selectedDate ?? undefined))}
+            className="flex h-9 flex-shrink-0 items-center gap-1.5 rounded-[10px] bg-accent px-3.5 text-[13px] font-semibold text-on-accent hover:opacity-90"
+          >
+            {adding ? <X size={15} /> : <Plus size={15} />}
+            {adding ? "Cancel" : "Add event"}
+          </button>
+        </div>
       </div>
 
       {adding ? (
@@ -124,41 +274,96 @@ export function CalendarClient() {
         </Card>
       ) : null}
 
-      <div className="mt-6 flex flex-col gap-6">
-        {groups.length === 0 ? (
-          <EmptyState icon={CalendarDays} title="Nothing scheduled" description="Add your first event to get started." />
-        ) : (
-          groups.map(([date, dayEvents]) => (
-            <div key={date}>
-              <p className="mb-2.5 text-[12px] font-semibold uppercase tracking-wide text-ink-3">{formatDateHeading(date)}</p>
-              <div className="flex flex-col gap-2">
-                {dayEvents.map((event) => {
-                  const badge = dayBadge(event.date);
-                  return (
-                    <Card key={event.id} className="group flex items-center gap-3.5 p-3.5">
-                      <div className="flex h-11 w-11 flex-shrink-0 flex-col items-center justify-center rounded-[10px] bg-accent-wash text-accent">
-                        <span className="text-[9.5px] font-bold leading-none">{badge.weekday}</span>
-                        <span className="text-[15px] font-extrabold leading-none">{badge.day}</span>
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-[14px] font-semibold text-ink-1">{event.title}</p>
-                        <p className="text-[12.5px] text-ink-3">{event.time}</p>
-                      </div>
-                      <button
-                        onClick={() => deleteEvent(event.id)}
-                        aria-label="Delete event"
-                        className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-[8px] text-ink-3 opacity-0 transition-opacity hover:bg-critical-wash hover:text-critical group-hover:opacity-100"
-                      >
-                        <Trash2 size={15} />
-                      </button>
-                    </Card>
-                  );
-                })}
-              </div>
+      {view === "month" ? (
+        <div className="mt-6">
+          <div className="flex items-center justify-between">
+            <p className="text-[15px] font-bold text-ink-1">{monthLabel}</p>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setMonthCursor((d) => new Date(d.getFullYear(), d.getMonth() - 1, 1))}
+                aria-label="Previous month"
+                className="flex h-8 w-8 items-center justify-center rounded-[8px] text-ink-2 hover:bg-surface-raised"
+              >
+                <ChevronLeft size={16} />
+              </button>
+              <button
+                onClick={() => setMonthCursor((d) => new Date(d.getFullYear(), d.getMonth() + 1, 1))}
+                aria-label="Next month"
+                className="flex h-8 w-8 items-center justify-center rounded-[8px] text-ink-2 hover:bg-surface-raised"
+              >
+                <ChevronRight size={16} />
+              </button>
             </div>
-          ))
-        )}
-      </div>
+          </div>
+
+          <div className="mt-3 grid grid-cols-7 gap-1.5 text-center text-[11px] font-semibold uppercase tracking-wide text-ink-3">
+            {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) => (
+              <div key={d}>{d}</div>
+            ))}
+          </div>
+          <div className="mt-1.5 grid grid-cols-7 gap-1.5">
+            {monthDays.map((day) => {
+              const iso = toIsoDate(day);
+              const inMonth = day.getMonth() === monthCursor.getMonth();
+              const dayEvents = events.filter((e) => e.date === iso).sort((a, b) => a.time.localeCompare(b.time));
+              const isSelected = selectedDate === iso;
+              return (
+                <button
+                  key={iso}
+                  onClick={() => setSelectedDate(isSelected ? null : iso)}
+                  className={cn(
+                    "flex min-h-[76px] flex-col items-start gap-1 rounded-[10px] border p-1.5 text-left transition-colors",
+                    isSelected ? "border-accent bg-accent-wash" : "border-line hover:border-line-strong hover:bg-surface-raised",
+                    !inMonth && "opacity-40"
+                  )}
+                >
+                  <span className={cn("text-[12px] font-semibold", isSelected ? "text-accent" : "text-ink-2")}>{day.getDate()}</span>
+                  <div className="flex w-full flex-col gap-0.5">
+                    {dayEvents.slice(0, 2).map((e) => (
+                      <span key={e.id} className="truncate rounded-[4px] bg-accent-wash-strong px-1 py-0.5 text-[10px] font-medium text-accent">
+                        {e.title}
+                      </span>
+                    ))}
+                    {dayEvents.length > 2 ? <span className="text-[10px] text-ink-3">+{dayEvents.length - 2} more</span> : null}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+
+          {selectedDate ? (
+            <div className="mt-5">
+              <p className="mb-2.5 text-[12px] font-semibold uppercase tracking-wide text-ink-3">{formatDateHeading(selectedDate)}</p>
+              {selectedDayEvents.length === 0 ? (
+                <EmptyState icon={CalendarDays} title="Nothing scheduled" description="Add an event to this day to get started." />
+              ) : (
+                <div className="flex flex-col gap-2">
+                  {selectedDayEvents.map((event) => (
+                    <EventRow key={event.id} event={event} onDelete={deleteEvent} />
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : null}
+        </div>
+      ) : (
+        <div className="mt-6 flex flex-col gap-6">
+          {groups.length === 0 ? (
+            <EmptyState icon={CalendarDays} title="Nothing scheduled" description="Add your first event to get started." />
+          ) : (
+            groups.map(([groupDate, dayEvents]) => (
+              <div key={groupDate}>
+                <p className="mb-2.5 text-[12px] font-semibold uppercase tracking-wide text-ink-3">{formatDateHeading(groupDate)}</p>
+                <div className="flex flex-col gap-2">
+                  {dayEvents.map((event) => (
+                    <EventRow key={event.id} event={event} onDelete={deleteEvent} />
+                  ))}
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      )}
     </div>
   );
 }

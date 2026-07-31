@@ -1,14 +1,28 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Pin, Plus, StickyNote, Trash2 } from "lucide-react";
+import { Download, Pin, Plus, StickyNote, Trash2 } from "lucide-react";
 import { Card } from "@/ui/Card";
 import { DetailPanel } from "@/ui/DetailPanel";
 import { EmptyState } from "@/ui/EmptyState";
 import { cn } from "@/lib/utils";
 import { useIndustry } from "@/lib/industry";
+import { downloadTextFile } from "@/lib/download";
 import { DEMO_NOTES, STUDENT_NOTES } from "@/server/mock-data/notes";
 import type { Note } from "@/types";
+
+// Real export, not a fake "connect your account" button - a plain .txt
+// file, since (unlike calendars) there's no universal cross-app format
+// for a single note the way .ics is for events. Downloads open/import
+// cleanly in Notes, Word, TextEdit, or any other app on the device.
+function exportNoteAsText(note: Note) {
+  downloadTextFile(`${note.title.replace(/[^\w-]+/g, "_") || "note"}.txt`, `${note.title}\n\n${note.body}`, "text/plain");
+}
+
+function exportAllNotesAsText(notes: Note[]) {
+  const content = notes.map((n) => `${n.title}\n${"-".repeat(n.title.length)}\n${n.body}`).join("\n\n\n");
+  downloadTextFile("notes.txt", content, "text/plain");
+}
 
 export function NotesClient() {
   const { editionKey } = useIndustry();
@@ -65,13 +79,24 @@ export function NotesClient() {
             {editionKey === "student" ? "Quick thoughts, study notes, and drafts — yours alone." : "Quick notes and drafts, separate from your shared Documents."}
           </p>
         </div>
-        <button
-          onClick={openNew}
-          className="flex h-9 flex-shrink-0 items-center gap-1.5 rounded-[10px] bg-accent px-3.5 text-[13px] font-semibold text-on-accent hover:opacity-90"
-        >
-          <Plus size={15} />
-          New note
-        </button>
+        <div className="flex flex-shrink-0 items-center gap-2">
+          {notes.length > 0 ? (
+            <button
+              onClick={() => exportAllNotesAsText(notes)}
+              className="flex h-9 items-center gap-1.5 rounded-[10px] border border-line-strong px-3 text-[13px] font-semibold text-ink-1 hover:bg-surface-raised"
+            >
+              <Download size={15} />
+              Export all
+            </button>
+          ) : null}
+          <button
+            onClick={openNew}
+            className="flex h-9 items-center gap-1.5 rounded-[10px] bg-accent px-3.5 text-[13px] font-semibold text-on-accent hover:opacity-90"
+          >
+            <Plus size={15} />
+            New note
+          </button>
+        </div>
       </div>
 
       {notes.length === 0 ? (
@@ -144,15 +169,26 @@ export function NotesClient() {
                 </button>
               ) : null}
             </div>
-            {editing ? (
-              <button
-                onClick={() => deleteNote(editing.id)}
-                aria-label="Delete note"
-                className="flex h-9 w-9 items-center justify-center rounded-[9px] text-ink-3 hover:bg-critical-wash hover:text-critical"
-              >
-                <Trash2 size={16} />
-              </button>
-            ) : null}
+            <div className="flex items-center gap-1">
+              {editing ? (
+                <button
+                  onClick={() => exportNoteAsText(editing)}
+                  aria-label="Download this note as a text file"
+                  className="flex h-9 w-9 items-center justify-center rounded-[9px] text-ink-3 hover:bg-surface-raised hover:text-ink-1"
+                >
+                  <Download size={16} />
+                </button>
+              ) : null}
+              {editing ? (
+                <button
+                  onClick={() => deleteNote(editing.id)}
+                  aria-label="Delete note"
+                  className="flex h-9 w-9 items-center justify-center rounded-[9px] text-ink-3 hover:bg-critical-wash hover:text-critical"
+                >
+                  <Trash2 size={16} />
+                </button>
+              ) : null}
+            </div>
           </div>
         </div>
       </DetailPanel>
