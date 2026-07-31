@@ -4,6 +4,7 @@ import Link from "next/link";
 import type { CSSProperties } from "react";
 import { PLAN_TIERS, WORKSPACE_PLAN_TIERS, STUDENT_PLAN_TIERS, ENTERPRISE_LABEL, type PlanTier } from "@/config/pricing";
 import { TierGrid } from "@/components/marketing/TierGrid";
+import { SpotlightCards } from "@/components/marketing/SpotlightCards";
 
 export const metadata: Metadata = { title: "Pricing — 3Stone One" };
 
@@ -67,6 +68,7 @@ const EDITIONS: {
 export default function PricingPage() {
   return (
     <div style={DARK_BRAND_STYLE} className="relative min-h-screen overflow-hidden bg-bg">
+      <SpotlightCards />
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0 -z-10"

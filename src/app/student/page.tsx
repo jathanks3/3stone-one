@@ -5,6 +5,7 @@ import { FolderKanban, Calendar, StickyNote, Sparkles, Calculator } from "lucide
 import { STUDENT_PLAN_TIERS, AI_ADD_ON_PRICE_MONTHLY } from "@/config/pricing";
 import { TierGrid } from "@/components/marketing/TierGrid";
 import { StudentMark } from "@/components/shell/EditionMark";
+import { SpotlightCards } from "@/components/marketing/SpotlightCards";
 
 export const metadata: Metadata = { title: "3Stone One Student — coursework and group projects, in one place" };
 
@@ -66,6 +67,7 @@ const FEATURES = [
 export default function StudentMarketingPage() {
   return (
     <div style={DARK_BRAND_STYLE} className="relative min-h-screen overflow-hidden bg-bg">
+      <SpotlightCards />
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0 -z-10"
@@ -141,7 +143,7 @@ export default function StudentMarketingPage() {
           {FEATURES.map((f) => (
             <div
               key={f.title}
-              className="group rounded-[14px] border border-line bg-surface p-5 transition-all duration-200 hover:-translate-y-0.5 hover:border-line-strong hover:shadow-[0_20px_45px_-25px_rgba(0,0,0,0.7)]"
+              className="spotlight-card group rounded-[14px] border border-line bg-surface p-5 transition-all duration-200 hover:-translate-y-0.5 hover:border-line-strong hover:shadow-[0_20px_45px_-25px_rgba(0,0,0,0.7)]"
             >
               <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-[10px] bg-accent-wash text-accent transition-colors group-hover:bg-accent-wash-strong">
                 <f.icon size={18} strokeWidth={1.9} />

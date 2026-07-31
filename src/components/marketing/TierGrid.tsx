@@ -12,8 +12,8 @@ export function TierGrid({ tiers, signupHref }: { tiers: PlanTier[]; signupHref:
       {tiers.map((tier, idx) => (
         <div
           key={tier.key}
-          className={`flex flex-col rounded-[16px] border p-6 ${
-            idx === 1 ? "border-accent bg-accent-wash" : "border-line bg-surface"
+          className={`spotlight-card flex flex-col rounded-[16px] border p-6 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_20px_45px_-25px_rgba(0,0,0,0.7)] ${
+            idx === 1 ? "border-accent bg-accent-wash" : "border-line bg-surface hover:border-line-strong"
           }`}
         >
           <h3 className="text-[18px] font-bold text-ink-1">{tier.label}</h3>

@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import type { CSSProperties } from "react";
 import { BarChart3, Building2, Sparkles } from "lucide-react";
+import { SpotlightCards } from "@/components/marketing/SpotlightCards";
 
 // Resting marketing page for logged-out visitors at "/" - previously this
 // route redirected straight to /login with no context on what the product
@@ -79,6 +80,7 @@ const PRINCIPLES = [
 export default function HomePage() {
   return (
     <div style={DARK_BRAND_STYLE} className="relative min-h-screen overflow-hidden bg-bg">
+      <SpotlightCards />
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0 -z-10"
@@ -150,7 +152,7 @@ export default function HomePage() {
           {PRINCIPLES.map((p) => (
             <div
               key={p.title}
-              className="group rounded-[14px] border border-line bg-surface p-5 transition-all duration-200 hover:-translate-y-0.5 hover:border-line-strong hover:shadow-[0_20px_45px_-25px_rgba(0,0,0,0.7)]"
+              className="spotlight-card group rounded-[14px] border border-line bg-surface p-5 transition-all duration-200 hover:-translate-y-0.5 hover:border-line-strong hover:shadow-[0_20px_45px_-25px_rgba(0,0,0,0.7)]"
             >
               <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-[10px] bg-accent-wash text-accent transition-colors group-hover:bg-accent-wash-strong">
                 <p.icon size={18} strokeWidth={1.9} />
@@ -170,7 +172,7 @@ export default function HomePage() {
             {EDITIONS.map((edition) => (
               <div
                 key={edition.id}
-                className="group relative flex flex-col overflow-hidden rounded-[14px] border border-line bg-surface p-5 transition-all duration-200 hover:-translate-y-0.5 hover:border-line-strong hover:shadow-[0_20px_45px_-25px_rgba(0,0,0,0.7)]"
+                className="spotlight-card group relative flex flex-col overflow-hidden rounded-[14px] border border-line bg-surface p-5 transition-all duration-200 hover:-translate-y-0.5 hover:border-line-strong hover:shadow-[0_20px_45px_-25px_rgba(0,0,0,0.7)]"
               >
                 <span className="absolute inset-x-0 top-0 h-[3px]" style={{ background: edition.accent }} />
                 <span

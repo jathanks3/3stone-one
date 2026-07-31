@@ -318,3 +318,27 @@ body {
     transform: translateY(0);
   }
 }
+
+/* Cursor-reactive card glow for marketing pages only (see
+   src/components/marketing/SpotlightCards.tsx, which sets
+   --spotlight-x/-y via a delegated mousemove listener) - opt-in via
+   this class, never applied to the real in-app product. */
+.spotlight-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.spotlight-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(280px circle at var(--spotlight-x, 50%) var(--spotlight-y, 50%), rgba(255, 255, 255, 0.07), transparent 70%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.spotlight-card:hover::after {
+  opacity: 1;
+}
