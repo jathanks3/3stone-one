@@ -7,6 +7,7 @@ import { Sidebar } from "./Sidebar";
 import { MobileNav } from "./MobileNav";
 import { CommandPalette } from "./CommandPalette";
 import { AiAssistant } from "@/components/assistant/AiAssistant";
+import { EDITION_BRAND } from "./EditionMark";
 import { useIndustry } from "@/lib/industry";
 import { cn } from "@/lib/utils";
 import type { SessionUser } from "@/types";
@@ -30,6 +31,8 @@ export function AppShell({
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const { editionKey } = useIndustry();
+  const brand = EDITION_BRAND[editionKey];
+  const Mark = brand?.Mark;
 
   return (
     <div className={cn("flex h-screen flex-col", EDITION_CLASS[editionKey])}>
@@ -39,10 +42,15 @@ export function AppShell({
         onOpenMobileNav={() => setMobileNavOpen(true)}
       />
       <div className="flex flex-1 overflow-hidden">
-        <aside className="hidden w-64 flex-shrink-0 border-r border-line bg-surface lg:flex lg:flex-col">
+        <aside
+          className={cn(
+            "hidden w-64 flex-shrink-0 border-r border-line lg:flex lg:flex-col",
+            brand ? "bg-[linear-gradient(180deg,var(--surface)_0%,var(--bg)_140%)]" : "bg-surface"
+          )}
+        >
           <div className="flex h-14 flex-shrink-0 items-center gap-2 border-b border-line px-4">
-            <Image src="/branding/monogram.svg" alt="" width={24} height={24} />
-            <span className="text-[14px] font-bold text-ink-1">3Stone One</span>
+            {Mark ? <Mark size={24} /> : <Image src="/branding/monogram.svg" alt="" width={24} height={24} />}
+            <span className="truncate text-[14px] font-bold text-ink-1">{brand?.label ?? "3Stone One"}</span>
           </div>
           <div className="flex-1 overflow-y-auto">
             <Sidebar />

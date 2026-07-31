@@ -25,6 +25,12 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
           {section.items.map((item) => {
             const Icon = NAV_ICONS[item.icon];
             const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+            // Workspace/Student get a more distinct active/hover treatment
+            // (gradient fill, left accent bar, hover shift) than the
+            // flagship's plain flat highlight - same level of polish as
+            // 3Stone Admin's Cleat Man sub-product shell. Business
+            // edition is untouched - exact same classes as before.
+            const themed = editionKey !== "business";
             return (
               <Link
                 key={item.key}
@@ -32,12 +38,19 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
                 prefetch={false}
                 onClick={onNavigate}
                 className={cn(
-                  "flex items-center gap-2.5 rounded-[10px] px-3 py-2 text-[13.5px] font-medium transition-colors",
+                  "group relative flex items-center gap-2.5 rounded-[10px] px-3 py-2 text-[13.5px] font-medium transition-all duration-150",
                   active
-                    ? "bg-accent-wash text-accent"
-                    : "text-ink-2 hover:bg-surface-raised hover:text-ink-1"
+                    ? themed
+                      ? "bg-[linear-gradient(135deg,var(--accent-wash-strong),var(--accent-wash))] text-accent"
+                      : "bg-accent-wash text-accent"
+                    : themed
+                      ? "text-ink-2 hover:translate-x-0.5 hover:bg-surface-raised hover:text-ink-1"
+                      : "text-ink-2 hover:bg-surface-raised hover:text-ink-1"
                 )}
               >
+                {active && themed ? (
+                  <span className="absolute left-0 top-1/2 h-4 w-[3px] -translate-y-1/2 rounded-full bg-accent" />
+                ) : null}
                 {Icon ? <Icon size={17} strokeWidth={1.9} className="flex-shrink-0" /> : null}
                 <span className="truncate">{item.label}</span>
               </Link>
