@@ -16,13 +16,26 @@ import { getInventoryDataset, inventoryValue, productStatus } from "@/server/moc
 import { formatCurrency } from "@/lib/utils";
 
 export function DashboardClient() {
-  const { profile } = useIndustry();
+  const { profile, editionKey } = useIndustry();
   const dataset = getIndustryDataset(profile.key);
   const overdueJobs = dataset.jobs.filter((j) => j.overdue);
   const unpaidInvoices = dataset.invoices.filter((i) => i.status !== "paid");
   const inventory = getInventoryDataset(profile.key);
   const lowStock = inventory.products.filter((p) => ["Low Stock", "Out of Stock"].includes(productStatus(p))).length;
   const pendingOrders = inventory.purchaseOrders.filter((po) => !["Received", "Cancelled"].includes(po.status)).length;
+
+  // Inventory and Finance aren't in every edition (see
+  // src/lib/editionModules.ts) - this dashboard used to show both
+  // unconditionally for every demo, which was the actual reason the
+  // Workspace/Student demos looked like unchanged copies of the
+  // flagship: the most visible, top-of-page content ignored edition
+  // gating entirely, even though the KPIs/charts/activity feed below it
+  // were already correctly themed. Student's shared demo job records
+  // ("Downtown Lofts" etc.) also don't read as assignments, so overdue
+  // items are hidden there too rather than shown out of theme.
+  const showInventory = editionKey === "business";
+  const showFinance = editionKey === "business";
+  const showOverdue = editionKey !== "student";
 
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-5 px-4 py-6 sm:px-6 sm:py-8">
@@ -33,20 +46,27 @@ export function DashboardClient() {
 
       <BriefingCard />
 
-      <Link href="/inventory" className="group">
-        <Card className="grid gap-3 p-4 transition-colors group-hover:border-line-strong sm:grid-cols-3">
-          <div className="flex items-center gap-3"><Boxes size={18} className="text-accent"/><div><p className="text-[11.5px] text-ink-3">Inventory value</p><p className="text-[15px] font-bold">{formatCurrency(inventoryValue(inventory.products))}</p></div></div>
-          <div className="flex items-center gap-3"><AlertTriangle size={18} className={lowStock ? "text-warning-ink" : "text-good"}/><div><p className="text-[11.5px] text-ink-3">Stock risk</p><p className="text-[15px] font-bold">{lowStock} reorder{lowStock === 1 ? "" : "s"} needed</p></div></div>
-          <div className="flex items-center gap-3"><Truck size={18} className="text-accent"/><div><p className="text-[11.5px] text-ink-3">Inbound</p><p className="text-[15px] font-bold">{pendingOrders} purchase order{pendingOrders === 1 ? "" : "s"}</p></div></div>
-        </Card>
-      </Link>
+      {showInventory ? (
+        <Link href="/inventory" className="group">
+          <Card className="grid gap-3 p-4 transition-colors group-hover:border-line-strong sm:grid-cols-3">
+            <div className="flex items-center gap-3"><Boxes size={18} className="text-accent"/><div><p className="text-[11.5px] text-ink-3">Inventory value</p><p className="text-[15px] font-bold">{formatCurrency(inventoryValue(inventory.products))}</p></div></div>
+            <div className="flex items-center gap-3"><AlertTriangle size={18} className={lowStock ? "text-warning-ink" : "text-good"}/><div><p className="text-[11.5px] text-ink-3">Stock risk</p><p className="text-[15px] font-bold">{lowStock} reorder{lowStock === 1 ? "" : "s"} needed</p></div></div>
+            <div className="flex items-center gap-3"><Truck size={18} className="text-accent"/><div><p className="text-[11.5px] text-ink-3">Inbound</p><p className="text-[15px] font-bold">{pendingOrders} purchase order{pendingOrders === 1 ? "" : "s"}</p></div></div>
+          </Card>
+        </Link>
+      ) : null}
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
-        <AttentionCard
-          overdueJobs={overdueJobs}
-          unpaidInvoices={unpaidInvoices}
-          pendingRequests={getPendingPurchaseRequests()}
-        />
+        {showOverdue || showFinance ? (
+          <AttentionCard
+            overdueJobs={overdueJobs}
+            unpaidInvoices={unpaidInvoices}
+            pendingRequests={getPendingPurchaseRequests()}
+            showOverdue={showOverdue}
+            showInvoices={showFinance}
+            showPurchaseRequests={showFinance}
+          />
+        ) : null}
         <ChangedTodayCard activity={dataset.notifications.length ? dataset.notifications : DEMO_ACTIVITY} />
       </div>
 
