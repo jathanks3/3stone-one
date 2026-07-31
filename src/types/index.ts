@@ -394,6 +394,19 @@ export interface Note {
   pinned?: boolean;
 }
 
+// ---- GPA Calculator ----
+// Student edition only (see src/lib/editionModules.ts) - not a concept
+// that applies to any other edition.
+
+export type LetterGrade = "A+" | "A" | "A-" | "B+" | "B" | "B-" | "C+" | "C" | "C-" | "D+" | "D" | "D-" | "F";
+
+export interface GpaCourse {
+  id: string;
+  name: string;
+  credits: number;
+  grade: LetterGrade;
+}
+
 // ---- Knowledge Center ----
 
 export type KnowledgeCategory = "policy" | "training" | "process" | "sop" | "video";

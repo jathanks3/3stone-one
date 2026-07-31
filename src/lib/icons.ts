@@ -18,6 +18,7 @@ import {
   PackageSearch,
   Calendar,
   StickyNote,
+  Calculator,
   type LucideIcon,
 } from "lucide-react";
 
@@ -41,4 +42,5 @@ export const NAV_ICONS: Record<string, LucideIcon> = {
   PackageSearch,
   Calendar,
   StickyNote,
+  Calculator,
 };

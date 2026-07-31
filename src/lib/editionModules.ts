@@ -37,7 +37,10 @@ export const EDITION_MODULES: Record<string, string[] | null> = {
   // No Meetings either - a student doesn't run agendas/AI summaries the
   // way a workplace does; Calendar covers classes/deadlines/study
   // sessions instead, and Notes covers quick study notes.
-  student: ["dashboard", "projects", "calendar", "documents", "notes", "knowledge", "activity", "settings"],
+  // gpa (GPA Calculator) is Student-only - not a concept that applies to
+  // any other edition, including Business (which otherwise sees every
+  // module via the `null` unrestricted default above).
+  student: ["dashboard", "projects", "calendar", "documents", "notes", "gpa", "knowledge", "activity", "settings"],
 };
 
 export function getAllowedModuleKeys(editionKey: string): Set<string> | null {

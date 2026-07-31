@@ -79,6 +79,13 @@ export function getNavSections(profile: IndustryProfile, allowedModuleKeys: Set<
           description: "Quick notes and drafts, separate from shared documents.",
         },
         {
+          key: "gpa",
+          href: "/gpa",
+          label: "GPA Calculator",
+          icon: "Calculator",
+          description: "Add your courses and grades — your GPA updates instantly.",
+        },
+        {
           key: "knowledge",
           href: "/knowledge",
           label: "Knowledge Center",
