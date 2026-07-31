@@ -27,6 +27,11 @@ interface IndustryContextValue {
   // original/flagship, or "workspace"/"student" - see
   // src/lib/editionModules.ts). Drives which nav modules Sidebar shows.
   editionKey: string;
+  // Subscription.aiAddOnEnabled - only meaningful for editionKey ===
+  // "student" (see settings/RealSettingsClient.tsx's AiAddOnCard). Always
+  // true for the demo session so every edition's demo can show the real
+  // widget regardless of billing state.
+  aiAddOnEnabled: boolean;
 }
 
 const IndustryContext = createContext<IndustryContextValue | null>(null);
@@ -37,6 +42,7 @@ export function IndustryProvider({
   isDemo,
   workspaceName,
   editionKey,
+  aiAddOnEnabled,
   children,
 }: {
   initialKey: IndustryProfileKey;
@@ -44,6 +50,7 @@ export function IndustryProvider({
   isDemo: boolean;
   workspaceName: string;
   editionKey: string;
+  aiAddOnEnabled: boolean;
   children: ReactNode;
 }) {
   const [key, setKey] = useState<IndustryProfileKey>(initialKey);
@@ -61,8 +68,17 @@ export function IndustryProvider({
   }
 
   const value = useMemo(
-    () => ({ profile, setIndustryKey: setKey, currentBusinessId, setBusinessId, isDemo, workspaceName, editionKey }),
-    [profile, currentBusinessId, isDemo, workspaceName, editionKey]
+    () => ({
+      profile,
+      setIndustryKey: setKey,
+      currentBusinessId,
+      setBusinessId,
+      isDemo,
+      workspaceName,
+      editionKey,
+      aiAddOnEnabled,
+    }),
+    [profile, currentBusinessId, isDemo, workspaceName, editionKey, aiAddOnEnabled]
   );
 
   return <IndustryContext.Provider value={value}>{children}</IndustryContext.Provider>;

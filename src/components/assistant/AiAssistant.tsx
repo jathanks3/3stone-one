@@ -32,22 +32,27 @@ const EXECUTIVE_SUGGESTIONS = [
   "How much did I make across everything this month?",
 ];
 
+const STUDENT_SUGGESTIONS = [
+  "Help me break this assignment into tasks",
+  "Give me feedback on a paragraph I'll paste in",
+  "Draft an outline for a project proposal",
+];
+
 export function AiAssistant() {
   const [open, setOpen] = useState(false);
-  const { isDemo } = useIndustry();
+  const { isDemo, editionKey, aiAddOnEnabled } = useIndustry();
 
-  // Real bug found during this milestone's AI audit: this widget answers
+  // Real bug found during an earlier AI audit: this widget used to answer
   // every question from DEMO_VENDORS / getIndustryDataset(profile.key) —
   // entirely fictional data — with no isDemo check at all. A real
   // customer opening it got confident, specific answers ("X owes a
-  // $500 deposit") about a business that isn't theirs, and the panel
-  // header even read the demo org's name. Same class of bug
-  // WorkspaceSwitcher and NotificationsMenu had earlier — fixed the same
-  // way: hide entirely for real sessions rather than serve fake data.
-  // There's no real backing data (or a real AI provider — see
-  // src/server/ai/aiProvider.ts) to answer a real customer's questions
-  // with yet, so "not shown" is the honest state, not "shown but wrong."
-  if (!isDemo) return null;
+  // $500 deposit") about a business that isn't theirs. Fixed by hiding it
+  // for every real session except the one case that now has a real
+  // backing model: a Student-edition workspace with the AI add-on
+  // enabled (src/app/api/ai/assistant/route.ts re-checks both server-side
+  // — this is UX only, not the authorization boundary).
+  const canUseRealAi = editionKey === "student" && aiAddOnEnabled;
+  if (!isDemo && !canUseRealAi) return null;
 
   return (
     <>
@@ -69,9 +74,9 @@ export function AiAssistant() {
 }
 
 function AssistantPanel({ onClose }: { onClose: () => void }) {
-  const { profile } = useIndustry();
+  const { profile, isDemo } = useIndustry();
   const pathname = usePathname();
-  const isExecutive = pathname === "/portfolio";
+  const isExecutive = isDemo && pathname === "/portfolio";
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -94,30 +99,57 @@ function AssistantPanel({ onClose }: { onClose: () => void }) {
     const trimmed = question.trim();
     if (!trimmed || loading) return;
     const userMsg: ChatMessage = { id: `u_${nextId.current++}`, role: "user", text: trimmed };
-    setMessages((m) => [...m, userMsg]);
+    const history = [...messages, userMsg];
+    setMessages(history);
     setInput("");
     setLoading(true);
 
-    window.setTimeout(() => {
-      const answer = isExecutive
-        ? answerExecutiveQuestion(
-            trimmed,
-            DEMO_BUSINESSES.map(
-              (business): ExecutiveBusiness => ({
-                name: getBusinessName(business),
-                dataset: getIndustryDataset(business.industryProfileKey),
-              })
+    if (isDemo) {
+      window.setTimeout(() => {
+        const answer = isExecutive
+          ? answerExecutiveQuestion(
+              trimmed,
+              DEMO_BUSINESSES.map(
+                (business): ExecutiveBusiness => ({
+                  name: getBusinessName(business),
+                  dataset: getIndustryDataset(business.industryProfileKey),
+                })
+              )
             )
-          )
-        : answerQuestion(trimmed, {
-            dataset: getIndustryDataset(profile.key),
-            attendance: generateAttendanceForEmployees(getIndustryDataset(profile.key).employees),
-            vendors: DEMO_VENDORS,
-            terms: profile.terms,
-          });
-      setMessages((m) => [...m, { id: `a_${nextId.current++}`, role: "assistant", text: answer }]);
-      setLoading(false);
-    }, 650);
+          : answerQuestion(trimmed, {
+              dataset: getIndustryDataset(profile.key),
+              attendance: generateAttendanceForEmployees(getIndustryDataset(profile.key).employees),
+              vendors: DEMO_VENDORS,
+              terms: profile.terms,
+            });
+        setMessages((m) => [...m, { id: `a_${nextId.current++}`, role: "assistant", text: answer }]);
+        setLoading(false);
+      }, 650);
+      return;
+    }
+
+    // Real session: hit the real model, gated server-side to
+    // Student-edition workspaces with the AI add-on enabled (see
+    // src/app/api/ai/assistant/route.ts). No mock data involved.
+    fetch("/api/ai/assistant", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        messages: history.map((m) => ({ role: m.role, content: m.text })),
+      }),
+    })
+      .then(async (res) => {
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || "Something went wrong.");
+        return data.text as string;
+      })
+      .then((text) => {
+        setMessages((m) => [...m, { id: `a_${nextId.current++}`, role: "assistant", text: text || "I didn't get a response — try again." }]);
+      })
+      .catch((err: Error) => {
+        setMessages((m) => [...m, { id: `a_${nextId.current++}`, role: "assistant", text: err.message }]);
+      })
+      .finally(() => setLoading(false));
   }
 
   return (
@@ -127,7 +159,11 @@ function AssistantPanel({ onClose }: { onClose: () => void }) {
           <div>
             <p className="text-[14px] font-bold text-ink-1">3Stone AI</p>
             <p className="text-[12px] text-ink-3">
-              {isExecutive ? "Ask anything across all your businesses" : `Ask anything about ${getIndustryDataset(profile.key).orgName}`}
+              {!isDemo
+                ? "Ask anything — coursework, writing, planning"
+                : isExecutive
+                  ? "Ask anything across all your businesses"
+                  : `Ask anything about ${getIndustryDataset(profile.key).orgName}`}
             </p>
           </div>
           <button
@@ -143,11 +179,12 @@ function AssistantPanel({ onClose }: { onClose: () => void }) {
           {messages.length === 0 ? (
             <div className="flex flex-col gap-3">
               <p className="text-[13px] leading-relaxed text-ink-2">
-                I can answer questions across every module — customers, projects, finance, your team, and more.
-                Try one:
+                {!isDemo
+                  ? "Ask me to help outline an assignment, plan out a project, or improve something you've written. Try one:"
+                  : "I can answer questions across every module — customers, projects, finance, your team, and more. Try one:"}
               </p>
               <div className="flex flex-col gap-1.5">
-                {(isExecutive ? EXECUTIVE_SUGGESTIONS : SUGGESTIONS).map((s) => (
+                {(!isDemo ? STUDENT_SUGGESTIONS : isExecutive ? EXECUTIVE_SUGGESTIONS : SUGGESTIONS).map((s) => (
                   <button
                     key={s}
                     onClick={() => ask(s)}

@@ -1,25 +1,17 @@
-// Abstraction only — no API key exists in any environment for this app
-// today (checked ANTHROPIC_API_KEY/OPENAI_API_KEY/CLAUDE_API_KEY across
-// .env.local and `vercel env ls`; none present). Per the founder's
-// stack-reconciliation charter: "if an approved AI provider already
-// exists in environment variables, integrate it. Otherwise create the
-// abstraction only" — this is the "otherwise."
+// Real model integration, first wired up for the Student edition's AI
+// add-on (src/app/api/ai/assistant/route.ts). Uses the same
+// ANTHROPIC_API_KEY/model as 3Stone Counsel's guidance engine (the
+// founder's own Anthropic account — one key shared across products
+// rather than a separate one per app).
 //
 // Every function in src/server/ai/capabilities.ts and
-// src/server/ai/assistant.ts is deterministic automation, not real AI:
-// template strings and regex/keyword matching over data, no model call,
-// no probabilistic output. See docs/18-architecture-inventory.md's AI
-// entry for the full audit. Nothing production-facing claims otherwise —
-// every one of those functions is reachable only from the demo
-// experience today (every module that calls into them is still
-// NotYetConnected for real sessions), and the one place that WAS reached
-// unconditionally (the AiAssistant chat widget, mounted globally in
-// AppShell with no isDemo check) was a real bug, fixed as part of this
-// same audit.
-//
-// Once a real key exists, generateText below is the one place to wire an
-// actual model call — nothing else in this app should import a
-// provider SDK directly.
+// src/server/ai/assistant.ts remains deterministic automation (template
+// strings/keyword matching), not real AI — those stay the demo-only
+// fallback. This file is the one place that should import the provider
+// SDK directly.
+import Anthropic from "@anthropic-ai/sdk";
+
+const MODEL = "claude-sonnet-5";
 
 export function isAiProviderConfigured(): boolean {
   return Boolean(process.env.ANTHROPIC_API_KEY);
@@ -30,17 +22,38 @@ export interface AiTextResult {
   real: boolean;
 }
 
-// Deliberately unimplemented beyond the configuration check: wiring an
-// actual prompt, model choice, cost/latency handling, and error handling
-// is real feature work for whichever capability first needs it, not
-// something to stub in speculatively. Every caller must already have a
-// deterministic fallback (the existing capabilities.ts functions) and
-// must use it when this returns real:false.
-export async function generateText(_prompt: string): Promise<AiTextResult> {
+export interface AiChatMessage {
+  role: "user" | "assistant";
+  content: string;
+}
+
+let client: Anthropic | null = null;
+function getClient(): Anthropic {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) throw new Error("ANTHROPIC_API_KEY is not set — call isAiProviderConfigured() first.");
+  if (!client) client = new Anthropic({ apiKey });
+  return client;
+}
+
+// Multi-turn text chat — no tool use, no structured extraction. That's a
+// deliberate scope call for this first real capability: it's a general
+// assistant grounded in a system prompt describing 3Stone One Student,
+// not a retrieval system over the student's real project/task data (that
+// would need its own capability + real data-fetching work, not bundled
+// in here).
+export async function generateChatReply(systemPrompt: string, messages: AiChatMessage[]): Promise<AiTextResult> {
   if (!isAiProviderConfigured()) {
     return { text: "", real: false };
   }
-  throw new Error(
-    "ANTHROPIC_API_KEY is set, but no model integration has been wired up yet — this is an abstraction, not a working call. Implement the actual request here before using it."
-  );
+  const response = await getClient().messages.create({
+    model: MODEL,
+    system: systemPrompt,
+    messages,
+    max_tokens: 1024,
+  });
+  const text = response.content
+    .filter((block): block is Anthropic.TextBlock => block.type === "text")
+    .map((block) => block.text)
+    .join("");
+  return { text, real: true };
 }
