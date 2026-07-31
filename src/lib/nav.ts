@@ -86,6 +86,20 @@ export function getNavSections(profile: IndustryProfile, allowedModuleKeys: Set<
           description: "Add your courses and grades — your GPA updates instantly.",
         },
         {
+          key: "job-tracker",
+          href: "/job-tracker",
+          label: "Internship & Job Tracker",
+          icon: "Briefcase",
+          description: "A real pipeline for internship and job applications — saved through offer.",
+        },
+        {
+          key: "time-off",
+          href: "/time-off",
+          label: "Time Off",
+          icon: "Plane",
+          description: "Request time off and approve requests from your team.",
+        },
+        {
           key: "knowledge",
           href: "/knowledge",
           label: "Knowledge Center",

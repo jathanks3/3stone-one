@@ -407,6 +407,41 @@ export interface GpaCourse {
   grade: LetterGrade;
 }
 
+// ---- Internship & Job Tracker ----
+// Student edition only - a real Kanban-style pipeline for internship
+// and job applications, not a concept that applies to any other
+// edition.
+
+export type ApplicationStatus = "saved" | "applied" | "interviewing" | "offer" | "rejected";
+
+export interface JobApplication {
+  id: string;
+  company: string;
+  role: string;
+  status: ApplicationStatus;
+  appliedDate: string | null; // "YYYY-MM-DD", or null if not yet applied
+  notes: string;
+}
+
+// ---- Time Off ----
+// Workspace edition only - a real request/approve flow for day-to-day
+// workers and the managers above them, not a concept that applies to
+// Student (no manager) or the flagship (already has full HR via People
+// + Finance's approval mechanisms).
+
+export type TimeOffType = "vacation" | "sick" | "personal";
+export type TimeOffStatus = "pending" | "approved" | "denied";
+
+export interface TimeOffRequest {
+  id: string;
+  requesterName: string;
+  type: TimeOffType;
+  startDate: string; // "YYYY-MM-DD"
+  endDate: string; // "YYYY-MM-DD"
+  status: TimeOffStatus;
+  notes: string;
+}
+
 // ---- Knowledge Center ----
 
 export type KnowledgeCategory = "policy" | "training" | "process" | "sop" | "video";

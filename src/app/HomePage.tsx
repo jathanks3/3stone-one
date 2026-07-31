@@ -42,7 +42,7 @@ const EDITIONS = [
   {
     id: "workspace",
     name: "3Stone One Workspace",
-    tagline: "For day-to-day workers, CEOs, and managers - documents, projects, and meetings, without the back office.",
+    tagline: "For day-to-day workers, CEOs, and managers - documents, projects, meetings, and time off requests, without the back office.",
     fromPrice: 69,
     accent: "#5cbf99",
     demoHref: "/demo?edition=workspace",
@@ -51,7 +51,7 @@ const EDITIONS = [
   {
     id: "student",
     name: "3Stone One Student",
-    tagline: "Documents, projects, a calendar, notes, and a GPA calculator for coursework - AI available as a paid add-on.",
+    tagline: "Documents, projects, a calendar, notes, a GPA calculator, and a job tracker for coursework - AI available as a paid add-on.",
     fromPrice: 55,
     accent: "#a594f5",
     demoHref: "/demo?edition=student",

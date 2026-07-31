@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import type { CSSProperties } from "react";
-import { FolderKanban, Calendar, StickyNote, Sparkles, Calculator } from "lucide-react";
+import { FolderKanban, Calendar, StickyNote, Sparkles, Calculator, Briefcase } from "lucide-react";
 import { STUDENT_PLAN_TIERS, AI_ADD_ON_PRICE_MONTHLY } from "@/config/pricing";
 import { TierGrid } from "@/components/marketing/TierGrid";
 import { StudentMark } from "@/components/shell/EditionMark";
@@ -56,6 +56,11 @@ const FEATURES = [
     icon: Calculator,
     title: "A real GPA calculator",
     detail: "Add your courses and grades - your cumulative GPA updates instantly, on the standard 4.0 scale.",
+  },
+  {
+    icon: Briefcase,
+    title: "An internship & job tracker",
+    detail: "A real pipeline - saved, applied, interviewing, offer - not a spreadsheet you forget to update.",
   },
   {
     icon: Sparkles,

@@ -19,6 +19,8 @@ import {
   Calendar,
   StickyNote,
   Calculator,
+  Briefcase,
+  Plane,
   type LucideIcon,
 } from "lucide-react";
 
@@ -43,4 +45,6 @@ export const NAV_ICONS: Record<string, LucideIcon> = {
   Calendar,
   StickyNote,
   Calculator,
+  Briefcase,
+  Plane,
 };

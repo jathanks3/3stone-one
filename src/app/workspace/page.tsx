@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import type { CSSProperties } from "react";
-import { Users2, FolderKanban, MessagesSquare, Calendar } from "lucide-react";
+import { Users2, FolderKanban, MessagesSquare, Calendar, Plane } from "lucide-react";
 import { WORKSPACE_PLAN_TIERS } from "@/config/pricing";
 import { TierGrid } from "@/components/marketing/TierGrid";
 import { WorkspaceMark } from "@/components/shell/EditionMark";
@@ -52,6 +52,11 @@ const FEATURES = [
     icon: Calendar,
     title: "A real calendar and a notes space",
     detail: "Add, move, and delete what's on the schedule, plus a lightweight notes space separate from shared documents.",
+  },
+  {
+    icon: Plane,
+    title: "Time off, request and approve",
+    detail: "Submit a request, a manager approves or denies it - no spreadsheet or side channel required.",
   },
 ];
 
@@ -130,7 +135,7 @@ export default function WorkspaceMarketingPage() {
         </div>
         <p className="mt-6 text-[13px] text-ink-3">From $69/mo · self-serve signup, no call required</p>
 
-        <div className="mt-20 grid gap-4 text-left sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-20 grid gap-4 text-left sm:grid-cols-2 lg:grid-cols-3">
           {FEATURES.map((f) => (
             <div
               key={f.title}
