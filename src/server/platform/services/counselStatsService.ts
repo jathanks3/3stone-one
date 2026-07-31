@@ -4,7 +4,7 @@
 // Same pattern as picksStatsService.ts. The shared secret (COUNSEL_STAFF_KEY)
 // is the same value as Counsel's own STAFF_PREVIEW_KEY, set once in this
 // project's Vercel env vars.
-const COUNSEL_BASE_URL = "https://counsel-gold.vercel.app";
+const COUNSEL_BASE_URL = "https://counsel.3stoneai.com";
 
 export interface CounselStats {
   totalSignups: number;

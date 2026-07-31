@@ -9,7 +9,7 @@ import { isStripeConfigured } from "@/server/services/stripeService";
 import { isStorageConfigured } from "@/server/services/storageService";
 import { RealSettingsClient } from "./RealSettingsClient";
 
-export const metadata: Metadata = { title: "Settings — 3Stone Workspace" };
+export const metadata: Metadata = { title: "Settings — 3Stone One" };
 
 export default async function SettingsPage() {
   const session = await getSession();

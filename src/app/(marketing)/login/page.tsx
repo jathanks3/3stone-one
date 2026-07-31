@@ -6,7 +6,7 @@ import { LoginForm } from "./LoginForm";
 import { MORNING_BRIEFING } from "@/server/mock-data";
 
 export const metadata: Metadata = {
-  title: "Sign in — 3Stone Workspace",
+  title: "Sign in — 3Stone One",
 };
 
 // The login screen is the front door — it stays on the permanent dark
@@ -66,7 +66,7 @@ export default function LoginPage() {
         <div>
           <div className="mb-10 flex items-center gap-2.5">
             <Image src="/branding/monogram.svg" alt="" width={28} height={28} priority />
-            <span className="text-[15px] font-bold text-ink-1">3Stone Workspace</span>
+            <span className="text-[15px] font-bold text-ink-1">3Stone One</span>
           </div>
           <h1 className="max-w-[420px] text-[34px] font-extrabold leading-[1.15] tracking-tight text-ink-1 text-balance">
             Run your business from one screen.

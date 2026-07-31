@@ -152,8 +152,8 @@ export async function inviteMember(
   const { delivered } = await sendEmail(
     {
       to: normalizedEmail,
-      subject: "You're invited to 3Stone Workspace",
-      text: `You've been invited to join a workspace on 3Stone Workspace: ${origin}/invite/accept?token=${inviteToken}`,
+      subject: "You're invited to 3Stone One",
+      text: `You've been invited to join a workspace on 3Stone One: ${origin}/invite/accept?token=${inviteToken}`,
     },
     "team_invitation"
   );
@@ -176,8 +176,8 @@ export async function resendInvitation(workspaceId: string, invitationId: string
   const { delivered } = await sendEmail(
     {
       to: invitation.email,
-      subject: "Reminder: you're invited to 3Stone Workspace",
-      text: `Reminder — you've been invited to join a workspace on 3Stone Workspace: ${origin}/invite/accept?token=${invitation.token}`,
+      subject: "Reminder: you're invited to 3Stone One",
+      text: `Reminder — you've been invited to join a workspace on 3Stone One: ${origin}/invite/accept?token=${invitation.token}`,
     },
     "team_invitation_reminder"
   );

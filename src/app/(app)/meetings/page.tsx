@@ -3,7 +3,7 @@ import { MeetingsClient } from "@/features/meetings/MeetingsClient";
 import { getSession } from "@/lib/session";
 import { NotYetConnected } from "@/components/shell/NotYetConnected";
 
-export const metadata: Metadata = { title: "Meetings — 3Stone Workspace" };
+export const metadata: Metadata = { title: "Meetings — 3Stone One" };
 
 export default async function MeetingsPage() {
   const session = await getSession();

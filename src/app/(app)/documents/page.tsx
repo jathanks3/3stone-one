@@ -3,7 +3,7 @@ import { DocumentsClient } from "@/features/documents/DocumentsClient";
 import { getSession } from "@/lib/session";
 import { NotYetConnected } from "@/components/shell/NotYetConnected";
 
-export const metadata: Metadata = { title: "Documents — 3Stone Workspace" };
+export const metadata: Metadata = { title: "Documents — 3Stone One" };
 
 export default async function DocumentsPage() {
   const session = await getSession();

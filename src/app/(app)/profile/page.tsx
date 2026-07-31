@@ -4,7 +4,7 @@ import { getProfile } from "@/server/services/profileService";
 import { isStorageConfigured } from "@/server/services/storageService";
 import { ProfileClient } from "./ProfileClient";
 
-export const metadata: Metadata = { title: "Profile — 3Stone Workspace" };
+export const metadata: Metadata = { title: "Profile — 3Stone One" };
 
 export default async function ProfilePage() {
   const session = await getSession();

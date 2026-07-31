@@ -3,7 +3,7 @@ import { ActivityClient } from "@/features/activity/ActivityClient";
 import { getSession } from "@/lib/session";
 import { NotYetConnected } from "@/components/shell/NotYetConnected";
 
-export const metadata: Metadata = { title: "Activity Log — 3Stone Workspace" };
+export const metadata: Metadata = { title: "Activity Log — 3Stone One" };
 
 export default async function ActivityPage() {
   const session = await getSession();

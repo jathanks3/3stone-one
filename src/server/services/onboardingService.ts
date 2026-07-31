@@ -73,7 +73,7 @@ export async function startSignup(email: string): Promise<{ userId: string; veri
   const { delivered } = await sendEmail(
     {
       to: normalizedEmail,
-      subject: "Verify your email — 3Stone Workspace",
+      subject: "Verify your email — 3Stone One",
       text: `Verify your email to continue setting up your workspace: ${origin}/signup/verify?token=${token}`,
     },
     "email_verification"

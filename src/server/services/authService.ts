@@ -144,7 +144,7 @@ export async function requestPasswordReset(
   const { delivered } = await sendEmail(
     {
       to: normalizedEmail,
-      subject: "Reset your password — 3Stone Workspace",
+      subject: "Reset your password — 3Stone One",
       text: `Reset your password: ${origin}/reset-password/confirm?token=${token}`,
     },
     "password_reset"

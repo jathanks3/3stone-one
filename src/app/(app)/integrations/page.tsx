@@ -3,7 +3,7 @@ import { IntegrationsClient } from "@/features/integrations/IntegrationsClient";
 import { getSession } from "@/lib/session";
 import { NotYetConnected } from "@/components/shell/NotYetConnected";
 
-export const metadata: Metadata = { title: "Integrations — 3Stone Workspace" };
+export const metadata: Metadata = { title: "Integrations — 3Stone One" };
 
 export default async function IntegrationsPage() {
   const session = await getSession();

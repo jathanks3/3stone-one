@@ -3,7 +3,7 @@ import { previewInvitation } from "@/server/services/teamService";
 import { ResetPasswordShell } from "../../reset-password/ResetPasswordShell";
 import { AcceptInviteForm } from "./AcceptInviteForm";
 
-export const metadata: Metadata = { title: "Join workspace — 3Stone Workspace" };
+export const metadata: Metadata = { title: "Join workspace — 3Stone One" };
 
 export default async function AcceptInvitePage({
   searchParams,
@@ -39,7 +39,7 @@ export default async function AcceptInvitePage({
     return (
       <ResetPasswordShell title="Join a workspace">
         <p className="text-center text-[13.5px] text-ink-2">
-          <span className="font-semibold text-ink-1">{preview.email}</span> already has a 3Stone Workspace account.
+          <span className="font-semibold text-ink-1">{preview.email}</span> already has a 3Stone One account.
         </p>
         <p className="mt-2 text-center text-[13px] text-ink-3">
           <a href="/login" className="font-medium text-accent hover:text-accent-strong">
