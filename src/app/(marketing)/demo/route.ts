@@ -4,6 +4,11 @@ import { DEMO_USER, DEMO_WORKSPACE } from "@/server/mock-data";
 
 const KNOWN_EDITION_KEYS = ["business", "workspace", "student"];
 
+// Forces per-request execution - this reads a query param and a cookie
+// and must never be served a cached response from a previous request
+// (that would leak one visitor's demo edition into another's).
+export const dynamic = "force-dynamic";
+
 // Direct entry point for the marketing site's "Demo" links — starts (or
 // resumes) the demo session and drops the visitor straight into the
 // dashboard, with no login screen in between. See docs/14-first-run-experience.md.
