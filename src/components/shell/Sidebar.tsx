@@ -4,13 +4,14 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useIndustry } from "@/lib/industry";
 import { getNavSections } from "@/lib/nav";
+import { getAllowedModuleKeys } from "@/lib/editionModules";
 import { NAV_ICONS } from "@/lib/icons";
 import { cn } from "@/lib/utils";
 
 export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
-  const { profile } = useIndustry();
+  const { profile, editionKey } = useIndustry();
   const pathname = usePathname();
-  const sections = getNavSections(profile);
+  const sections = getNavSections(profile, getAllowedModuleKeys(editionKey));
 
   return (
     <nav className="flex h-full flex-col gap-5 overflow-y-auto px-3 py-4">

@@ -3,12 +3,13 @@
 import { useActionState } from "react";
 import { Check, Lock } from "lucide-react";
 import { selectPlanAction, type PlanFormState } from "./actions";
-import { PLAN_TIERS, ENTERPRISE_LABEL } from "@/config/pricing";
+import { getPlanTiersForEdition, ENTERPRISE_LABEL } from "@/config/pricing";
 
 const initialState: PlanFormState = {};
 
-export function PlanForm() {
+export function PlanForm({ editionKey }: { editionKey: string }) {
   const [state, formAction, pending] = useActionState(selectPlanAction, initialState);
+  const tiers = getPlanTiersForEdition(editionKey);
 
   return (
     <form action={formAction} className="flex flex-col gap-4">
@@ -25,7 +26,7 @@ export function PlanForm() {
           </div>
         </div>
 
-        {PLAN_TIERS.map((tier) => (
+        {tiers.map((tier) => (
           <div key={tier.key} className="flex items-center justify-between rounded-[10px] border border-line-strong bg-surface px-4 py-3 opacity-60">
             <div className="flex items-center gap-2.5">
               <div className="flex h-7 w-7 items-center justify-center rounded-full bg-surface-raised text-ink-3">

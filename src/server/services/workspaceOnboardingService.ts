@@ -16,6 +16,7 @@ export interface OnboardWorkspaceInput {
   ownerName: string;
   ownerPassword: string;
   industryProfileKey: IndustryProfileKey;
+  editionKey?: string;
 }
 
 export interface OnboardWorkspaceResult {
@@ -56,7 +57,7 @@ export async function onboardWorkspace(input: OnboardWorkspaceInput): Promise<On
   const { workspaceId } = await createWorkspace(user.id, input.slug);
   await setBusinessInfo(workspaceId, input.workspaceName);
   await selectIndustry(workspaceId, input.industryProfileKey);
-  await confirmProductAndEdition(workspaceId);
+  await confirmProductAndEdition(workspaceId, input.editionKey ?? "business");
   await selectPlan(workspaceId, "free");
 
   return { workspaceId, ownerUserId: user.id };

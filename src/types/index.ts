@@ -84,7 +84,18 @@ export interface SessionUser {
 // Mirrors prisma/schema.prisma's WorkspacePlan enum — matches the
 // marketing site's published tiers (src/config/pricing.ts), not
 // invented independently.
-export type WorkspacePlan = "free" | "hub" | "growth" | "business_os" | "enterprise";
+export type WorkspacePlan =
+  | "free"
+  | "hub"
+  | "growth"
+  | "business_os"
+  | "enterprise"
+  | "workspace_starter"
+  | "workspace_team"
+  | "workspace_pro"
+  | "student_starter"
+  | "student_plus"
+  | "student_premium";
 
 export interface Workspace {
   id: string;

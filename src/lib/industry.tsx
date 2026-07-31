@@ -23,6 +23,10 @@ interface IndustryContextValue {
   // this instead once real workspaces exist, without needing their own
   // database lookup.
   workspaceName: string;
+  // Which product edition this workspace is on ("business" for the
+  // original/flagship, or "workspace"/"student" - see
+  // src/lib/editionModules.ts). Drives which nav modules Sidebar shows.
+  editionKey: string;
 }
 
 const IndustryContext = createContext<IndustryContextValue | null>(null);
@@ -32,12 +36,14 @@ export function IndustryProvider({
   initialBusinessId,
   isDemo,
   workspaceName,
+  editionKey,
   children,
 }: {
   initialKey: IndustryProfileKey;
   initialBusinessId: string;
   isDemo: boolean;
   workspaceName: string;
+  editionKey: string;
   children: ReactNode;
 }) {
   const [key, setKey] = useState<IndustryProfileKey>(initialKey);
@@ -55,8 +61,8 @@ export function IndustryProvider({
   }
 
   const value = useMemo(
-    () => ({ profile, setIndustryKey: setKey, currentBusinessId, setBusinessId, isDemo, workspaceName }),
-    [profile, currentBusinessId, isDemo, workspaceName]
+    () => ({ profile, setIndustryKey: setKey, currentBusinessId, setBusinessId, isDemo, workspaceName, editionKey }),
+    [profile, currentBusinessId, isDemo, workspaceName, editionKey]
   );
 
   return <IndustryContext.Provider value={value}>{children}</IndustryContext.Provider>;

@@ -13,7 +13,7 @@ export default async function SignupTermsPage() {
   }
 
   return (
-    <SignupShell title="Almost there" stepIndex={7}>
+    <SignupShell title="Almost there" stepIndex={8}>
       <TermsForm />
     </SignupShell>
   );

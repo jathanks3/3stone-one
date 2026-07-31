@@ -35,6 +35,7 @@ async function main() {
 
   const editions: { key: string; productKey: string; name: string }[] = [
     { key: "business", productKey: "3stone_one", name: "Business" },
+    { key: "workspace", productKey: "3stone_one", name: "Workspace" },
     { key: "student", productKey: "3stone_one", name: "Student" },
     { key: "employee", productKey: "3stone_one", name: "Employee" },
     { key: "healthcare", productKey: "3stone_one", name: "Healthcare" },

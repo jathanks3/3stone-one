@@ -31,6 +31,7 @@ const STEPS = [
   "Workspace",
   "Business",
   "Industry",
+  "Product",
   "Plan",
   "Terms",
 ] as const;

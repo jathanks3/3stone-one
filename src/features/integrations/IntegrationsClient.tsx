@@ -5,6 +5,8 @@ import { Plug, Sparkles } from "lucide-react";
 import { Card } from "@/ui/Card";
 import { Badge } from "@/ui/Badge";
 import { useToast } from "@/lib/toast";
+import { useIndustry } from "@/lib/industry";
+import { getAllowedIntegrationCategories } from "@/lib/editionModules";
 import { DEMO_INTEGRATIONS, INTEGRATION_CATEGORY_ORDER } from "@/server/mock-data";
 import type { IntegrationProvider } from "@/types";
 
@@ -12,6 +14,11 @@ export function IntegrationsClient() {
   const [providers, setProviders] = useState<IntegrationProvider[]>(DEMO_INTEGRATIONS);
   const [connecting, setConnecting] = useState<string | null>(null);
   const { showToast } = useToast();
+  const { editionKey } = useIndustry();
+  const allowedCategories = getAllowedIntegrationCategories(editionKey);
+  const visibleCategories = allowedCategories
+    ? INTEGRATION_CATEGORY_ORDER.filter((c) => allowedCategories.has(c))
+    : INTEGRATION_CATEGORY_ORDER;
 
   function connect(key: string) {
     const provider = providers.find((p) => p.key === key)!;
@@ -48,7 +55,7 @@ export function IntegrationsClient() {
       </p>
 
       <div className="mt-6 flex flex-col gap-8">
-        {INTEGRATION_CATEGORY_ORDER.map((category) => {
+        {visibleCategories.map((category) => {
           const items = providers.filter((p) => p.category === category);
           if (items.length === 0) return null;
           return (

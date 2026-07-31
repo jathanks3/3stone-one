@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/session";
-import { getActiveWorkspaceIdForUser, selectIndustry, confirmProductAndEdition } from "@/server/services/onboardingService";
+import { getActiveWorkspaceIdForUser, selectIndustry } from "@/server/services/onboardingService";
 import type { IndustryProfileKey } from "@/types";
 
 export interface IndustryFormState {
@@ -25,8 +25,5 @@ export async function selectIndustryAction(_prevState: IndustryFormState, formDa
   }
 
   await selectIndustry(workspaceId, industryProfileKey);
-  // Product and Edition have exactly one real option today
-  // (3stone_one/business) — no picker UI, see onboardingService.ts.
-  await confirmProductAndEdition(workspaceId);
-  redirect("/signup/plan");
+  redirect("/signup/product");
 }

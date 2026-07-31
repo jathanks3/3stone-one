@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Search } from "lucide-react";
 import { useIndustry } from "@/lib/industry";
 import { getAllNavItems } from "@/lib/nav";
+import { getAllowedModuleKeys } from "@/lib/editionModules";
 import { NAV_ICONS } from "@/lib/icons";
 import { cn } from "@/lib/utils";
 
@@ -40,8 +41,8 @@ function PaletteDialog({ onClose }: { onClose: () => void }) {
   const [query, setQuery] = useState("");
   const [activeIndex, setActiveIndex] = useState(0);
   const router = useRouter();
-  const { profile } = useIndustry();
-  const items = useMemo(() => getAllNavItems(profile), [profile]);
+  const { profile, editionKey } = useIndustry();
+  const items = useMemo(() => getAllNavItems(profile, getAllowedModuleKeys(editionKey)), [profile, editionKey]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();

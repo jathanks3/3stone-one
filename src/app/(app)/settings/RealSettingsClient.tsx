@@ -9,7 +9,8 @@ import { Badge } from "@/ui/Badge";
 import { Avatar } from "@/ui/Avatar";
 import { FileUploadField } from "@/components/shared/FileUploadField";
 import { industryProfileList } from "@/config/industry-profiles";
-import { PLAN_TIERS } from "@/config/pricing";
+import { getPlanTiersForEdition, AI_ADD_ON_PRICE_MONTHLY, type PlanTier } from "@/config/pricing";
+import { useIndustry } from "@/lib/industry";
 import type { WorkspaceSettings } from "@/server/services/workspaceSettingsService";
 import type { TeamMemberRow, PendingInvitationRow, AssignableRoleName } from "@/server/services/teamService";
 import type { BillingSummary } from "@/server/services/billingService";
@@ -24,6 +25,7 @@ import {
   transferOwnershipAction,
   startCheckoutAction,
   openBillingPortalAction,
+  toggleAiAddOnAction,
 } from "./actions";
 
 const ASSIGNABLE_ROLES: AssignableRoleName[] = ["Admin", "Manager", "Member", "Client"];
@@ -343,7 +345,7 @@ function formatCents(cents: number) {
   return (cents / 100).toLocaleString("en-US", { style: "currency", currency: "USD" });
 }
 
-function PlanCard({ plan, stripeConfigured }: { plan: (typeof PLAN_TIERS)[number]; stripeConfigured: boolean }) {
+function PlanCard({ plan, stripeConfigured }: { plan: PlanTier; stripeConfigured: boolean }) {
   const [state, formAction, pending] = useActionState(startCheckoutAction, emptyState);
   return (
     <div className="flex items-center justify-between rounded-[10px] border border-line bg-surface px-4 py-3">
@@ -368,8 +370,33 @@ function PlanCard({ plan, stripeConfigured }: { plan: (typeof PLAN_TIERS)[number
   );
 }
 
+function AiAddOnCard({ aiAddOnEnabled }: { aiAddOnEnabled: boolean }) {
+  const [state, formAction, pending] = useActionState(toggleAiAddOnAction, emptyState);
+  return (
+    <Card className="p-5">
+      <div className="flex items-center justify-between gap-4">
+        <div>
+          <p className="text-[14px] font-semibold text-ink-1">AI Assistant add-on</p>
+          <p className="mt-1 text-[12.5px] text-ink-3">
+            ${AI_ADD_ON_PRICE_MONTHLY}/mo · not included in Student plans by default.
+          </p>
+        </div>
+        <form action={formAction}>
+          <input type="hidden" name="aiAddOnEnabled" value={aiAddOnEnabled ? "false" : "true"} />
+          <Button type="submit" variant={aiAddOnEnabled ? "secondary" : "primary"} disabled={pending}>
+            {pending ? "Saving…" : aiAddOnEnabled ? "Turn off" : "Turn on"}
+          </Button>
+        </form>
+      </div>
+      {state.error ? <p className="mt-2 text-[11px] text-critical">{state.error}</p> : null}
+    </Card>
+  );
+}
+
 function BillingTab({ billing, stripeConfigured }: { billing: BillingSummary; stripeConfigured: boolean }) {
   const [portalState, portalAction, portalPending] = useActionState(openBillingPortalAction, emptyState);
+  const { editionKey } = useIndustry();
+  const planTiers = getPlanTiersForEdition(editionKey);
   return (
     <div className="flex flex-col gap-4">
       <Card className="p-5">
@@ -405,11 +432,13 @@ function BillingTab({ billing, stripeConfigured }: { billing: BillingSummary; st
       <div>
         <p className="mb-2 text-[12px] font-semibold uppercase tracking-wide text-ink-3">Plans</p>
         <div className="flex flex-col gap-2">
-          {PLAN_TIERS.map((plan) => (
+          {planTiers.map((plan) => (
             <PlanCard key={plan.key} plan={plan} stripeConfigured={stripeConfigured} />
           ))}
         </div>
       </div>
+
+      {editionKey === "student" ? <AiAddOnCard aiAddOnEnabled={billing.aiAddOnEnabled} /> : null}
 
       <div>
         <p className="mb-2 text-[12px] font-semibold uppercase tracking-wide text-ink-3">Invoice history</p>

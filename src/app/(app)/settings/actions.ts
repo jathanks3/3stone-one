@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { getSession } from "@/lib/session";
+import { db } from "@/server/db";
 import { getActiveWorkspaceIdForUser } from "@/server/services/onboardingService";
 import {
   requireTeamManager,
@@ -186,4 +187,25 @@ export async function openBillingPortalAction(_prev: ActionState, _formData: For
     return { error: e instanceof Error ? e.message : "No billing account yet." };
   }
   redirect(url);
+}
+
+// Student edition's AI add-on (see src/config/pricing.ts's
+// AI_ADD_ON_PRICE_MONTHLY and AiAssistant.tsx). Data-only toggle for now -
+// not wired to a real Stripe subscription item or real AI yet (the
+// assistant itself is still a deliberate demo-only stub). Recording the
+// real intent to buy it now means nothing has to be re-modeled once both
+// of those are built.
+export async function toggleAiAddOnAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const { userId, workspaceId } = await currentWorkspaceId();
+  await requireTeamManager(userId, workspaceId);
+  const aiAddOnEnabled = formData.get("aiAddOnEnabled") === "true";
+
+  await db.subscription.upsert({
+    where: { workspaceId },
+    update: { aiAddOnEnabled },
+    create: { workspaceId, aiAddOnEnabled, status: "trialing" },
+  });
+
+  revalidatePath("/settings");
+  return { success: aiAddOnEnabled ? "AI add-on enabled." : "AI add-on turned off." };
 }

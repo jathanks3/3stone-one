@@ -1,8 +1,12 @@
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 import { DEMO_USER, DEMO_WORKSPACE } from "@/server/mock-data";
 import { getSession, hasStaffAccess } from "@/lib/session";
 import { db } from "@/server/db";
 import { IndustryProvider } from "@/lib/industry";
+import { getAllowedModuleKeys } from "@/lib/editionModules";
+import { getAllNavItems } from "@/lib/nav";
+import { getIndustryProfile } from "@/config/industry-profiles";
 import { AppShell } from "@/components/shell/AppShell";
 import type { IndustryProfileKey, SessionUser } from "@/types";
 
@@ -19,12 +23,19 @@ import type { IndustryProfileKey, SessionUser } from "@/types";
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const session = await getSession();
 
-  let workspace: { id: string; name: string; industryProfileKey: IndustryProfileKey };
+  let workspace: { id: string; name: string; industryProfileKey: IndustryProfileKey; editionKey: string };
   let user: SessionUser;
 
   if (!session || session.isDemo) {
     // Unchanged from the mock-only era — demo never touches the database.
-    workspace = { id: DEMO_WORKSPACE.id, name: DEMO_WORKSPACE.name, industryProfileKey: DEMO_WORKSPACE.industryProfileKey };
+    // The demo always shows the full flagship product, never a restricted
+    // edition, regardless of which marketing page linked here.
+    workspace = {
+      id: DEMO_WORKSPACE.id,
+      name: DEMO_WORKSPACE.name,
+      industryProfileKey: DEMO_WORKSPACE.industryProfileKey,
+      editionKey: "business",
+    };
     user = DEMO_USER;
   } else {
     const membership = await db.workspaceMember.findFirst({
@@ -59,6 +70,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       id: membership.workspace.id,
       name: membership.workspace.name,
       industryProfileKey: (membership.workspace.industryProfileKey ?? "construction") as IndustryProfileKey,
+      editionKey: membership.workspace.editionKey,
     };
     user = {
       id: membership.user.id,
@@ -75,12 +87,28 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     };
   }
 
+  // Route-level enforcement: nav hiding alone doesn't stop a direct URL
+  // visit to an excluded module. Only ever redirects for a pathname that's
+  // a REAL module key (e.g. "finance") - routes with no nav entry at all
+  // (like /profile) are never gated, since they're not business modules
+  // this system knows how to restrict.
+  const allowedModuleKeys = getAllowedModuleKeys(workspace.editionKey);
+  if (allowedModuleKeys) {
+    const pathname = (await headers()).get("x-pathname") ?? "";
+    const moduleKey = pathname.split("/")[1] ?? "";
+    const allModuleKeys = new Set(getAllNavItems(getIndustryProfile(workspace.industryProfileKey)).map((i) => i.key));
+    if (allModuleKeys.has(moduleKey) && !allowedModuleKeys.has(moduleKey)) {
+      redirect("/dashboard");
+    }
+  }
+
   return (
     <IndustryProvider
       initialKey={workspace.industryProfileKey}
       initialBusinessId={workspace.id}
       isDemo={!session || session.isDemo}
       workspaceName={workspace.name}
+      editionKey={workspace.editionKey}
     >
       <AppShell user={user}>{children}</AppShell>
     </IndustryProvider>

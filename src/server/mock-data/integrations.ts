@@ -2,8 +2,8 @@ import type { IntegrationProvider } from "@/types";
 
 export const DEMO_INTEGRATIONS: IntegrationProvider[] = [
   { key: "quickbooks", name: "QuickBooks", category: "Accounting", status: "connected", lastSync: "12 minutes ago", blurb: "Revenue, expenses, and invoice status sync into Finance automatically." },
-  { key: "excel", name: "Excel", category: "Accounting", status: "not_connected", lastSync: null, blurb: "Import and export budgets, estimates, and reports as spreadsheets." },
-  { key: "google_sheets", name: "Google Sheets", category: "Accounting", status: "not_connected", lastSync: null, blurb: "Keep a live spreadsheet copy of any report, always up to date." },
+  { key: "excel", name: "Excel", category: "Productivity", status: "not_connected", lastSync: null, blurb: "Import and export budgets, estimates, and reports as spreadsheets." },
+  { key: "google_sheets", name: "Google Sheets", category: "Productivity", status: "not_connected", lastSync: null, blurb: "Keep a live spreadsheet copy of any report, always up to date." },
   { key: "toast", name: "Toast", category: "Commerce", status: "not_connected", lastSync: null, blurb: "POS sales data for restaurant and hospitality workspaces." },
   { key: "stripe", name: "Stripe", category: "Payments", status: "connected", lastSync: "2 hours ago", blurb: "Client invoice payments flow straight into Finance and the Client Portal." },
   { key: "calendly", name: "Calendly", category: "Scheduling", status: "transformed", lastSync: null, blurb: "Meeting bookings from your scheduling page appear in Meetings automatically." },

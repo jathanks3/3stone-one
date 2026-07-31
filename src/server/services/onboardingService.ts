@@ -35,6 +35,17 @@ export async function getActiveWorkspaceIdForUser(userId: string): Promise<strin
   return membership?.workspaceId ?? null;
 }
 
+// For the plan-selection step, which needs to show tiers matching
+// whichever edition was chosen on /signup/product.
+export async function getActiveWorkspaceEditionForUser(userId: string): Promise<string | null> {
+  const membership = await db.workspaceMember.findFirst({
+    where: { userId, status: "active" },
+    orderBy: { joinedAt: "asc" },
+    select: { workspace: { select: { editionKey: true } } },
+  });
+  return membership?.workspace.editionKey ?? null;
+}
+
 async function recordStep(workspaceId: string, stepKey: string) {
   await db.workspaceOnboardingProgress.upsert({
     where: { workspaceId_stepKey: { workspaceId, stepKey } },
@@ -142,13 +153,13 @@ export async function selectIndustry(workspaceId: string, industryProfileKey: In
   await recordStep(workspaceId, "industry_selected");
 }
 
-// Product/Edition currently have exactly one real combination
-// (3stone_one/business) — there is deliberately no picker UI offering a
-// choice that doesn't exist yet; these steps just confirm the schema
-// defaults are what they already are and record that the step happened,
-// rather than presenting a fake "choose your product" screen with one
-// enabled option pretending to be a real decision.
-export async function confirmProductAndEdition(workspaceId: string): Promise<void> {
+// Product has exactly one real option (3stone_one) - no picker for that
+// half. Edition is now a real choice (business/workspace/student, see
+// src/lib/editionModules.ts) made on /signup/product and persisted here;
+// the schema default ("business") only applies if a workspace somehow
+// reaches this step without going through that form.
+export async function confirmProductAndEdition(workspaceId: string, editionKey: string): Promise<void> {
+  await db.workspace.update({ where: { id: workspaceId }, data: { editionKey } });
   await recordStep(workspaceId, "product_selected");
   await recordStep(workspaceId, "edition_selected");
 }

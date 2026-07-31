@@ -164,6 +164,19 @@ enum WorkspacePlan {
   growth
   business_os
   enterprise
+  // Workspace edition (editionKey "workspace") - day-to-day workers, CEOs,
+  // and managers. Deliberately excludes finance/accounting, inventory,
+  // automation, analytics, and AI - see docs/15-company-platform-vision.md
+  // and src/lib/editionModules.ts for the exact module cut per tier.
+  workspace_starter
+  workspace_team
+  workspace_pro
+  // Student edition (editionKey "student") - same module philosophy as
+  // Workspace, lighter still, no CRM/client-portal. AI is a paid add-on
+  // (Subscription.aiAddOnEnabled), never included in the base plan.
+  student_starter
+  student_plus
+  student_premium
 }
 
 model User {
@@ -1220,6 +1233,11 @@ model Subscription {
   trialEndsAt          DateTime?
   currentPeriodEnd     DateTime?
   createdAt            DateTime @default(now())
+  // Student edition paid add-on - the AI Assistant is never included in a
+  // base plan (see WorkspacePlan's student_* comment). Toggle only; the
+  // add-on's own real-AI wiring is separate, later work (AiAssistant.tsx
+  // and aiProvider.ts are still a deliberate stub regardless of this flag).
+  aiAddOnEnabled       Boolean  @default(false)
 
   @@map("platform_subscriptions")
 }

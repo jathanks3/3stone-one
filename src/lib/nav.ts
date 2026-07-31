@@ -1,8 +1,12 @@
 import type { IndustryProfile, NavSection } from "@/types";
 
-export function getNavSections(profile: IndustryProfile): NavSection[] {
+// allowedModuleKeys is null for Business edition (unrestricted, matches
+// today's behavior exactly) or a Set for editions with a real module cut
+// (see src/lib/editionModules.ts). Filters items, then drops any section
+// left with none.
+export function getNavSections(profile: IndustryProfile, allowedModuleKeys: Set<string> | null = null): NavSection[] {
   const t = profile.terms;
-  return [
+  const sections: NavSection[] = [
     {
       items: [
         {
@@ -136,8 +140,13 @@ export function getNavSections(profile: IndustryProfile): NavSection[] {
       ],
     },
   ];
+
+  if (!allowedModuleKeys) return sections;
+  return sections
+    .map((section) => ({ ...section, items: section.items.filter((item) => allowedModuleKeys.has(item.key)) }))
+    .filter((section) => section.items.length > 0);
 }
 
-export function getAllNavItems(profile: IndustryProfile) {
-  return getNavSections(profile).flatMap((section) => section.items);
+export function getAllNavItems(profile: IndustryProfile, allowedModuleKeys: Set<string> | null = null) {
+  return getNavSections(profile, allowedModuleKeys).flatMap((section) => section.items);
 }

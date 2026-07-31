@@ -40,6 +40,15 @@ export async function proxy(request: NextRequest) {
   // back to /dashboard, which bounces back to /login... forever.
   const isLogoutRoute = pathname === "/logout";
 
+  // (app)/layout.tsx needs to know the requested pathname to enforce
+  // per-edition module access (see src/lib/editionModules.ts) - a shared
+  // layout has no direct way to see which page under it is being
+  // rendered, so it's forwarded as a request header, a standard pattern
+  // for this in the App Router.
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set("x-pathname", pathname);
+  const nextWithPathname = () => NextResponse.next({ request: { headers: requestHeaders } });
+
   let response: NextResponse;
   // Layer 1 of 4 (see docs/15-company-platform-vision.md): checked first
   // and independently of the general auth gate below, because a customer
@@ -49,13 +58,13 @@ export async function proxy(request: NextRequest) {
   if (isStaffRoute && !hasStaffAccess(session)) {
     response = NextResponse.redirect(new URL(hasSession ? "/dashboard" : "/login", request.url));
   } else if (isAlwaysAccessibleRoute || isLogoutRoute) {
-    response = NextResponse.next();
+    response = nextWithPathname();
   } else if (!hasSession && !isPublicRoute && pathname !== "/") {
     response = NextResponse.redirect(new URL("/login", request.url));
   } else if (hasSession && isPublicRoute) {
     response = NextResponse.redirect(new URL("/dashboard", request.url));
   } else {
-    response = NextResponse.next();
+    response = nextWithPathname();
   }
 
   if (hasInvalidCookie) {
