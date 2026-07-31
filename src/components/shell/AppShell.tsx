@@ -6,6 +6,7 @@ import { TopBar } from "./TopBar";
 import { Sidebar } from "./Sidebar";
 import { MobileNav } from "./MobileNav";
 import { CommandPalette } from "./CommandPalette";
+import { DemoBanner } from "./DemoBanner";
 import { AiAssistant } from "@/components/assistant/AiAssistant";
 import { EDITION_BRAND } from "./EditionMark";
 import { useIndustry } from "@/lib/industry";
@@ -36,6 +37,7 @@ export function AppShell({
 
   return (
     <div className={cn("flex h-screen flex-col", EDITION_CLASS[editionKey])}>
+      <DemoBanner />
       <TopBar
         user={user}
         onOpenPalette={() => setPaletteOpen(true)}
