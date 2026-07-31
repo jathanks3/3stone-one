@@ -28,13 +28,14 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   if (!session || session.isDemo) {
     // Unchanged from the mock-only era — demo never touches the database.
-    // The demo always shows the full flagship product, never a restricted
-    // edition, regardless of which marketing page linked here.
+    // Edition comes from the session (set by /demo?edition=... - see
+    // src/app/(marketing)/demo/route.ts), defaulting to the full
+    // original product when no demo edition was requested.
     workspace = {
       id: DEMO_WORKSPACE.id,
       name: DEMO_WORKSPACE.name,
       industryProfileKey: DEMO_WORKSPACE.industryProfileKey,
-      editionKey: "business",
+      editionKey: session?.demoEditionKey ?? "business",
     };
     user = DEMO_USER;
   } else {

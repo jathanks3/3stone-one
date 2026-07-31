@@ -8,6 +8,11 @@ export const SESSION_COOKIE_NAME = "threestone_session";
 export type StaffRole = "founder" | "operations" | "support";
 const STAFF_ROLES: readonly StaffRole[] = ["founder", "operations", "support"];
 
+// Kept as a local literal (not imported from src/lib/editionModules.ts)
+// for the same reason StaffRole is above - this file runs in proxy.ts's
+// Edge middleware.
+const KNOWN_EDITION_KEYS: readonly string[] = ["business", "workspace", "student"];
+
 export interface SessionPayload {
   userId: string;
   // Optional: a pure-staff session (someone with only a StaffMembership,
@@ -27,6 +32,13 @@ export interface SessionPayload {
   // proxy.ts and (app)/3stone-ai/layout.tsx for the enforcement layers —
   // this field alone is never sufficient authorization on its own.
   staffRole?: StaffRole;
+  // Which edition a DEMO session is previewing ("business" | "workspace" |
+  // "student" - see src/lib/editionModules.ts). Only ever meaningful when
+  // isDemo is true; a real session's edition comes from its actual
+  // Workspace row, never this field. Lets /demo?edition=workspace show a
+  // prospective customer that specific edition's gated nav without a real
+  // account.
+  demoEditionKey?: string;
   // The User.sessionVersion this cookie was issued against. A password
   // change/reset increments the DB value, which makes every
   // previously-issued cookie's embedded number stale — that mismatch is
@@ -178,11 +190,19 @@ export async function parseSessionCookie(raw: string | undefined | null): Promis
 
   const sessionVersion = typeof raw2.sessionVersion === "number" ? raw2.sessionVersion : 0;
 
+  // Same fail-closed shape as staffRole above: only trusted for a demo
+  // session, and only one of the known edition keys.
+  const demoEditionKey =
+    isDemo && typeof raw2.demoEditionKey === "string" && KNOWN_EDITION_KEYS.includes(raw2.demoEditionKey)
+      ? raw2.demoEditionKey
+      : undefined;
+
   return {
     userId: raw2.userId,
     ...(workspaceId ? { workspaceId } : {}),
     isDemo,
     ...(staffRole ? { staffRole } : {}),
+    ...(demoEditionKey ? { demoEditionKey } : {}),
     sessionVersion,
   };
 }

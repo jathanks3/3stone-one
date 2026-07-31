@@ -121,9 +121,17 @@ export default function PricingPage() {
         <div className="mt-14 flex flex-col gap-16">
           {EDITIONS.map((edition) => (
             <section key={edition.id}>
-              <div className="mb-6">
-                <h2 className="text-[24px] font-bold text-ink-1">{edition.name}</h2>
-                <p className="mt-1 max-w-[560px] text-[13.5px] text-ink-2">{edition.tagline}</p>
+              <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
+                <div>
+                  <h2 className="text-[24px] font-bold text-ink-1">{edition.name}</h2>
+                  <p className="mt-1 max-w-[560px] text-[13.5px] text-ink-2">{edition.tagline}</p>
+                </div>
+                <Link
+                  href={`/demo?edition=${edition.id}`}
+                  className="inline-flex h-9 flex-shrink-0 items-center rounded-[10px] border border-line-strong px-4 text-[13px] font-semibold text-ink-1 hover:bg-surface-raised"
+                >
+                  Try the demo &rarr;
+                </Link>
               </div>
               <TierGrid tiers={edition.tiers} />
               {edition.showEnterprise ? (
