@@ -10,11 +10,11 @@ export const metadata: Metadata = { title: "3Stone AI — Internal" };
 // /3stone-ai/customers, and so the layout's nav has somewhere to point.
 //
 // 2026-07-25 founder decision: this app (3stone-one) is no longer a
-// second customer-facing product competing with workspace.3stoneai.com —
-// workspace.3stoneai.com is canonical. This /3stone-ai section is now the
+// second customer-facing product competing with admin.3stoneai.com —
+// admin.3stoneai.com is canonical. This /3stone-ai section is now the
 // company-wide Founder Platform. "Customers" (3stone-one's own frozen,
 // empty Workspace table) is now superseded by "Workspace Customers",
-// which reads real data directly from workspace.3stoneai.com's own
+// which reads real data directly from admin.3stoneai.com's own
 // database (read-only, see workspaceCustomerService.ts) — the cross-
 // product integration this comment used to describe as not-yet-started.
 export default function ThreeStoneAiDashboardPage() {

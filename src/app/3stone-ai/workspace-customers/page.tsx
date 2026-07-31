@@ -15,7 +15,7 @@ function formatCents(cents: number): string {
 export const metadata: Metadata = { title: "Workspace Customers — 3Stone AI" };
 
 // The real cross-product integration: reads directly from
-// workspace.3stoneai.com's own Supabase database (read-only), not
+// admin.3stoneai.com's own Supabase database (read-only), not
 // 3stone-one's own (frozen, empty) Workspace table. This is the actual
 // answer to "does the Founder Platform see real customers."
 export default async function WorkspaceCustomersPage() {
@@ -40,7 +40,7 @@ export default async function WorkspaceCustomersPage() {
     <div>
       <h1 className="text-[22px] font-bold text-ink-1">Workspace Customers</h1>
       <p className="mt-1 text-[13.5px] text-ink-2">
-        Real customers of workspace.3stoneai.com, read directly from that product&apos;s own database.
+        Real customers of admin.3stoneai.com, read directly from that product&apos;s own database.
       </p>
 
       <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
