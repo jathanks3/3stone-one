@@ -83,3 +83,61 @@ export const DEMO_MEETINGS: Meeting[] = [
     status: "upcoming",
   },
 ];
+
+// Workspace edition's own meetings (Harper & Voss Consulting) - see
+// jobs.ts's WORKSPACE_JOBS and industries/workplace.ts.
+export const WORKSPACE_MEETINGS: Meeting[] = [
+  {
+    id: "wmeet_1",
+    title: "Northstar Kickoff",
+    at: "2026-07-09 10:00 AM",
+    attendees: ["Jordan Ellis", "Devon Carter", "Natalie Cho (Northstar Retail Co.)"],
+    agenda: ["Introductions", "Confirm engagement scope and timeline", "Set up weekly check-in cadence", "Q&A"],
+    actionItems: [
+      { id: "wai_1", title: "Send engagement plan to Northstar", assigneeId: "wemp_jordan", done: false },
+      { id: "wai_2", title: "Schedule weekly check-ins", assigneeId: "wemp_devon", done: false },
+    ],
+    decisions: [],
+    summary: null,
+    status: "upcoming",
+  },
+  {
+    id: "wmeet_2",
+    title: "Weekly Team Sync",
+    at: "2026-07-10 9:00 AM",
+    attendees: ["Jordan Ellis", "Alicia Ford", "Devon Carter", "Ryan Ostrowski"],
+    agenda: ["Engagement status round-robin", "Overdue items — Atlas Website Redesign", "Staffing for Summit proposal"],
+    actionItems: [
+      { id: "wai_3", title: "Follow up on Atlas timeline slip", assigneeId: "wemp_jordan", done: false },
+    ],
+    decisions: [],
+    summary: null,
+    status: "upcoming",
+  },
+  {
+    id: "wmeet_3",
+    title: "Atlas Website Design Review",
+    at: "2026-06-30 2:00 PM",
+    attendees: ["Ryan Ostrowski", "Omar Hassan (Atlas Health Partners)"],
+    agenda: ["Review homepage mockups", "Confirm patient portal requirements", "Discuss timeline recovery plan"],
+    actionItems: [
+      { id: "wai_4", title: "Send updated mockups", assigneeId: "wemp_ryan", done: true },
+    ],
+    decisions: ["Approved revised timeline with a two-week extension", "Confirmed portal requirements as scoped"],
+    summary: "Omar approved the revised homepage direction and the two-week timeline extension. No open concerns.",
+    status: "past",
+  },
+  {
+    id: "wmeet_4",
+    title: "Beacon Proposal Review",
+    at: "2026-06-28 1:00 PM",
+    attendees: ["Alicia Ford", "Stephanie Reed (Beacon Community Fund)"],
+    agenda: ["Present ops review findings", "Discuss recommended process changes", "Next steps"],
+    actionItems: [
+      { id: "wai_5", title: "Send final proposal PDF", assigneeId: "wemp_alicia", done: false },
+    ],
+    decisions: [],
+    summary: "Positive reception to the draft findings — Stephanie asked for the formal proposal by end of week.",
+    status: "past",
+  },
+];

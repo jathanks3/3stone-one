@@ -25,3 +25,26 @@ export const DOCUMENT_CATEGORY_LABEL: Record<DocumentFile["category"], string> =
   photo: "Photos",
   report: "Report",
 };
+
+// Workspace edition's own files (Harper & Voss Consulting) - see
+// jobs.ts's WORKSPACE_JOBS and organizations.ts's WORKSPACE_ORGANIZATIONS.
+export const WORKSPACE_DOCUMENTS: DocumentFile[] = [
+  { id: "wdoc_1", name: "Northstar-Engagement-Agreement.pdf", category: "contract", sizeKb: 512, uploadedById: "wemp_jordan", uploadedAt: "2026-05-12", jobId: "wjob_northstar", organizationId: "worg_northstar", visibility: "shared", signatureStatus: "signed" },
+  { id: "wdoc_2", name: "Northstar-Brand-Audit-Draft.pdf", category: "plan", sizeKb: 980, uploadedById: "wemp_alicia", uploadedAt: "2026-06-01", jobId: "wjob_northstar", organizationId: "worg_northstar", visibility: "internal" },
+  { id: "wdoc_3", name: "Atlas-Website-Wireframes-v2.pdf", category: "plan", sizeKb: 1340, uploadedById: "wemp_ryan", uploadedAt: "2026-05-20", jobId: "wjob_atlas", organizationId: "worg_atlas", visibility: "shared" },
+  { id: "wdoc_4", name: "Atlas-Invoice-June.pdf", category: "invoice", sizeKb: 145, uploadedById: "wemp_maya", uploadedAt: "2026-06-30", jobId: "wjob_atlas", organizationId: "worg_atlas", visibility: "internal" },
+  { id: "wdoc_5", name: "Beacon-Ops-Review-Proposal.pdf", category: "report", sizeKb: 690, uploadedById: "wemp_alicia", uploadedAt: "2026-06-15", jobId: "wjob_beacon", organizationId: "worg_beacon", visibility: "shared" },
+  { id: "wdoc_6", name: "Client-Onboarding-Checklist.pdf", category: "report", sizeKb: 220, uploadedById: "wemp_maya", uploadedAt: "2026-01-10", jobId: null, organizationId: null, visibility: "internal" },
+];
+
+// Student edition's own files - coursework, drafts, and group project
+// materials, not contracts/permits/invoices. `category` reuses the
+// closed DocumentCategory set (report/plan/photo are the only ones that
+// genuinely fit coursework); contract/permit/invoice are never used here.
+export const STUDENT_DOCUMENTS: DocumentFile[] = [
+  { id: "sdoc_1", name: "Capstone-Proposal-Draft2.pdf", category: "report", sizeKb: 340, uploadedById: "student_self", uploadedAt: "2026-07-20", jobId: "sjob_capstone", organizationId: null, visibility: "internal" },
+  { id: "sdoc_2", name: "Marketing401-Group-Slides.pdf", category: "plan", sizeKb: 2100, uploadedById: "student_self", uploadedAt: "2026-07-18", jobId: "sjob_marketing", organizationId: null, visibility: "shared" },
+  { id: "sdoc_3", name: "Chem302-Lab-Data-Scan.jpg", category: "photo", sizeKb: 1580, uploadedById: "student_self", uploadedAt: "2026-08-01", jobId: "sjob_labreport", organizationId: null, visibility: "internal" },
+  { id: "sdoc_4", name: "Lit-Review-Sources.pdf", category: "report", sizeKb: 410, uploadedById: "student_self", uploadedAt: "2026-07-25", jobId: "sjob_research", organizationId: null, visibility: "internal" },
+  { id: "sdoc_5", name: "Stats210-Study-Guide.pdf", category: "report", sizeKb: 265, uploadedById: "student_self", uploadedAt: "2026-06-15", jobId: "sjob_finalexam", organizationId: null, visibility: "internal" },
+];

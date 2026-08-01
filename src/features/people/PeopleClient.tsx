@@ -14,13 +14,17 @@ import { Badge } from "@/ui/Badge";
 import { Button } from "@/ui/Button";
 import { AiAction, AiActionRow } from "@/ui/AiAction";
 import { cn } from "@/lib/utils";
-import { DEMO_ANNOUNCEMENTS, getEmployeeName } from "@/server/mock-data";
+import { DEMO_ANNOUNCEMENTS, WORKSPACE_ANNOUNCEMENTS, WORKSPACE_EMPLOYEES, getEmployeeName } from "@/server/mock-data";
 import { getIndustryDataset } from "@/server/mock-data/industries";
 import { identifyBurnoutSignals, recommendStaffing } from "@/server/ai/capabilities";
 import type { Announcement, Employee, IndustryDataset } from "@/types";
 
+function announcementAuthorName(id: string): string {
+  return WORKSPACE_EMPLOYEES.find((e) => e.id === id)?.name ?? getEmployeeName(id);
+}
+
 export function PeopleClient() {
-  const { profile } = useIndustry();
+  const { profile, editionKey } = useIndustry();
   const dataset = getIndustryDataset(profile.key);
   const [selected, setSelected] = useState<Employee | null>(null);
 
@@ -36,7 +40,11 @@ export function PeopleClient() {
           tabs={[
             { key: "directory", label: "Directory", content: <DirectoryTab employeeWord={profile.terms.employee} dataset={dataset} onSelect={setSelected} /> },
             { key: "departments", label: "Departments", content: <DepartmentsTab dataset={dataset} /> },
-            { key: "announcements", label: "Announcements", content: <AnnouncementsTab /> },
+            {
+              key: "announcements",
+              label: "Announcements",
+              content: <AnnouncementsTab seed={editionKey === "workspace" ? WORKSPACE_ANNOUNCEMENTS : DEMO_ANNOUNCEMENTS} />,
+            },
           ]}
         />
       </div>
@@ -145,8 +153,8 @@ function DepartmentsTab({ dataset }: { dataset: IndustryDataset }) {
   );
 }
 
-function AnnouncementsTab() {
-  const [announcements, setAnnouncements] = useState<Announcement[]>(DEMO_ANNOUNCEMENTS);
+function AnnouncementsTab({ seed }: { seed: Announcement[] }) {
+  const [announcements, setAnnouncements] = useState<Announcement[]>(seed);
   const [draft, setDraft] = useState("");
 
   function post() {
@@ -180,7 +188,7 @@ function AnnouncementsTab() {
               <span className="text-[12px] text-ink-3">{a.at}</span>
             </div>
             <p className="mt-1.5 text-[13.5px] text-ink-2">{a.body}</p>
-            <p className="mt-2 text-[12px] text-ink-3">— {getEmployeeName(a.authorId)}{a.department ? ` · ${a.department}` : ""}</p>
+            <p className="mt-2 text-[12px] text-ink-3">— {announcementAuthorName(a.authorId)}{a.department ? ` · ${a.department}` : ""}</p>
           </Card>
         ))}
       </div>

@@ -124,3 +124,156 @@ export const DEMO_JOBS: Job[] = [
     description: "Ground-up custom home, 4,200 sq ft, bid submitted.",
   },
 ];
+
+// Workspace edition's own demo dataset (see industries/workplace.ts) -
+// Harper & Voss Consulting's client engagements, not construction jobs.
+// Same shape as DEMO_JOBS (client/value/organizationId all still apply -
+// a consulting engagement is still billed work delivered to a client)
+// but the content itself is consulting-appropriate, not reused
+// construction data with relabeled terminology.
+export const WORKSPACE_JOBS: Job[] = [
+  {
+    id: "wjob_northstar",
+    name: "Northstar Brand Strategy",
+    client: "Northstar Retail Co.",
+    organizationId: "worg_northstar",
+    status: "in_progress",
+    value: 32000,
+    startDate: "2026-05-12",
+    dueDate: "2026-08-05",
+    ownerId: "wemp_jordan",
+    description: "Full brand positioning and go-to-market strategy ahead of Northstar's fall product launch.",
+  },
+  {
+    id: "wjob_atlas",
+    name: "Atlas Website Redesign",
+    client: "Atlas Health Partners",
+    organizationId: "worg_atlas",
+    status: "in_progress",
+    value: 18500,
+    startDate: "2026-04-20",
+    dueDate: "2026-07-10",
+    ownerId: "wemp_jordan",
+    overdue: true,
+    description: "Full redesign and rebuild of Atlas Health Partners' patient-facing website.",
+  },
+  {
+    id: "wjob_beacon",
+    name: "Beacon Nonprofit Ops Review",
+    client: "Beacon Community Fund",
+    organizationId: "worg_beacon",
+    status: "scheduled",
+    value: 14000,
+    startDate: "2026-08-10",
+    dueDate: "2026-09-20",
+    ownerId: "wemp_alicia",
+    description: "Operational efficiency review and process recommendations for Beacon's grant programs team.",
+  },
+  {
+    id: "wjob_summit",
+    name: "Summit Q3 Market Research",
+    client: "Summit Outdoor Gear",
+    organizationId: "worg_summit",
+    status: "bid",
+    value: 22000,
+    startDate: "2026-09-01",
+    dueDate: "2026-10-15",
+    ownerId: "wemp_alicia",
+    description: "Competitive market research and customer segmentation study, proposal submitted.",
+  },
+  {
+    id: "wjob_lumen",
+    name: "Lumen Legal Intake Overhaul",
+    client: "Lumen Legal Group",
+    organizationId: "worg_lumen",
+    status: "done",
+    value: 9800,
+    startDate: "2026-03-01",
+    dueDate: "2026-05-01",
+    ownerId: "wemp_jordan",
+    description: "Redesigned client intake process and referral tracking, delivered and signed off.",
+  },
+  {
+    id: "wjob_cascade",
+    name: "Cascade HR Policy Refresh",
+    client: "Cascade Manufacturing",
+    organizationId: "worg_cascade",
+    status: "done",
+    value: 11200,
+    startDate: "2026-02-15",
+    dueDate: "2026-04-01",
+    ownerId: "wemp_priya",
+    description: "Updated employee handbook and HR policies to reflect current labor law.",
+  },
+];
+
+// Student edition's own demo dataset - real coursework and group
+// projects, not construction jobs with client names and dollar values.
+// `client` holds the course the assignment belongs to instead of a
+// customer name, and `value` is always 0 - a student's work isn't
+// billed - see ProjectsClient.tsx's edition-aware rendering, which
+// hides the Value stat entirely and relabels "Client" to "Course" for
+// this edition rather than showing a meaningless $0.
+export const STUDENT_JOBS: Job[] = [
+  {
+    id: "sjob_capstone",
+    name: "Capstone Proposal Draft",
+    client: "Senior Capstone",
+    organizationId: "",
+    status: "in_progress",
+    value: 0,
+    startDate: "2026-07-01",
+    dueDate: "2026-08-04",
+    ownerId: "student_self",
+    overdue: true,
+    description: "First full draft of the capstone research proposal, due ahead of committee review.",
+  },
+  {
+    id: "sjob_marketing",
+    name: "Marketing 401 Group Project",
+    client: "Marketing 401",
+    organizationId: "",
+    status: "in_progress",
+    value: 0,
+    startDate: "2026-07-10",
+    dueDate: "2026-08-10",
+    ownerId: "student_self",
+    description: "Group campaign proposal for a real local business, presented to the class in week 12.",
+  },
+  {
+    id: "sjob_labreport",
+    name: "Organic Chemistry Lab Report",
+    client: "Chem 302",
+    organizationId: "",
+    status: "scheduled",
+    value: 0,
+    startDate: "2026-08-05",
+    dueDate: "2026-08-12",
+    ownerId: "student_self",
+    description: "Write-up of the synthesis lab from week 6, due the following Tuesday.",
+  },
+  {
+    id: "sjob_research",
+    name: "Research Assistant Literature Review",
+    client: "Psych Department",
+    organizationId: "",
+    status: "bid",
+    value: 0,
+    startDate: "2026-08-15",
+    dueDate: "2026-09-01",
+    ownerId: "student_self",
+    description: "Literature review for Professor Ahn's lab, not yet started.",
+  },
+  {
+    id: "sjob_finalexam",
+    name: "Statistics Final Exam Prep",
+    client: "Stats 210",
+    organizationId: "",
+    status: "done",
+    value: 0,
+    startDate: "2026-06-01",
+    dueDate: "2026-06-20",
+    ownerId: "student_self",
+    description: "Study guide and practice problems, completed before finals week.",
+  },
+];

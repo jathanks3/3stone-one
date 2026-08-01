@@ -9,12 +9,21 @@ import { DetailPanel } from "@/ui/DetailPanel";
 import { EmptyState } from "@/ui/EmptyState";
 import { AiAction, AiActionRow } from "@/ui/AiAction";
 import { cn } from "@/lib/utils";
-import { DEMO_ARTICLES, KNOWLEDGE_CATEGORY_LABEL } from "@/server/mock-data";
+import { useIndustry } from "@/lib/industry";
+import { DEMO_ARTICLES, WORKSPACE_ARTICLES, STUDENT_ARTICLES, KNOWLEDGE_CATEGORY_LABEL } from "@/server/mock-data";
 import type { KnowledgeArticle, KnowledgeCategory } from "@/types";
 
 const CATEGORIES: (KnowledgeCategory | "all")[] = ["all", "policy", "training", "process", "sop", "video"];
 
+function articlesForEdition(editionKey: string): KnowledgeArticle[] {
+  if (editionKey === "workspace") return WORKSPACE_ARTICLES;
+  if (editionKey === "student") return STUDENT_ARTICLES;
+  return DEMO_ARTICLES;
+}
+
 export function KnowledgeClient() {
+  const { editionKey } = useIndustry();
+  const articles = articlesForEdition(editionKey);
   const [category, setCategory] = useState<KnowledgeCategory | "all">("all");
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<KnowledgeArticle | null>(null);
@@ -24,10 +33,10 @@ export function KnowledgeClient() {
 
   const filtered = useMemo(
     () =>
-      DEMO_ARTICLES.filter((a) => category === "all" || a.category === category).filter((a) =>
+      articles.filter((a) => category === "all" || a.category === category).filter((a) =>
         `${a.title} ${a.body}`.toLowerCase().includes(query.toLowerCase())
       ),
-    [category, query]
+    [articles, category, query]
   );
 
   function askKnowledge() {
@@ -35,7 +44,7 @@ export function KnowledgeClient() {
     setAsking(true);
     setAskAnswer(null);
     const q = askQuery.toLowerCase();
-    const match = DEMO_ARTICLES.find((a) => a.title.toLowerCase().includes(q) || a.body.toLowerCase().includes(q));
+    const match = articles.find((a) => a.title.toLowerCase().includes(q) || a.body.toLowerCase().includes(q));
     window.setTimeout(() => {
       setAskAnswer(
         match
@@ -49,12 +58,16 @@ export function KnowledgeClient() {
   return (
     <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-8">
       <h1 className="text-[22px] font-bold text-ink-1">Knowledge Center</h1>
-      <p className="mt-1 text-[14px] text-ink-2">Policies, training, processes, SOPs, and video — your company wiki.</p>
+      <p className="mt-1 text-[14px] text-ink-2">
+        {editionKey === "student"
+          ? "Study guides, group-project norms, and reference material — yours to build up over the semester."
+          : "Policies, training, processes, SOPs, and video — your company wiki."}
+      </p>
 
       <div className="mt-5 rounded-2xl border border-accent-wash-strong bg-accent-wash p-4">
         <div className="flex items-center gap-2 text-accent">
           <Sparkles size={15} strokeWidth={2.25} />
-          <p className="text-[12px] font-semibold uppercase tracking-wide">Ask company knowledge</p>
+          <p className="text-[12px] font-semibold uppercase tracking-wide">{editionKey === "student" ? "Ask your notes" : "Ask company knowledge"}</p>
         </div>
         <div className="mt-2.5 flex gap-2">
           <input

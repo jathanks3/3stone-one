@@ -8,7 +8,7 @@ import { EmptyState } from "@/ui/EmptyState";
 import { cn } from "@/lib/utils";
 import { useIndustry } from "@/lib/industry";
 import { downloadTextFile } from "@/lib/download";
-import { DEMO_NOTES, STUDENT_NOTES } from "@/server/mock-data/notes";
+import { DEMO_NOTES, STUDENT_NOTES, WORKSPACE_NOTES } from "@/server/mock-data/notes";
 import type { Note } from "@/types";
 
 // Real export, not a fake "connect your account" button - a plain .txt
@@ -26,7 +26,7 @@ function exportAllNotesAsText(notes: Note[]) {
 
 export function NotesClient() {
   const { editionKey } = useIndustry();
-  const seed = editionKey === "student" ? STUDENT_NOTES : DEMO_NOTES;
+  const seed = editionKey === "student" ? STUDENT_NOTES : editionKey === "workspace" ? WORKSPACE_NOTES : DEMO_NOTES;
   const [notes, setNotes] = useState<Note[]>(seed);
   const [openId, setOpenId] = useState<string | "new" | null>(null);
   const [title, setTitle] = useState("");

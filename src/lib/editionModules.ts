@@ -19,8 +19,10 @@ export const EDITION_MODULES: Record<string, string[] | null> = {
   // workers and the managers above them. Business edition already
   // covers this ground (if at all) through People + Finance's approval
   // mechanisms, and Student has no manager to approve anything.
+  // portfolio (switching between every business you own) is deliberately
+  // excluded - it's a multi-business-owner concept, not something a
+  // day-to-day worker or the manager above them ever needs.
   workspace: [
-    "portfolio",
     "dashboard",
     "crm",
     "projects",

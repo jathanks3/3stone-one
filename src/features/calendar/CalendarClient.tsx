@@ -20,7 +20,7 @@ import { useEscapeKey } from "@/lib/useEscapeKey";
 import { cn } from "@/lib/utils";
 import { buildIcsCalendar, googleCalendarAddUrl } from "@/lib/ics";
 import { downloadTextFile } from "@/lib/download";
-import { DEMO_CALENDAR_EVENTS, STUDENT_CALENDAR_EVENTS } from "@/server/mock-data/calendar";
+import { DEMO_CALENDAR_EVENTS, STUDENT_CALENDAR_EVENTS, WORKSPACE_CALENDAR_EVENTS } from "@/server/mock-data/calendar";
 import type { CalendarEvent } from "@/types";
 
 function parseLocalDate(iso: string): Date {
@@ -142,7 +142,7 @@ function EventRow({
 
 export function CalendarClient() {
   const { editionKey } = useIndustry();
-  const seed = editionKey === "student" ? STUDENT_CALENDAR_EVENTS : DEMO_CALENDAR_EVENTS;
+  const seed = editionKey === "student" ? STUDENT_CALENDAR_EVENTS : editionKey === "workspace" ? WORKSPACE_CALENDAR_EVENTS : DEMO_CALENDAR_EVENTS;
   const [events, setEvents] = useState<CalendarEvent[]>(seed);
   const [view, setView] = useState<"month" | "list">("month");
   const [monthCursor, setMonthCursor] = useState<Date>(() => (seed[0] ? parseLocalDate(seed[0].date) : new Date()));

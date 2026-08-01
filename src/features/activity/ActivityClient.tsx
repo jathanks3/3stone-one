@@ -7,21 +7,29 @@ import { DataTable, type Column } from "@/ui/DataTable";
 import { EmptyState } from "@/ui/EmptyState";
 import { Badge } from "@/ui/Badge";
 import { cn } from "@/lib/utils";
-import { DEMO_ACTIVITY } from "@/server/mock-data";
+import { useIndustry } from "@/lib/industry";
+import { DEMO_ACTIVITY, WORKPLACE_ACTIVITY, STUDENT_ACTIVITY } from "@/server/mock-data";
 import type { ActivityItem } from "@/types";
 
-const MODULES = ["All", ...Array.from(new Set(DEMO_ACTIVITY.map((a) => a.module)))];
+function activityForEdition(editionKey: string): ActivityItem[] {
+  if (editionKey === "workspace") return WORKPLACE_ACTIVITY;
+  if (editionKey === "student") return STUDENT_ACTIVITY;
+  return DEMO_ACTIVITY;
+}
 
 export function ActivityClient() {
+  const { editionKey } = useIndustry();
+  const activity = activityForEdition(editionKey);
   const [query, setQuery] = useState("");
   const [module, setModule] = useState("All");
+  const modules = useMemo(() => ["All", ...Array.from(new Set(activity.map((a) => a.module)))], [activity]);
 
   const rows = useMemo(
     () =>
-      DEMO_ACTIVITY.filter((a) => module === "All" || a.module === module).filter((a) =>
+      activity.filter((a) => module === "All" || a.module === module).filter((a) =>
         `${a.message} ${a.actor}`.toLowerCase().includes(query.toLowerCase())
       ),
-    [query, module]
+    [activity, query, module]
   );
 
   const columns: Column<ActivityItem>[] = [
@@ -34,12 +42,12 @@ export function ActivityClient() {
   return (
     <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-8">
       <h1 className="text-[22px] font-bold text-ink-1">Activity Log</h1>
-      <p className="mt-1 text-[14px] text-ink-2">A full audit trail of everything that happens in this workspace.</p>
+      <p className="mt-1 text-[14px] text-ink-2">A timestamped record of everything that's happened here.</p>
 
       <div className="mt-6 flex flex-col gap-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex flex-wrap gap-1.5">
-            {MODULES.map((m) => (
+            {modules.map((m) => (
               <button
                 key={m}
                 onClick={() => setModule(m)}

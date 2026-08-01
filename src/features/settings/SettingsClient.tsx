@@ -17,19 +17,27 @@ import { getIndustryDataset } from "@/server/mock-data/industries";
 import type { ApiKeyRecord, Employee, UserRole } from "@/types";
 
 export function SettingsClient() {
-  const { profile } = useIndustry();
+  const { profile, editionKey } = useIndustry();
+  // Branding and Industry Profile are only meaningful for a real business
+  // that has its own brand and operates in a specific vertical - a
+  // Workspace employee or a Student has neither, so those tabs are
+  // business-edition-only rather than shown (and doing nothing useful)
+  // everywhere.
+  const isBusiness = editionKey === "business";
   return (
     <div className="mx-auto max-w-4xl px-4 py-6 sm:px-6 sm:py-8">
       <h1 className="text-[22px] font-bold text-ink-1">Settings</h1>
-      <p className="mt-1 text-[14px] text-ink-2">Company profile, branding, users, industry, billing, and API keys.</p>
+      <p className="mt-1 text-[14px] text-ink-2">
+        {isBusiness ? "Company profile, branding, users, industry, billing, and API keys." : "Your profile, team, billing, and API keys."}
+      </p>
 
       <div className="mt-6">
         <Tabs
           tabs={[
-            { key: "company", label: "Company", content: <CompanyTab /> },
-            { key: "branding", label: "Branding", content: <BrandingTab /> },
+            { key: "company", label: isBusiness ? "Company" : "Profile", content: <CompanyTab /> },
+            ...(isBusiness ? [{ key: "branding", label: "Branding", content: <BrandingTab /> }] : []),
             { key: "users", label: "Users", content: <UsersTab key={profile.key} /> },
-            { key: "industry", label: "Industry Profile", content: <IndustryTab /> },
+            ...(isBusiness ? [{ key: "industry", label: "Industry Profile", content: <IndustryTab /> }] : []),
             { key: "billing", label: "Billing", content: <BillingTab /> },
             { key: "keys", label: "API Keys", content: <ApiKeysTab /> },
           ]}

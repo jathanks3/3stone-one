@@ -6,16 +6,29 @@ import { Tabs } from "@/ui/Tabs";
 import { Avatar } from "@/ui/Avatar";
 import { DataTable, type Column } from "@/ui/DataTable";
 import { cn, initialsFromName } from "@/lib/utils";
+import { useIndustry } from "@/lib/industry";
 import {
   DEMO_CALL_NOTES,
   DEMO_CHAT_CHANNELS,
   DEMO_CHAT_MESSAGES,
   DEMO_EMAIL_THREADS,
+  WORKSPACE_CALL_NOTES,
+  WORKSPACE_CHAT_CHANNELS,
+  WORKSPACE_CHAT_MESSAGES,
+  WORKSPACE_EMAIL_THREADS,
+  WORKSPACE_EMPLOYEES,
   getEmployeeName,
 } from "@/server/mock-data";
-import type { CallNote, ChatMessage, EmailThread } from "@/types";
+import type { CallNote, ChatChannel, ChatMessage, EmailThread } from "@/types";
+
+function callAuthorName(id: string): string {
+  return WORKSPACE_EMPLOYEES.find((e) => e.id === id)?.name ?? getEmployeeName(id);
+}
 
 export function CommunicationsClient() {
+  const { editionKey } = useIndustry();
+  const isWorkspace = editionKey === "workspace";
+
   return (
     <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-8">
       <h1 className="text-[22px] font-bold text-ink-1">Communications</h1>
@@ -24,9 +37,18 @@ export function CommunicationsClient() {
       <div className="mt-6">
         <Tabs
           tabs={[
-            { key: "inbox", label: "Inbox", content: <InboxTab /> },
-            { key: "chat", label: "Chat", content: <ChatTab /> },
-            { key: "calls", label: "Call Notes", content: <CallNotesTab /> },
+            { key: "inbox", label: "Inbox", content: <InboxTab seed={isWorkspace ? WORKSPACE_EMAIL_THREADS : DEMO_EMAIL_THREADS} /> },
+            {
+              key: "chat",
+              label: "Chat",
+              content: (
+                <ChatTab
+                  channels={isWorkspace ? WORKSPACE_CHAT_CHANNELS : DEMO_CHAT_CHANNELS}
+                  seed={isWorkspace ? WORKSPACE_CHAT_MESSAGES : DEMO_CHAT_MESSAGES}
+                />
+              ),
+            },
+            { key: "calls", label: "Call Notes", content: <CallNotesTab rows={isWorkspace ? WORKSPACE_CALL_NOTES : DEMO_CALL_NOTES} /> },
           ]}
         />
       </div>
@@ -34,8 +56,8 @@ export function CommunicationsClient() {
   );
 }
 
-function InboxTab() {
-  const [threads, setThreads] = useState<EmailThread[]>(DEMO_EMAIL_THREADS);
+function InboxTab({ seed }: { seed: EmailThread[] }) {
+  const [threads, setThreads] = useState<EmailThread[]>(seed);
   const [activeId, setActiveId] = useState(threads[0]?.id);
   const [draft, setDraft] = useState("");
   const active = threads.find((t) => t.id === activeId) ?? threads[0];
@@ -123,11 +145,11 @@ function InboxTab() {
   );
 }
 
-function ChatTab() {
-  const [messages, setMessages] = useState<ChatMessage[]>(DEMO_CHAT_MESSAGES);
-  const [activeChannel, setActiveChannel] = useState(DEMO_CHAT_CHANNELS[0].id);
+function ChatTab({ channels, seed }: { channels: ChatChannel[]; seed: ChatMessage[] }) {
+  const [messages, setMessages] = useState<ChatMessage[]>(seed);
+  const [activeChannel, setActiveChannel] = useState(channels[0].id);
   const [draft, setDraft] = useState("");
-  const channel = DEMO_CHAT_CHANNELS.find((c) => c.id === activeChannel)!;
+  const channel = channels.find((c) => c.id === activeChannel)!;
   const channelMessages = messages.filter((m) => m.channelId === activeChannel);
 
   function send() {
@@ -142,7 +164,7 @@ function ChatTab() {
   return (
     <div className="grid grid-cols-1 gap-4 md:grid-cols-[220px_1fr]">
       <div className="flex flex-col gap-1 rounded-2xl border border-line bg-surface p-1.5">
-        {DEMO_CHAT_CHANNELS.map((c) => (
+        {channels.map((c) => (
           <button
             key={c.id}
             onClick={() => setActiveChannel(c.id)}
@@ -198,7 +220,7 @@ function ChatTab() {
   );
 }
 
-function CallNotesTab() {
+function CallNotesTab({ rows }: { rows: CallNote[] }) {
   const cols: Column<CallNote>[] = [
     {
       key: "contact",
@@ -211,9 +233,9 @@ function CallNotesTab() {
       ),
     },
     { key: "summary", header: "Summary", render: (c) => <span className="text-ink-2">{c.summary}</span>, className: "max-w-[420px]" },
-    { key: "author", header: "Logged By", render: (c) => getEmployeeName(c.authorId) },
+    { key: "author", header: "Logged By", render: (c) => callAuthorName(c.authorId) },
     { key: "at", header: "When", render: (c) => c.at },
   ];
 
-  return <DataTable columns={cols} rows={DEMO_CALL_NOTES} rowKey={(c) => c.id} />;
+  return <DataTable columns={cols} rows={rows} rowKey={(c) => c.id} />;
 }

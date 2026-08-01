@@ -79,6 +79,12 @@ function Field({
 function CompanyTab({ settings, storageConfigured }: { settings: WorkspaceSettings; storageConfigured: boolean }) {
   const [state, formAction, pending] = useActionState(updateSettingsAction, emptyState);
   const [logoUrl, setLogoUrl] = useState(settings.logoUrl);
+  const { editionKey } = useIndustry();
+  // Industry (which vertical's terminology to relabel the app with) is a
+  // Business-edition-only concept - Workspace and Student each already
+  // have their own fixed profile ("workplace"/"student"), never swapped
+  // to "Construction" or "Restaurant" the way a real business would.
+  const isBusiness = editionKey === "business";
   return (
     <Card className="flex flex-col gap-4 p-5">
       {storageConfigured ? (
@@ -91,20 +97,22 @@ function CompanyTab({ settings, storageConfigured }: { settings: WorkspaceSettin
           <Field label="Timezone" name="timezone" defaultValue={settings.timezone ?? ""} />
           <Field label="Contact email" name="contactEmail" defaultValue={settings.contactEmail ?? ""} type="email" />
           <Field label="Contact phone" name="contactPhone" defaultValue={settings.contactPhone ?? ""} />
-          <label className="flex flex-col gap-1.5">
-            <span className="text-[12.5px] font-medium text-ink-2">Industry</span>
-            <select
-              name="industryProfileKey"
-              defaultValue={settings.industryProfileKey ?? ""}
-              className="h-10 rounded-[9px] border border-line bg-surface px-3 text-[13.5px] text-ink-1 outline-none focus:border-accent"
-            >
-              {industryProfileList.map((p) => (
-                <option key={p.key} value={p.key}>
-                  {p.label}
-                </option>
-              ))}
-            </select>
-          </label>
+          {isBusiness ? (
+            <label className="flex flex-col gap-1.5">
+              <span className="text-[12.5px] font-medium text-ink-2">Industry</span>
+              <select
+                name="industryProfileKey"
+                defaultValue={settings.industryProfileKey ?? ""}
+                className="h-10 rounded-[9px] border border-line bg-surface px-3 text-[13.5px] text-ink-1 outline-none focus:border-accent"
+              >
+                {industryProfileList.map((p) => (
+                  <option key={p.key} value={p.key}>
+                    {p.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : null}
         </div>
         <Field label="Business address" name="address" defaultValue={settings.address ?? ""} />
         {!storageConfigured ? (

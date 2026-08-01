@@ -46,3 +46,28 @@ export const STUDENT_NOTES: Note[] = [
     updatedAt: "5 days ago",
   },
 ];
+
+// Workspace edition's own notes (Harper & Voss Consulting) - was
+// previously falling back to DEMO_NOTES (construction vendor contacts) -
+// this is its own content, not a relabeled reuse.
+export const WORKSPACE_NOTES: Note[] = [
+  {
+    id: "wnote_1",
+    title: "Northstar — kickoff prep",
+    body: "Confirm scope with client before Monday's call. Send updated engagement plan and get sign-off on the timeline.",
+    updatedAt: "2 days ago",
+    pinned: true,
+  },
+  {
+    id: "wnote_2",
+    title: "Freelance contractor contacts",
+    body: "Design contractor — Mia (555-0142). Copywriting — Dana (555-0198). Both turn around drafts within 3 business days.",
+    updatedAt: "5 days ago",
+  },
+  {
+    id: "wnote_3",
+    title: "Q3 planning ideas",
+    body: "Consider adding a second research analyst for the fall pipeline. Revisit pricing tiers before the next round of proposals.",
+    updatedAt: "1 week ago",
+  },
+];

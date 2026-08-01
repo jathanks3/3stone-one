@@ -5,20 +5,33 @@ import { DEMO_EMPLOYEES } from "./people";
 import { DEMO_INVOICES, PENDING_PURCHASE_REQUESTS } from "./finance";
 
 export { DEMO_WORKSPACE, DEMO_USER } from "./workspace";
-export { DEMO_EMPLOYEES, DEMO_DEPARTMENTS, DEMO_ANNOUNCEMENTS, getEmployeeName, getEmployeeInitials } from "./people";
-export { DEMO_JOBS } from "./jobs";
+export {
+  DEMO_EMPLOYEES,
+  DEMO_DEPARTMENTS,
+  DEMO_ANNOUNCEMENTS,
+  WORKSPACE_EMPLOYEES,
+  WORKSPACE_DEPARTMENTS,
+  WORKSPACE_ANNOUNCEMENTS,
+  getEmployeeName,
+  getEmployeeInitials,
+} from "./people";
+export { DEMO_JOBS, WORKSPACE_JOBS, STUDENT_JOBS } from "./jobs";
 export { DEMO_TASKS, getTasksForJob } from "./tasks";
-export { DEMO_ORGANIZATIONS } from "./organizations";
-export { DEMO_PEOPLE, DEMO_DEALS, PIPELINE_STAGES, getPersonName } from "./crm";
-export { DEMO_DOCUMENTS, DOCUMENT_CATEGORY_LABEL } from "./documents";
+export { DEMO_ORGANIZATIONS, WORKSPACE_ORGANIZATIONS } from "./organizations";
+export { DEMO_PEOPLE, DEMO_DEALS, WORKSPACE_PEOPLE, WORKSPACE_DEALS, PIPELINE_STAGES, getPersonName } from "./crm";
+export { DEMO_DOCUMENTS, WORKSPACE_DOCUMENTS, STUDENT_DOCUMENTS, DOCUMENT_CATEGORY_LABEL } from "./documents";
 export {
   DEMO_EMAIL_THREADS,
   DEMO_CHAT_CHANNELS,
   DEMO_CHAT_MESSAGES,
   DEMO_CALL_NOTES,
+  WORKSPACE_EMAIL_THREADS,
+  WORKSPACE_CHAT_CHANNELS,
+  WORKSPACE_CHAT_MESSAGES,
+  WORKSPACE_CALL_NOTES,
 } from "./communications";
-export { DEMO_MEETINGS } from "./meetings";
-export { DEMO_ARTICLES, KNOWLEDGE_CATEGORY_LABEL } from "./knowledge";
+export { DEMO_MEETINGS, WORKSPACE_MEETINGS } from "./meetings";
+export { DEMO_ARTICLES, WORKSPACE_ARTICLES, STUDENT_ARTICLES, KNOWLEDGE_CATEGORY_LABEL } from "./knowledge";
 export { DEMO_WORKFLOWS, DEMO_WORKFLOW_RUNS } from "./automation";
 export { DEMO_INTEGRATIONS, INTEGRATION_CATEGORY_ORDER } from "./integrations";
 export { DEMO_API_KEYS, COMPANY_PROFILE, BILLING } from "./settings";
@@ -37,7 +50,7 @@ export {
   BUDGETS,
   BUDGET_CONSTRUCTION,
 } from "./finance";
-export { DEMO_ACTIVITY, DEMO_NOTIFICATIONS } from "./activity";
+export { DEMO_ACTIVITY, WORKPLACE_ACTIVITY, STUDENT_ACTIVITY, DEMO_NOTIFICATIONS } from "./activity";
 export { MORNING_BRIEFING } from "./briefing";
 
 export const JOB_STATUS_ORDER: JobStatus[] = ["bid", "scheduled", "in_progress", "done"];

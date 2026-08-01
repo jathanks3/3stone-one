@@ -6,7 +6,7 @@ import type { JobApplication } from "@/types";
 export const STUDENT_JOB_APPLICATIONS: JobApplication[] = [
   {
     id: "app_1",
-    company: "Riverside Analytics",
+    company: "Fernhill Analytics",
     role: "Data Analyst Intern",
     status: "interviewing",
     appliedDate: "2026-07-10",
@@ -22,7 +22,7 @@ export const STUDENT_JOB_APPLICATIONS: JobApplication[] = [
   },
   {
     id: "app_3",
-    company: "Northgate Ventures",
+    company: "Milltown Ventures",
     role: "Marketing Intern",
     status: "offer",
     appliedDate: "2026-06-20",

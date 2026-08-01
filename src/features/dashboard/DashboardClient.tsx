@@ -30,12 +30,13 @@ export function DashboardClient() {
   // Workspace/Student demos looked like unchanged copies of the
   // flagship: the most visible, top-of-page content ignored edition
   // gating entirely, even though the KPIs/charts/activity feed below it
-  // were already correctly themed. Student's shared demo job records
-  // ("Downtown Lofts" etc.) also don't read as assignments, so overdue
-  // items are hidden there too rather than shown out of theme.
+  // were already correctly themed. Overdue is shown for every edition -
+  // Student's own STUDENT_JOBS (see mock-data/jobs.ts) are real
+  // assignments now, not reused construction jobs, so "1 Assignment
+  // overdue - Senior Capstone" reads correctly.
   const showInventory = editionKey === "business";
   const showFinance = editionKey === "business";
-  const showOverdue = editionKey !== "student";
+  const showOverdue = true;
 
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-5 px-4 py-6 sm:px-6 sm:py-8">

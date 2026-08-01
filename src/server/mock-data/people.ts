@@ -164,3 +164,53 @@ export function getEmployeeName(id: string) {
 export function getEmployeeInitials(id: string) {
   return DEMO_EMPLOYEES.find((e) => e.id === id)?.initials ?? "?";
 }
+
+// Workspace edition's own team roster (Harper & Voss Consulting) - see
+// jobs.ts's WORKSPACE_JOBS and industries/workplace.ts.
+export const WORKSPACE_EMPLOYEES: Employee[] = [
+  { id: "wemp_jordan", name: "Jordan Ellis", initials: "JE", title: "Senior Consultant", department: "Consulting", email: "jordan.ellis@harpervoss.com", phone: "(555) 301-4471", hireDate: "2021-09-01", role: "Manager", overdueCount: 1, status: "active" },
+  { id: "wemp_alicia", name: "Alicia Ford", initials: "AF", title: "Research Analyst", department: "Research", email: "alicia.ford@harpervoss.com", phone: "(555) 301-8823", hireDate: "2023-02-14", role: "Member", overdueCount: 0, status: "active" },
+  { id: "wemp_priya", name: "Priya Nair", initials: "PN", title: "HR Consultant", department: "People Ops", email: "priya.nair@harpervoss.com", phone: "(555) 301-3390", hireDate: "2022-05-20", role: "Manager", overdueCount: 0, status: "active" },
+  { id: "wemp_devon", name: "Devon Carter", initials: "DC", title: "Associate Consultant", department: "Consulting", email: "devon.carter@harpervoss.com", phone: "(555) 301-7712", hireDate: "2024-01-08", role: "Member", overdueCount: 0, status: "active" },
+  { id: "wemp_maya", name: "Maya Patel", initials: "MP", title: "Office Manager", department: "Admin", email: "maya.patel@harpervoss.com", phone: "(555) 301-5541", hireDate: "2021-11-19", role: "Admin", overdueCount: 0, status: "active" },
+  { id: "wemp_ryan", name: "Ryan Ostrowski", initials: "RO", title: "Associate Consultant", department: "Consulting", email: "ryan.ostrowski@harpervoss.com", phone: "(555) 301-6650", hireDate: "2023-09-25", role: "Member", overdueCount: 1, status: "away" },
+];
+
+export const WORKSPACE_DEPARTMENTS: Department[] = [
+  { id: "wdept_consulting", name: "Consulting", leadId: "wemp_jordan" },
+  { id: "wdept_research", name: "Research", leadId: "wemp_alicia" },
+  { id: "wdept_peopleops", name: "People Ops", leadId: "wemp_priya" },
+  { id: "wdept_admin", name: "Admin", leadId: "wemp_maya" },
+];
+
+export const WORKSPACE_ANNOUNCEMENTS: Announcement[] = [
+  {
+    id: "wann_1",
+    title: "Northstar Brand Strategy — kickoff went well",
+    body: "Kickoff with Northstar Retail Co. went great this morning. Jordan will send the full engagement plan to the team by Friday.",
+    authorId: "wemp_maya",
+    at: "2 days ago",
+  },
+  {
+    id: "wann_2",
+    title: "Welcome Ryan Ostrowski to Consulting",
+    body: "Please join us in welcoming Ryan Ostrowski to the Consulting team, joining us from a regional advisory firm.",
+    authorId: "wemp_maya",
+    department: "Consulting",
+    at: "4 days ago",
+  },
+  {
+    id: "wann_3",
+    title: "Updated client engagement checklist",
+    body: "A refreshed engagement checklist is up in the Knowledge Center - please use it for every new client kickoff going forward.",
+    authorId: "wemp_jordan",
+    at: "5 days ago",
+  },
+  {
+    id: "wann_4",
+    title: "Q2 client satisfaction scores are in",
+    body: "Great quarter - average client satisfaction is up across every active engagement. Thanks for the work, everyone.",
+    authorId: "wemp_priya",
+    at: "1 week ago",
+  },
+];

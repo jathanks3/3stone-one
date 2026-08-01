@@ -7,32 +7,43 @@ import { Badge } from "@/ui/Badge";
 import { Button } from "@/ui/Button";
 import { Tabs } from "@/ui/Tabs";
 import { useToast } from "@/lib/toast";
+import { useIndustry } from "@/lib/industry";
 import { cn, formatCurrency } from "@/lib/utils";
-import { DEMO_DOCUMENTS, DEMO_INVOICES, DEMO_JOBS, DEMO_VENDORS, getTasksForJob } from "@/server/mock-data";
+import { DEMO_DOCUMENTS, DEMO_INVOICES, DEMO_JOBS, DEMO_VENDORS, WORKSPACE_DOCUMENTS, WORKSPACE_JOBS, getTasksForJob } from "@/server/mock-data";
 
-const CLIENT_ORG_ID = "org_riverside";
-const CLIENT_JOB_ID = "job_riverside";
+const CLIENT_ORG_ID: Record<string, string> = { business: "org_riverside", workspace: "worg_northstar" };
+const CLIENT_JOB_ID: Record<string, string> = { business: "job_riverside", workspace: "wjob_northstar" };
 
 export function ClientPortalClient() {
-  const job = DEMO_JOBS.find((j) => j.id === CLIENT_JOB_ID)!;
+  const { editionKey } = useIndustry();
+  const isWorkspace = editionKey === "workspace";
+  const jobs = isWorkspace ? WORKSPACE_JOBS : DEMO_JOBS;
+  const jobId = CLIENT_JOB_ID[editionKey] ?? CLIENT_JOB_ID.business;
+  const job = jobs.find((j) => j.id === jobId)!;
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-6 sm:px-6 sm:py-8">
       <div className="mb-6 rounded-2xl border border-accent-wash-strong bg-accent-wash px-4 py-3">
         <p className="flex items-center gap-2 text-[13px] font-semibold text-accent">
-          <Eye size={14} /> Client Portal preview — this is what a client or a vendor sees when they log in.
+          <Eye size={14} /> Client Portal preview — this is what a client sees when they log in.
         </p>
       </div>
 
       <h1 className="text-[22px] font-bold text-ink-1">{job.name}</h1>
-      <p className="mt-1 text-[14px] text-ink-2">Shared with both the client and the vendors working this job.</p>
+      <p className="mt-1 text-[14px] text-ink-2">
+        {isWorkspace ? "Shared with the client this engagement is for." : "Shared with both the client and the vendors working this job."}
+      </p>
 
       <div className="mt-6">
         <Tabs
-          tabs={[
-            { key: "client", label: "Client View", content: <ClientView /> },
-            { key: "vendor", label: "Vendor View", content: <VendorView /> },
-          ]}
+          tabs={
+            isWorkspace
+              ? [{ key: "client", label: "Client View", content: <ClientView /> }]
+              : [
+                  { key: "client", label: "Client View", content: <ClientView /> },
+                  { key: "vendor", label: "Vendor View", content: <VendorView /> },
+                ]
+          }
         />
       </div>
     </div>
@@ -41,10 +52,16 @@ export function ClientPortalClient() {
 
 function ClientView() {
   const { showToast } = useToast();
-  const job = DEMO_JOBS.find((j) => j.id === CLIENT_JOB_ID)!;
-  const tasks = getTasksForJob(CLIENT_JOB_ID);
-  const sharedDocs = DEMO_DOCUMENTS.filter((d) => d.organizationId === CLIENT_ORG_ID && d.visibility === "shared");
-  const invoice = DEMO_INVOICES.find((i) => i.client === "Riverside Properties" && i.status !== "paid");
+  const { editionKey } = useIndustry();
+  const isWorkspace = editionKey === "workspace";
+  const jobs = isWorkspace ? WORKSPACE_JOBS : DEMO_JOBS;
+  const documents = isWorkspace ? WORKSPACE_DOCUMENTS : DEMO_DOCUMENTS;
+  const jobId = CLIENT_JOB_ID[editionKey] ?? CLIENT_JOB_ID.business;
+  const orgId = CLIENT_ORG_ID[editionKey] ?? CLIENT_ORG_ID.business;
+  const job = jobs.find((j) => j.id === jobId)!;
+  const tasks = getTasksForJob(jobId);
+  const sharedDocs = documents.filter((d) => d.organizationId === orgId && d.visibility === "shared");
+  const invoice = isWorkspace ? undefined : DEMO_INVOICES.find((i) => i.client === "Riverside Properties" && i.status !== "paid");
 
   const [milestoneApproved, setMilestoneApproved] = useState(false);
   const [paid, setPaid] = useState(invoice ? invoice.status === "paid" : true);
@@ -85,18 +102,20 @@ function ClientView() {
           </div>
 
           <div className="mt-4 rounded-[10px] border border-line bg-bg p-3.5">
-            <p className="text-[13px] font-semibold text-ink-1">Milestone: Final electrical inspection</p>
-            <p className="mt-1 text-[12.5px] text-ink-3">Ready for your sign-off before we schedule the city inspection.</p>
+            <p className="text-[13px] font-semibold text-ink-1">{isWorkspace ? "Milestone: Brand strategy deck" : "Milestone: Final electrical inspection"}</p>
+            <p className="mt-1 text-[12.5px] text-ink-3">
+              {isWorkspace ? "Ready for your sign-off before we move into execution." : "Ready for your sign-off before we schedule the city inspection."}
+            </p>
             {milestoneApproved ? (
               <p className="mt-2.5 flex items-center gap-1.5 text-[12.5px] font-medium text-good">
                 <CheckCircle2 size={14} /> Approved
               </p>
             ) : (
               <div className="mt-2.5 flex gap-2">
-                <Button variant="primary" onClick={() => { setMilestoneApproved(true); showToast({ title: "Milestone approved", description: "Red Oak Construction has been notified." }); }}>
+                <Button variant="primary" onClick={() => { setMilestoneApproved(true); showToast({ title: "Milestone approved", description: "The team has been notified." }); }}>
                   Approve
                 </Button>
-                <Button variant="secondary" onClick={() => showToast({ title: "Feedback sent", description: "Jane Dorsey will follow up shortly." })}>
+                <Button variant="secondary" onClick={() => showToast({ title: "Feedback sent", description: "A team member will follow up shortly." })}>
                   Request changes
                 </Button>
               </div>
@@ -174,7 +193,10 @@ function ClientView() {
 }
 
 function VendorView() {
-  const job = DEMO_JOBS.find((j) => j.id === CLIENT_JOB_ID)!;
+  // Business-only tab (see the isWorkspace check in ClientPortalClient
+  // above) - Workspace has no vendor concept, so this never renders
+  // there, and can safely stay pinned to the flagship's own job/docs.
+  const job = DEMO_JOBS.find((j) => j.id === CLIENT_JOB_ID.business)!;
   const [vendorStatus, setVendorStatus] = useState<Record<string, boolean>>({
     ven_1: true,
     ven_2: false,
@@ -237,7 +259,7 @@ function VendorView() {
           Site plans and permits shared with vendors working this job — the same files visible in the client&rsquo;s Documents tab.
         </p>
         <div className="mt-3 flex flex-col gap-2">
-          {DEMO_DOCUMENTS.filter((d) => d.jobId === CLIENT_JOB_ID && d.visibility === "shared").map((d) => (
+          {DEMO_DOCUMENTS.filter((d) => d.jobId === CLIENT_JOB_ID.business && d.visibility === "shared").map((d) => (
             <div key={d.id} className="flex items-center gap-2.5 rounded-[9px] border border-line bg-bg px-3 py-2 text-[13px] text-ink-2">
               <FileText size={14} className="text-ink-3" /> {d.name}
             </div>

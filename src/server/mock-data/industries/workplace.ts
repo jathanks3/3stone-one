@@ -1,24 +1,25 @@
 import type { IndustryDataset } from "@/types";
-import { DEMO_ORGANIZATIONS } from "../organizations";
-import { DEMO_PEOPLE, DEMO_DEALS } from "../crm";
-import { DEMO_JOBS } from "../jobs";
+import { WORKSPACE_ORGANIZATIONS } from "../organizations";
+import { WORKSPACE_PEOPLE, WORKSPACE_DEALS } from "../crm";
+import { WORKSPACE_JOBS } from "../jobs";
 import { DEMO_INVOICES } from "../finance";
-import { DEMO_EMPLOYEES } from "../people";
+import { WORKSPACE_EMPLOYEES } from "../people";
 import { WORKPLACE_ACTIVITY } from "../activity";
 
 // Demo-only dataset for the Workspace edition (see
 // src/config/industry-profiles/workplace.ts) — used exclusively by
 // /demo?edition=workspace (see (app)/layout.tsx). Real Workspace
 // customers' dashboards read real data via dashboardService, never this.
-// Reuses the same underlying organizations/people/deals/jobs/employees
-// as the construction dataset, since Workspace still has CRM/Projects/
-// People/Client Portal — but the Dashboard's own KPIs/charts and the
-// "Recent activity" feed (WORKPLACE_ACTIVITY) are its own content, re-
-// themed away from "revenue and expenses" (Finance isn't in this
-// edition) toward project/team-of-workers framing.
-const projectsByStatus = (status: (typeof DEMO_JOBS)[number]["status"]) =>
-  DEMO_JOBS.filter((j) => j.status === status).length;
-const behindScheduleProjects = DEMO_JOBS.filter((j) => j.overdue);
+// Its own organizations/people/deals/jobs/employees (Harper & Voss
+// Consulting) — not reused flagship construction data — since Workspace
+// still has CRM/Projects/People/Client Portal and those pages render
+// this content directly. DEMO_INVOICES stays a harmless type-completeness
+// filler: Finance isn't in this edition (see editionModules.ts) and
+// DashboardClient only ever reads dataset.invoices when showFinance is
+// true, which is business-edition-only.
+const projectsByStatus = (status: (typeof WORKSPACE_JOBS)[number]["status"]) =>
+  WORKSPACE_JOBS.filter((j) => j.status === status).length;
+const behindScheduleProjects = WORKSPACE_JOBS.filter((j) => j.overdue);
 
 export const WORKPLACE_DATASET: IndustryDataset = {
   profileKey: "workplace",
@@ -28,14 +29,14 @@ export const WORKPLACE_DATASET: IndustryDataset = {
     {
       key: "open_projects",
       label: "Open Projects",
-      value: String(DEMO_JOBS.filter((j) => j.status !== "done").length),
+      value: String(WORKSPACE_JOBS.filter((j) => j.status !== "done").length),
       deltaLabel: behindScheduleProjects.length > 0 ? `${behindScheduleProjects.length} behind schedule` : "All on track",
       tone: behindScheduleProjects.length > 0 ? "negative" : "positive",
     },
     {
       key: "team_members",
       label: "Team Members",
-      value: String(DEMO_EMPLOYEES.length),
+      value: String(WORKSPACE_EMPLOYEES.length),
       deltaLabel: "Across every project",
       tone: "neutral",
     },
@@ -70,16 +71,16 @@ export const WORKPLACE_DATASET: IndustryDataset = {
       { label: "Done", count: projectsByStatus("done") },
     ],
   },
-  organizations: DEMO_ORGANIZATIONS,
-  people: DEMO_PEOPLE,
-  deals: DEMO_DEALS,
-  jobs: DEMO_JOBS,
+  organizations: WORKSPACE_ORGANIZATIONS,
+  people: WORKSPACE_PEOPLE,
+  deals: WORKSPACE_DEALS,
+  jobs: WORKSPACE_JOBS,
   invoices: DEMO_INVOICES,
-  employees: DEMO_EMPLOYEES,
+  employees: WORKSPACE_EMPLOYEES,
   notifications: WORKPLACE_ACTIVITY,
   aiRecommendations: [
-    "The Downtown Lofts project hasn't been updated in 4 days — a quick status check keeps it visible to the rest of the team.",
+    "The Atlas Website Redesign hasn't been updated in 4 days — a quick status check keeps it visible to the rest of the team.",
     "Two meetings this week still have no agenda — adding one now saves time once everyone's in the room.",
-    "Jane Dorsey is assigned to 3 active projects at once — worth rebalancing before one of them slips.",
+    "Jordan Ellis is assigned to 3 active engagements at once — worth rebalancing before one of them slips.",
   ],
 };

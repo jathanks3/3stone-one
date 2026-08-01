@@ -1,7 +1,7 @@
 import type { IndustryDataset } from "@/types";
 import { DEMO_ORGANIZATIONS } from "../organizations";
 import { DEMO_PEOPLE, DEMO_DEALS } from "../crm";
-import { DEMO_JOBS } from "../jobs";
+import { STUDENT_JOBS } from "../jobs";
 import { DEMO_INVOICES } from "../finance";
 import { DEMO_EMPLOYEES } from "../people";
 import { STUDENT_ACTIVITY } from "../activity";
@@ -10,14 +10,17 @@ import { STUDENT_ACTIVITY } from "../activity";
 // src/config/industry-profiles/student.ts) — used exclusively by
 // /demo?edition=student (see (app)/layout.tsx). Real Student customers'
 // dashboards read real data via dashboardService, never this.
-// organizations/people/deals/jobs/invoices/employees are never actually
+// organizations/people/deals/invoices/employees are never actually
 // rendered for this edition (CRM, People, Client Portal, and Finance
 // aren't in EDITION_MODULES.student - see src/lib/editionModules.ts),
 // but IndustryDataset has no optional fields, so they're populated from
-// the same underlying demo entities purely for type completeness.
-const assignmentsByStatus = (status: (typeof DEMO_JOBS)[number]["status"]) =>
-  DEMO_JOBS.filter((j) => j.status === status).length;
-const dueSoonAssignments = DEMO_JOBS.filter((j) => j.overdue);
+// the same underlying flagship demo entities purely for type
+// completeness. `jobs` is different: the Projects page DOES render it
+// directly for Student (assignments/group projects), so it needs its
+// own real content (STUDENT_JOBS) rather than reused construction jobs.
+const assignmentsByStatus = (status: (typeof STUDENT_JOBS)[number]["status"]) =>
+  STUDENT_JOBS.filter((j) => j.status === status).length;
+const dueSoonAssignments = STUDENT_JOBS.filter((j) => j.overdue);
 
 export const STUDENT_DATASET: IndustryDataset = {
   profileKey: "student",
@@ -27,7 +30,7 @@ export const STUDENT_DATASET: IndustryDataset = {
     {
       key: "assignments_due",
       label: "Assignments Due This Week",
-      value: String(DEMO_JOBS.filter((j) => j.status !== "done").length),
+      value: String(STUDENT_JOBS.filter((j) => j.status !== "done").length),
       deltaLabel: dueSoonAssignments.length > 0 ? `${dueSoonAssignments.length} due soon` : "Nothing urgent",
       tone: dueSoonAssignments.length > 0 ? "negative" : "positive",
     },
@@ -72,7 +75,7 @@ export const STUDENT_DATASET: IndustryDataset = {
   organizations: DEMO_ORGANIZATIONS,
   people: DEMO_PEOPLE,
   deals: DEMO_DEALS,
-  jobs: DEMO_JOBS,
+  jobs: STUDENT_JOBS,
   invoices: DEMO_INVOICES,
   employees: DEMO_EMPLOYEES,
   notifications: STUDENT_ACTIVITY,

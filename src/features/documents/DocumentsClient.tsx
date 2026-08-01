@@ -10,19 +10,42 @@ import { Badge } from "@/ui/Badge";
 import { Button } from "@/ui/Button";
 import { AiAction, AiActionRow } from "@/ui/AiAction";
 import { useToast } from "@/lib/toast";
+import { useIndustry } from "@/lib/industry";
 import { cn } from "@/lib/utils";
-import { DEMO_DOCUMENTS, DOCUMENT_CATEGORY_LABEL, getEmployeeName } from "@/server/mock-data";
+import { DEMO_DOCUMENTS, WORKSPACE_DOCUMENTS, STUDENT_DOCUMENTS, DOCUMENT_CATEGORY_LABEL, WORKSPACE_EMPLOYEES, getEmployeeName } from "@/server/mock-data";
 import { extractActionItems, rewriteDocument, summarizeDocument } from "@/server/ai/capabilities";
 import type { DocumentCategory, DocumentFile } from "@/types";
 
-const CATEGORIES: (DocumentCategory | "all")[] = ["all", "contract", "permit", "invoice", "plan", "photo", "report"];
+function uploaderName(id: string): string {
+  if (id === "student_self") return "You";
+  return WORKSPACE_EMPLOYEES.find((e) => e.id === id)?.name ?? getEmployeeName(id);
+}
+
+const ALL_CATEGORIES: DocumentCategory[] = ["contract", "permit", "invoice", "plan", "photo", "report"];
+
+// "Permit" only makes sense for a construction-style business, and
+// neither "permit" nor "invoice"/"contract" apply to a student's
+// coursework - each edition only offers the filters its own documents
+// actually use, rather than every flagship category regardless of fit.
+function categoriesForEdition(editionKey: string): (DocumentCategory | "all")[] {
+  if (editionKey === "student") return ["all", "plan", "photo", "report"];
+  if (editionKey === "workspace") return ["all", "contract", "invoice", "plan", "photo", "report"];
+  return ["all", ...ALL_CATEGORIES];
+}
 
 function formatSize(kb: number) {
   return kb >= 1024 ? `${(kb / 1024).toFixed(1)} MB` : `${kb} KB`;
 }
 
+function seedDocuments(editionKey: string): DocumentFile[] {
+  if (editionKey === "workspace") return WORKSPACE_DOCUMENTS;
+  if (editionKey === "student") return STUDENT_DOCUMENTS;
+  return DEMO_DOCUMENTS;
+}
+
 export function DocumentsClient() {
-  const [docs, setDocs] = useState<DocumentFile[]>(DEMO_DOCUMENTS);
+  const { editionKey } = useIndustry();
+  const [docs, setDocs] = useState<DocumentFile[]>(() => seedDocuments(editionKey));
   const [justAdded, setJustAdded] = useState<Set<string>>(new Set());
   const [category, setCategory] = useState<DocumentCategory | "all">("all");
   const [query, setQuery] = useState("");
@@ -58,6 +81,8 @@ export function DocumentsClient() {
     e.target.value = "";
   }
 
+  const sharedLabel = editionKey === "student" ? "Shared with group" : "Shared with client";
+
   const columns: Column<DocumentFile>[] = [
     {
       key: "name",
@@ -71,25 +96,31 @@ export function DocumentsClient() {
       ),
     },
     { key: "category", header: "Category", render: (d) => <Badge tone="neutral">{DOCUMENT_CATEGORY_LABEL[d.category]}</Badge> },
-    {
-      key: "signature",
-      header: "Signature",
-      render: (d) =>
-        d.signatureStatus ? (
-          <Badge tone={d.signatureStatus === "signed" ? "good" : d.signatureStatus === "viewed" ? "accent" : "warning"}>
-            {d.signatureStatus === "signed" ? "Signed" : d.signatureStatus === "viewed" ? "Viewed" : "Sent"}
-          </Badge>
-        ) : (
-          <span className="text-ink-3">—</span>
-        ),
-    },
+    // E-signature tracking is a client-contract concept - never shown to
+    // Student, which has nothing to sign.
+    ...(editionKey === "student"
+      ? []
+      : [
+          {
+            key: "signature",
+            header: "Signature",
+            render: (d: DocumentFile) =>
+              d.signatureStatus ? (
+                <Badge tone={d.signatureStatus === "signed" ? "good" : d.signatureStatus === "viewed" ? "accent" : "warning"}>
+                  {d.signatureStatus === "signed" ? "Signed" : d.signatureStatus === "viewed" ? "Viewed" : "Sent"}
+                </Badge>
+              ) : (
+                <span className="text-ink-3">—</span>
+              ),
+          } as Column<DocumentFile>,
+        ]),
     { key: "size", header: "Size", render: (d) => formatSize(d.sizeKb) },
-    { key: "uploadedBy", header: "Uploaded By", render: (d) => getEmployeeName(d.uploadedById) },
+    { key: "uploadedBy", header: "Uploaded By", render: (d) => uploaderName(d.uploadedById) },
     { key: "date", header: "Date", render: (d) => new Date(d.uploadedAt).toLocaleDateString() },
     {
       key: "visibility",
       header: "Visibility",
-      render: (d) => <Badge tone={d.visibility === "shared" ? "accent" : "neutral"}>{d.visibility === "shared" ? "Shared with client" : "Internal"}</Badge>,
+      render: (d) => <Badge tone={d.visibility === "shared" ? "accent" : "neutral"}>{d.visibility === "shared" ? sharedLabel : "Internal"}</Badge>,
     },
   ];
 
@@ -98,7 +129,9 @@ export function DocumentsClient() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-[22px] font-bold text-ink-1">Documents</h1>
-          <p className="mt-1 text-[14px] text-ink-2">Company and project files, shareable with clients.</p>
+          <p className="mt-1 text-[14px] text-ink-2">
+            {editionKey === "student" ? "Your files, organized by category — yours alone." : "Company and project files, shareable with clients."}
+          </p>
         </div>
         <Button variant="primary" onClick={() => fileInputRef.current?.click()}>
           <Upload size={14} /> Upload
@@ -109,7 +142,7 @@ export function DocumentsClient() {
       <div className="mt-6 flex flex-col gap-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex flex-wrap gap-1.5">
-            {CATEGORIES.map((c) => (
+            {categoriesForEdition(editionKey).map((c) => (
               <button
                 key={c}
                 onClick={() => setCategory(c)}
@@ -143,8 +176,12 @@ export function DocumentsClient() {
         {selected ? (
           <div className="flex flex-col gap-5">
             <div className="flex flex-col gap-1.5 text-[13.5px] text-ink-2">
-              <p>Uploaded by {getEmployeeName(selected.uploadedById)} on {new Date(selected.uploadedAt).toLocaleDateString()}</p>
-              <p>{selected.visibility === "shared" ? "Shared with the client via the Client Portal." : "Internal only."}</p>
+              <p>Uploaded by {uploaderName(selected.uploadedById)} on {new Date(selected.uploadedAt).toLocaleDateString()}</p>
+              <p>
+                {selected.visibility === "shared"
+                  ? editionKey === "student" ? "Shared with your group." : "Shared with the client via the Client Portal."
+                  : "Internal only."}
+              </p>
               {selected.signatureStatus ? (
                 <p className="flex items-center gap-1.5">
                   E-signature:{" "}

@@ -8,12 +8,14 @@ import { DetailPanel } from "@/ui/DetailPanel";
 import { EmptyState } from "@/ui/EmptyState";
 import { AiAction, AiActionRow } from "@/ui/AiAction";
 import { cn } from "@/lib/utils";
-import { DEMO_MEETINGS } from "@/server/mock-data";
+import { useIndustry } from "@/lib/industry";
+import { DEMO_MEETINGS, WORKSPACE_MEETINGS } from "@/server/mock-data";
 import { generateAgenda, summarizeMeeting } from "@/server/ai/capabilities";
 import type { Meeting } from "@/types";
 
 export function MeetingsClient() {
-  const [meetings, setMeetings] = useState<Meeting[]>(DEMO_MEETINGS);
+  const { editionKey } = useIndustry();
+  const [meetings, setMeetings] = useState<Meeting[]>(editionKey === "workspace" ? WORKSPACE_MEETINGS : DEMO_MEETINGS);
   const [selected, setSelected] = useState<Meeting | null>(null);
 
   function toggleAction(meetingId: string, actionId: string) {

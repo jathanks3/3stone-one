@@ -48,3 +48,26 @@ export function getPersonName(personId: string) {
   const p = DEMO_PEOPLE.find((x) => x.id === personId);
   return p ? `${p.firstName} ${p.lastName}` : "Unknown";
 }
+
+// Workspace edition's own CRM contacts and engagements (Harper & Voss
+// Consulting) - see jobs.ts's WORKSPACE_JOBS, organizations.ts's
+// WORKSPACE_ORGANIZATIONS, and industries/workplace.ts.
+export const WORKSPACE_PEOPLE: Person[] = [
+  { id: "wper_natalie", firstName: "Natalie", lastName: "Cho", email: "natalie.cho@northstarretail.com", phone: "(555) 502-1187", organizationId: "worg_northstar", personType: "customer", ownerId: "wemp_jordan", createdAt: "2025-02-10", lastContact: "2 days ago" },
+  { id: "wper_omar", firstName: "Omar", lastName: "Hassan", email: "omar.hassan@atlashealthpartners.com", phone: "(555) 502-2298", organizationId: "worg_atlas", personType: "customer", ownerId: "wemp_jordan", createdAt: "2025-03-01", lastContact: "1 week ago" },
+  { id: "wper_stephanie", firstName: "Stephanie", lastName: "Reed", email: "s.reed@beaconcommunityfund.org", phone: "(555) 502-3309", organizationId: "worg_beacon", personType: "customer", ownerId: "wemp_alicia", createdAt: "2025-04-15", lastContact: "3 days ago" },
+  { id: "wper_kevin", firstName: "Kevin", lastName: "Yoon", email: "kevin.yoon@summitoutdoorgear.com", phone: "(555) 502-4410", organizationId: "worg_summit", personType: "lead", ownerId: "wemp_alicia", createdAt: "2026-06-20", lastContact: "Yesterday" },
+  { id: "wper_diane", firstName: "Diane", lastName: "Muller", email: "diane.muller@lumenlegalgroup.com", phone: "(555) 502-5521", organizationId: "worg_lumen", personType: "customer", ownerId: "wemp_jordan", createdAt: "2025-01-05", lastContact: "2 weeks ago" },
+  { id: "wper_frank", firstName: "Frank", lastName: "Delgado", email: "frank.delgado@cascademfg.com", phone: "(555) 502-6632", organizationId: "worg_cascade", personType: "customer", ownerId: "wemp_priya", createdAt: "2024-12-01", lastContact: "1 month ago" },
+  { id: "wper_grace2", firstName: "Grace", lastName: "Simmons", email: "grace.simmons@gmail.com", phone: "(555) 502-7743", organizationId: null, personType: "lead", ownerId: "wemp_jordan", createdAt: "2026-07-01", lastContact: "This morning" },
+];
+
+export const WORKSPACE_DEALS: Deal[] = [
+  { id: "wdeal_northstar", personId: "wper_natalie", organizationId: "worg_northstar", title: "Northstar Brand Strategy", value: 32000, stage: "won", ownerId: "wemp_jordan", expectedCloseDate: "2026-05-01" },
+  { id: "wdeal_atlas", personId: "wper_omar", organizationId: "worg_atlas", title: "Atlas Website Redesign", value: 18500, stage: "won", ownerId: "wemp_jordan", expectedCloseDate: "2026-04-15" },
+  { id: "wdeal_beacon", personId: "wper_stephanie", organizationId: "worg_beacon", title: "Beacon Ops Review", value: 14000, stage: "proposal", ownerId: "wemp_alicia", expectedCloseDate: "2026-08-25" },
+  { id: "wdeal_summit", personId: "wper_kevin", organizationId: "worg_summit", title: "Summit Market Research", value: 22000, stage: "contacted", ownerId: "wemp_alicia", expectedCloseDate: "2026-09-30" },
+  { id: "wdeal_lumen", personId: "wper_diane", organizationId: "worg_lumen", title: "Lumen Intake Overhaul", value: 9800, stage: "won", ownerId: "wemp_jordan", expectedCloseDate: "2026-04-25" },
+  { id: "wdeal_cascade", personId: "wper_frank", organizationId: "worg_cascade", title: "Cascade HR Policy Refresh", value: 11200, stage: "won", ownerId: "wemp_priya", expectedCloseDate: "2026-03-20" },
+  { id: "wdeal_grace2", personId: "wper_grace2", organizationId: null, title: "Simmons Consulting Retainer", value: 15000, stage: "new_lead", ownerId: "wemp_jordan", expectedCloseDate: "2026-10-01" },
+];

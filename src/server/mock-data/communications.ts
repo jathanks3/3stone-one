@@ -97,3 +97,77 @@ export const DEMO_CALL_NOTES: CallNote[] = [
   { id: "call_5", contactName: "David Park", organizationId: "org_harbor", authorId: "emp_priya", summary: "Confirmed steel delivery timeline, no concerns raised. Quick, positive call.", at: "3 days ago" },
   { id: "call_6", contactName: "Rachel Whitfield", organizationId: "org_whitfield", authorId: "emp_priya", summary: "Discussed final design tweaks ahead of contract signing — requested one more walkthrough.", at: "Today" },
 ];
+
+// Workspace edition's own communications (Harper & Voss Consulting) -
+// see jobs.ts's WORKSPACE_JOBS, organizations.ts's WORKSPACE_ORGANIZATIONS,
+// and people.ts's WORKSPACE_EMPLOYEES.
+export const WORKSPACE_EMAIL_THREADS: EmailThread[] = [
+  {
+    id: "wthread_1",
+    subject: "Northstar Brand Strategy — kickoff schedule",
+    withOrganizationId: "worg_northstar",
+    participant: "Natalie Cho",
+    unread: true,
+    messages: [
+      { id: "wm1", from: "Natalie Cho", body: "Hi Jordan — excited to get started! Can we lock in a kickoff call for next week?", at: "2 days ago" },
+      { id: "wm2", from: "Jordan Ellis", body: "Absolutely — how does Tuesday at 10am work? We'll walk through the full engagement plan.", at: "2 days ago" },
+      { id: "wm3", from: "Natalie Cho", body: "Tuesday works great, talk then.", at: "1 day ago" },
+    ],
+  },
+  {
+    id: "wthread_2",
+    subject: "Atlas Website Redesign — timeline update",
+    withOrganizationId: "worg_atlas",
+    participant: "Omar Hassan",
+    unread: true,
+    messages: [
+      { id: "wm4", from: "Omar Hassan", body: "Hey Jordan, just checking in on the homepage mockups timeline.", at: "3 days ago" },
+      { id: "wm5", from: "Ryan Ostrowski", body: "Sorry for the delay, Omar — sending the revised mockups by end of week.", at: "2 days ago" },
+    ],
+  },
+  {
+    id: "wthread_3",
+    subject: "Beacon Ops Review — proposal review",
+    withOrganizationId: "worg_beacon",
+    participant: "Stephanie Reed",
+    unread: false,
+    messages: [
+      { id: "wm6", from: "Stephanie Reed", body: "The board would like to review the findings before we finalize next steps.", at: "1 week ago" },
+      { id: "wm7", from: "Alicia Ford", body: "Sending the full proposal over now — happy to answer questions.", at: "6 days ago" },
+    ],
+  },
+  {
+    id: "wthread_4",
+    subject: "Summit Outdoor Gear — introduction",
+    withOrganizationId: "worg_summit",
+    participant: "Kevin Yoon",
+    unread: false,
+    messages: [
+      { id: "wm8", from: "Kevin Yoon", body: "Thanks for the call yesterday — sending over our market research goals as promised.", at: "Yesterday" },
+      { id: "wm9", from: "Alicia Ford", body: "Got them, reviewing now — will have a proposal back to you by Friday.", at: "Yesterday" },
+    ],
+  },
+];
+
+export const WORKSPACE_CHAT_CHANNELS: ChatChannel[] = [
+  { id: "wchan_general", name: "general", isClientChannel: false },
+  { id: "wchan_consulting", name: "consulting", isClientChannel: false },
+  { id: "wchan_northstar", name: "Northstar Retail Co.", isClientChannel: true },
+];
+
+export const WORKSPACE_CHAT_MESSAGES: ChatMessage[] = [
+  { id: "wcm1", channelId: "wchan_general", author: "Maya Patel", authorInitials: "MP", body: "Reminder: updated client engagement checklist is live in the Knowledge Center.", at: "9:02 AM" },
+  { id: "wcm2", channelId: "wchan_general", author: "Jordan Ellis", authorInitials: "JE", body: "Northstar confirmed the kickoff call for Tuesday.", at: "9:14 AM" },
+  { id: "wcm3", channelId: "wchan_general", author: "Priya Nair", authorInitials: "PN", body: "Q2 client satisfaction scores are posted — nice work everyone.", at: "10:30 AM" },
+  { id: "wcm4", channelId: "wchan_consulting", author: "Alicia Ford", authorInitials: "AF", body: "Summit Outdoor Gear looks promising — sending a proposal Friday.", at: "8:45 AM" },
+  { id: "wcm5", channelId: "wchan_consulting", author: "Devon Carter", authorInitials: "DC", body: "Nice. Lumen renewal conversation is coming up next month too.", at: "9:05 AM" },
+  { id: "wcm6", channelId: "wchan_northstar", author: "Natalie Cho", authorInitials: "NC", body: "Really happy with the direction so far — the brand deck looks great!", at: "Yesterday" },
+  { id: "wcm7", channelId: "wchan_northstar", author: "Jordan Ellis", authorInitials: "JE", body: "Thank you! We're on track for final delivery in a couple weeks.", at: "Yesterday" },
+];
+
+export const WORKSPACE_CALL_NOTES: CallNote[] = [
+  { id: "wcall_1", contactName: "Natalie Cho", organizationId: "worg_northstar", authorId: "wemp_jordan", summary: "Discussed kickoff logistics and stakeholder list. Natalie will send the brand guidelines by Monday.", at: "2 days ago" },
+  { id: "wcall_2", contactName: "Omar Hassan", organizationId: "worg_atlas", authorId: "wemp_jordan", summary: "Explained the mockup delay. Omar was understanding, asked for a written timeline update.", at: "2 days ago" },
+  { id: "wcall_3", contactName: "Kevin Yoon", organizationId: "worg_summit", authorId: "wemp_alicia", summary: "Intro call — market research scope, budget range $20-25K, timeline flexible. Strong fit for Q4.", at: "Yesterday" },
+  { id: "wcall_4", contactName: "Stephanie Reed", organizationId: "worg_beacon", authorId: "wemp_alicia", summary: "Walked through ops review findings. Stephanie wants the formal proposal by end of week.", at: "Today" },
+];

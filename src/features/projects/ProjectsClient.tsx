@@ -25,10 +25,14 @@ const STATUS_TONE: Record<JobStatus, "neutral" | "accent" | "good"> = {
 };
 
 export function ProjectsClient() {
-  const { profile } = useIndustry();
+  const { profile, editionKey } = useIndustry();
   const dataset = getIndustryDataset(profile.key);
   const [jobs, setJobs] = useState<Job[]>(dataset.jobs);
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
+  // A student's assignment isn't billed and has no "client" - Student
+  // edition hides both concepts rather than showing a meaningless $0 or
+  // a course name mislabeled as a customer.
+  const showValueAndClient = editionKey !== "student";
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-8">
@@ -43,12 +47,12 @@ export function ProjectsClient() {
             {
               key: "kanban",
               label: "Kanban",
-              content: <KanbanTab jobs={jobs} setJobs={setJobs} onSelect={setSelectedJob} />,
+              content: <KanbanTab jobs={jobs} setJobs={setJobs} onSelect={setSelectedJob} showValue={showValueAndClient} />,
             },
             {
               key: "list",
               label: "List",
-              content: <ListTab jobs={jobs} dataset={dataset} onSelect={setSelectedJob} />,
+              content: <ListTab jobs={jobs} dataset={dataset} onSelect={setSelectedJob} showValueAndClient={showValueAndClient} courseWord={editionKey === "student" ? "Course" : "Client"} />,
             },
             {
               key: "calendar",
@@ -63,10 +67,10 @@ export function ProjectsClient() {
         open={!!selectedJob}
         onClose={() => setSelectedJob(null)}
         title={selectedJob?.name ?? ""}
-        subtitle={selectedJob?.client}
+        subtitle={showValueAndClient ? selectedJob?.client : undefined}
       >
         {selectedJob ? (
-          <JobDetail job={selectedJob} projectWord={profile.terms.project} dataset={dataset} />
+          <JobDetail job={selectedJob} projectWord={profile.terms.project} dataset={dataset} showValueAndOwner={showValueAndClient} />
         ) : null}
       </DetailPanel>
     </div>
@@ -77,10 +81,12 @@ function KanbanTab({
   jobs,
   setJobs,
   onSelect,
+  showValue,
 }: {
   jobs: Job[];
   setJobs: (j: Job[]) => void;
   onSelect: (j: Job) => void;
+  showValue: boolean;
 }) {
   const columns: KanbanColumn<Job>[] = JOB_STATUS_ORDER.map((status) => ({
     key: status,
@@ -98,9 +104,9 @@ function KanbanTab({
       renderCard={(job) => (
         <button className="w-full text-left" onClick={() => onSelect(job)}>
           <p className="text-[13px] font-semibold leading-snug text-ink-1">{job.name}</p>
-          <p className="mt-1 text-[12px] text-ink-3">{job.client}</p>
+          {showValue ? <p className="mt-1 text-[12px] text-ink-3">{job.client}</p> : null}
           <div className="mt-2 flex items-center justify-between">
-            <span className="text-[12px] font-medium text-accent">{formatCurrency(job.value, { compact: true })}</span>
+            {showValue ? <span className="text-[12px] font-medium text-accent">{formatCurrency(job.value, { compact: true })}</span> : <span />}
             {job.overdue ? <Badge tone="critical">Overdue</Badge> : null}
           </div>
         </button>
@@ -109,7 +115,19 @@ function KanbanTab({
   );
 }
 
-function ListTab({ jobs, dataset, onSelect }: { jobs: Job[]; dataset: IndustryDataset; onSelect: (j: Job) => void }) {
+function ListTab({
+  jobs,
+  dataset,
+  onSelect,
+  showValueAndClient,
+  courseWord,
+}: {
+  jobs: Job[];
+  dataset: IndustryDataset;
+  onSelect: (j: Job) => void;
+  showValueAndClient: boolean;
+  courseWord: string;
+}) {
   const [query, setQuery] = useState("");
   const filtered = useMemo(
     () => jobs.filter((j) => `${j.name} ${j.client}`.toLowerCase().includes(query.toLowerCase())),
@@ -118,7 +136,7 @@ function ListTab({ jobs, dataset, onSelect }: { jobs: Job[]; dataset: IndustryDa
 
   const columns: Column<Job>[] = [
     { key: "name", header: "Name", render: (j) => <span className="font-medium text-ink-1">{j.name}</span> },
-    { key: "client", header: "Client", render: (j) => j.client },
+    { key: "client", header: courseWord, render: (j) => j.client },
     {
       key: "status",
       header: "Status",
@@ -128,9 +146,13 @@ function ListTab({ jobs, dataset, onSelect }: { jobs: Job[]; dataset: IndustryDa
         </Badge>
       ),
     },
-    { key: "value", header: "Value", render: (j) => formatCurrency(j.value, { compact: true }) },
+    ...(showValueAndClient
+      ? [
+          { key: "value", header: "Value", render: (j: Job) => formatCurrency(j.value, { compact: true }) } as Column<Job>,
+          { key: "owner", header: "Owner", render: (j: Job) => getDatasetEmployeeName(j.ownerId, dataset) } as Column<Job>,
+        ]
+      : []),
     { key: "due", header: "Due", render: (j) => new Date(j.dueDate).toLocaleDateString() },
-    { key: "owner", header: "Owner", render: (j) => getDatasetEmployeeName(j.ownerId, dataset) },
   ];
 
   return (
@@ -227,7 +249,17 @@ function CalendarTab({ jobs, onSelect }: { jobs: Job[]; onSelect: (j: Job) => vo
   );
 }
 
-function JobDetail({ job, projectWord, dataset }: { job: Job; projectWord: string; dataset: IndustryDataset }) {
+function JobDetail({
+  job,
+  projectWord,
+  dataset,
+  showValueAndOwner,
+}: {
+  job: Job;
+  projectWord: string;
+  dataset: IndustryDataset;
+  showValueAndOwner: boolean;
+}) {
   const [taskList, setTaskList] = useState(() => getTasksForJob(job.id));
 
   function toggle(taskId: string) {
@@ -238,16 +270,18 @@ function JobDetail({ job, projectWord, dataset }: { job: Job; projectWord: strin
     <div className="flex flex-col gap-5">
       <p className="text-[13.5px] leading-relaxed text-ink-2">{job.description}</p>
 
-      <div className="grid grid-cols-2 gap-3">
-        <div className="rounded-[10px] border border-line bg-bg p-3">
-          <p className="text-[11px] font-medium text-ink-3">Value</p>
-          <p className="mt-1 text-[16px] font-bold text-ink-1">{formatCurrency(job.value)}</p>
+      {showValueAndOwner ? (
+        <div className="grid grid-cols-2 gap-3">
+          <div className="rounded-[10px] border border-line bg-bg p-3">
+            <p className="text-[11px] font-medium text-ink-3">Value</p>
+            <p className="mt-1 text-[16px] font-bold text-ink-1">{formatCurrency(job.value)}</p>
+          </div>
+          <div className="rounded-[10px] border border-line bg-bg p-3">
+            <p className="text-[11px] font-medium text-ink-3">Owner</p>
+            <p className="mt-1 text-[14px] font-semibold text-ink-1">{getDatasetEmployeeName(job.ownerId, dataset)}</p>
+          </div>
         </div>
-        <div className="rounded-[10px] border border-line bg-bg p-3">
-          <p className="text-[11px] font-medium text-ink-3">Owner</p>
-          <p className="mt-1 text-[14px] font-semibold text-ink-1">{getDatasetEmployeeName(job.ownerId, dataset)}</p>
-        </div>
-      </div>
+      ) : null}
 
       <div>
         <p className="mb-2 text-[12px] font-semibold uppercase tracking-wide text-ink-3">Tasks</p>
