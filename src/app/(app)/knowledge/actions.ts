@@ -15,6 +15,7 @@ import type { KnowledgeCategory } from "../../../../generated/prisma/client";
 export interface ActionState {
   error?: string;
   success?: string;
+  id?: string;
 }
 
 async function currentWorkspaceId(): Promise<{ userId: string; workspaceId: string }> {
@@ -38,9 +39,9 @@ export async function createKnowledgeArticleAction(_prev: ActionState, formData:
   try {
     const { userId, workspaceId } = await currentWorkspaceId();
     await requireActiveMember(userId, workspaceId);
-    await createKnowledgeArticle(workspaceId, userId, inputFromForm(formData));
+    const article = await createKnowledgeArticle(workspaceId, userId, inputFromForm(formData));
     revalidatePath("/knowledge");
-    return { success: "Article added." };
+    return { success: "Article added.", id: article.id };
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Something went wrong." };
   }

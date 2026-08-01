@@ -64,9 +64,9 @@ export function RealNotesClient({ initialNotes }: { initialNotes: NoteRow[] }) {
       if (openId === "new") {
         const result = await createNoteAction({}, form);
         savingRef.current = false;
-        if (result.error) return showToast({ title: "Couldn't save note", description: result.error });
+        if (result.error || !result.id) return showToast({ title: "Couldn't save note", description: result.error ?? "Something went wrong." });
         setNotes((prev) => [
-          { id: `pending_${Date.now()}`, title: title.trim(), body: body.trim(), pinned: false, updatedAt: new Date() },
+          { id: result.id!, title: title.trim(), body: body.trim(), pinned: false, updatedAt: new Date() },
           ...prev,
         ]);
       } else if (openId) {

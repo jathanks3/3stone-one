@@ -65,9 +65,9 @@ export function RealKnowledgeClient({ initialArticles }: { initialArticles: Know
       fd.set("category", form.category);
       if (editing === "new") {
         const result = await createKnowledgeArticleAction({}, fd);
-        if (result.error) return showToast({ title: "Couldn't save article", description: result.error });
+        if (result.error || !result.id) return showToast({ title: "Couldn't save article", description: result.error ?? "Something went wrong." });
         setArticles((prev) => [
-          { id: `pending_${Date.now()}`, title: form.title, body: form.body, category: form.category as never, videoUrl: null, authorName: "You", updatedAt: new Date() },
+          { id: result.id!, title: form.title, body: form.body, category: form.category as never, videoUrl: null, authorName: "You", updatedAt: new Date() },
           ...prev,
         ]);
       } else if (editing) {

@@ -134,6 +134,9 @@ model Workspace {
   branding           Branding?
   notes              Note[]
   calendarEvents     CalendarEvent[]
+  gpaCourses         GpaCourse[]
+  jobApplications    JobApplication[]
+  timeOffRequests    TimeOffRequest[]
 
   // platform-side relations (see PLATFORM section)
   subscription       Subscription?
@@ -220,6 +223,9 @@ model User {
   uploadedFiles        UploadedFile[]
   notes                Note[]
   calendarEvents       CalendarEvent[]
+  gpaCourses           GpaCourse[]
+  jobApplications      JobApplication[]
+  timeOffRequests      TimeOffRequest[]
 
   @@map("users")
 }
@@ -651,6 +657,104 @@ model CalendarEvent {
   @@map("calendar_events")
 }
 
+// Student edition only - not a concept that applies to any other
+// edition, including Business (which otherwise sees every module).
+enum LetterGrade {
+  a_plus
+  a
+  a_minus
+  b_plus
+  b
+  b_minus
+  c_plus
+  c
+  c_minus
+  d_plus
+  d
+  d_minus
+  f
+}
+
+model GpaCourse {
+  id          String      @id @default(cuid())
+  workspaceId String
+  workspace   Workspace   @relation(fields: [workspaceId], references: [id])
+  studentId   String
+  student     User        @relation(fields: [studentId], references: [id])
+  name        String
+  credits     Float
+  grade       LetterGrade
+  createdAt   DateTime    @default(now())
+
+  @@index([workspaceId, studentId])
+  @@map("gpa_courses")
+}
+
+// Student edition only - a real Kanban-style pipeline for internship
+// and job applications, not a concept that applies to any other
+// edition.
+enum ApplicationStatus {
+  saved
+  applied
+  interviewing
+  offer
+  rejected
+}
+
+model JobApplication {
+  id          String            @id @default(cuid())
+  workspaceId String
+  workspace   Workspace         @relation(fields: [workspaceId], references: [id])
+  studentId   String
+  student     User              @relation(fields: [studentId], references: [id])
+  company     String
+  role        String
+  status      ApplicationStatus @default(saved)
+  appliedDate DateTime?
+  notes       String?
+  createdAt   DateTime          @default(now())
+
+  @@index([workspaceId, studentId])
+  @@map("job_applications")
+}
+
+// Workspace edition only - a real request/approve flow for day-to-day
+// workers and the managers above them. Approval itself goes through the
+// generic ApprovalRequest mechanism (see time_off_request in
+// ApprovalEntityType below), not a bespoke status field here - this
+// status mirrors ApprovalRequest.status for fast reads, kept in sync by
+// timeOffService.
+enum TimeOffType {
+  vacation
+  sick
+  personal
+}
+
+enum TimeOffStatus {
+  pending
+  approved
+  denied
+}
+
+model TimeOffRequest {
+  id                String           @id @default(cuid())
+  workspaceId       String
+  workspace         Workspace        @relation(fields: [workspaceId], references: [id])
+  requesterId       String
+  requester         User             @relation(fields: [requesterId], references: [id])
+  type              TimeOffType
+  startDate         DateTime
+  endDate           DateTime
+  status            TimeOffStatus    @default(pending)
+  notes             String?
+  approvalRequestId String?          @unique
+  approvalRequest   ApprovalRequest? @relation(fields: [approvalRequestId], references: [id])
+  createdAt         DateTime         @default(now())
+
+  @@index([workspaceId])
+  @@map("time_off_requests")
+}
+
 // =============================================================================
 // NOTIFICATIONS, ACTIVITY, SEARCH
 // =============================================================================
@@ -883,6 +987,7 @@ model Site {
 enum ApprovalEntityType {
   project_milestone
   purchase_request
+  time_off_request
 }
 
 enum ApprovalStatus {
@@ -908,6 +1013,7 @@ model ApprovalRequest {
 
   projectMilestone    ProjectMilestone?
   purchaseRequest     PurchaseRequest?
+  timeOffRequest      TimeOffRequest?
 
   @@map("approval_requests")
 }

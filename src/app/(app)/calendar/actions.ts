@@ -9,6 +9,7 @@ import { createCalendarEvent, deleteCalendarEvent } from "@/server/services/cale
 export interface ActionState {
   error?: string;
   success?: string;
+  id?: string;
 }
 
 async function currentWorkspaceId(): Promise<{ userId: string; workspaceId: string }> {
@@ -23,7 +24,7 @@ export async function createCalendarEventAction(_prev: ActionState, formData: Fo
   try {
     const { userId, workspaceId } = await currentWorkspaceId();
     await requireActiveMember(userId, workspaceId);
-    await createCalendarEvent(
+    const event = await createCalendarEvent(
       workspaceId,
       userId,
       String(formData.get("title") ?? ""),
@@ -31,7 +32,7 @@ export async function createCalendarEventAction(_prev: ActionState, formData: Fo
       String(formData.get("time") ?? "")
     );
     revalidatePath("/calendar");
-    return { success: "Event added." };
+    return { success: "Event added.", id: event.id };
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Something went wrong." };
   }

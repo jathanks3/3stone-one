@@ -10,6 +10,7 @@ import type { DocumentVisibility } from "../../../../generated/prisma/client";
 export interface ActionState {
   error?: string;
   success?: string;
+  id?: string;
 }
 
 async function currentWorkspaceId(): Promise<{ userId: string; workspaceId: string }> {
@@ -31,9 +32,9 @@ export async function createDocumentAction(_prev: ActionState, formData: FormDat
       sizeBytes: Number(formData.get("sizeBytes") ?? 0),
       visibility: (String(formData.get("visibility") ?? "internal") as DocumentVisibility),
     };
-    await createDocument(workspaceId, userId, input);
+    const doc = await createDocument(workspaceId, userId, input);
     revalidatePath("/documents");
-    return { success: "Document added." };
+    return { success: "Document added.", id: doc.id };
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Something went wrong." };
   }

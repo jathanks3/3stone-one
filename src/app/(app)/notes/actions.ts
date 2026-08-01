@@ -9,6 +9,7 @@ import { createNote, deleteNote, togglePinNote, updateNote } from "@/server/serv
 export interface ActionState {
   error?: string;
   success?: string;
+  id?: string;
 }
 
 async function currentWorkspaceId(): Promise<{ userId: string; workspaceId: string }> {
@@ -23,9 +24,9 @@ export async function createNoteAction(_prev: ActionState, formData: FormData): 
   try {
     const { userId, workspaceId } = await currentWorkspaceId();
     await requireActiveMember(userId, workspaceId);
-    await createNote(workspaceId, userId, String(formData.get("title") ?? ""), String(formData.get("body") ?? ""));
+    const note = await createNote(workspaceId, userId, String(formData.get("title") ?? ""), String(formData.get("body") ?? ""));
     revalidatePath("/notes");
-    return { success: "Note created." };
+    return { success: "Note created.", id: note.id };
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Something went wrong." };
   }

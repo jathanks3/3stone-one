@@ -164,8 +164,8 @@ export function RealCalendarClient({ initialEvents }: { initialEvents: CalendarE
       fd.set("date", date);
       fd.set("time", time);
       const result = await createCalendarEventAction({}, fd);
-      if (result.error) return showToast({ title: "Couldn't add event", description: result.error });
-      setEvents((prev) => [...prev, { id: `pending_${Date.now()}`, title: title.trim(), date, time }]);
+      if (result.error || !result.id) return showToast({ title: "Couldn't add event", description: result.error ?? "Something went wrong." });
+      setEvents((prev) => [...prev, { id: result.id!, title: title.trim(), date, time }]);
       setAdding(false);
     });
   }

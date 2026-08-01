@@ -52,10 +52,10 @@ export function RealProjectsClient({ initialProjects }: { initialProjects: Proje
     const form = new FormData(e.currentTarget);
     startTransition(async () => {
       const result = await createProjectAction({}, form);
-      if (result.error) return showToast({ title: "Couldn't create project", description: result.error });
+      if (result.error || !result.id) return showToast({ title: "Couldn't create project", description: result.error ?? "Something went wrong." });
       setProjects((prev) => [
         {
-          id: `pending_${Date.now()}`,
+          id: result.id!,
           name: String(form.get("name")),
           description: String(form.get("description") || "") || null,
           statusKey: "bid",
@@ -297,8 +297,8 @@ function ProjectDetail({ project, onChange, onDelete }: { project: ProjectRow; o
       fd.set("projectId", project.id);
       fd.set("title", taskTitle.trim());
       const result = await createTaskAction({}, fd);
-      if (result.error) return showToast({ title: "Couldn't add task", description: result.error });
-      onChange({ ...project, tasks: [...project.tasks, { id: `pending_${Date.now()}`, title: taskTitle.trim(), status: "todo", dueDate: null }] });
+      if (result.error || !result.id) return showToast({ title: "Couldn't add task", description: result.error ?? "Something went wrong." });
+      onChange({ ...project, tasks: [...project.tasks, { id: result.id!, title: taskTitle.trim(), status: "todo", dueDate: null }] });
       setTaskTitle("");
     });
   }

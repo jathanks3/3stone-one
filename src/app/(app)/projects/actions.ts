@@ -17,6 +17,7 @@ import {
 export interface ActionState {
   error?: string;
   success?: string;
+  id?: string;
 }
 
 async function currentWorkspaceId(): Promise<{ userId: string; workspaceId: string }> {
@@ -31,13 +32,13 @@ export async function createProjectAction(_prev: ActionState, formData: FormData
   try {
     const { userId, workspaceId } = await currentWorkspaceId();
     await requireActiveMember(userId, workspaceId);
-    await createProject(workspaceId, userId, {
+    const project = await createProject(workspaceId, userId, {
       name: String(formData.get("name") ?? ""),
       description: String(formData.get("description") ?? "") || undefined,
       dueDate: String(formData.get("dueDate") ?? "") || undefined,
     });
     revalidatePath("/projects");
-    return { success: "Project created." };
+    return { success: "Project created.", id: project.id };
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Something went wrong." };
   }
@@ -71,9 +72,9 @@ export async function createTaskAction(_prev: ActionState, formData: FormData): 
   try {
     const { userId, workspaceId } = await currentWorkspaceId();
     await requireActiveMember(userId, workspaceId);
-    await createTask(workspaceId, String(formData.get("projectId") ?? ""), userId, String(formData.get("title") ?? ""));
+    const task = await createTask(workspaceId, String(formData.get("projectId") ?? ""), userId, String(formData.get("title") ?? ""));
     revalidatePath("/projects");
-    return { success: "Task added." };
+    return { success: "Task added.", id: task.id };
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Something went wrong." };
   }

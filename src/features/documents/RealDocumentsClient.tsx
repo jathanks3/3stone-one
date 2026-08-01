@@ -66,11 +66,11 @@ export function RealDocumentsClient({ initialDocuments }: { initialDocuments: Do
       form.set("sizeBytes", String(file.size));
       form.set("visibility", "internal");
       const result = await createDocumentAction({}, form);
-      if (result.error) throw new Error(result.error);
+      if (result.error || !result.id) throw new Error(result.error ?? "Something went wrong.");
 
       setDocs((prev) => [
         {
-          id: confirmed.id,
+          id: result.id!,
           name: file.name,
           mimeType: file.type || "application/octet-stream",
           sizeBytes: file.size,
