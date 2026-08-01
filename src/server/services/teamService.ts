@@ -38,6 +38,22 @@ export async function requireTeamManager(userId: string, workspaceId: string): P
   return { memberId: member.id };
 }
 
+// The day-to-day equivalent of requireTeamManager above, for modules
+// every active member should reach (Documents, Notes, Calendar,
+// Knowledge, Projects, etc.) rather than only Owner/Admin — same
+// tenant-isolation shape (the workspaceId here was always derived from
+// the caller's own session, never client input), just no role check
+// beyond "still an active member of this workspace at all."
+export async function requireActiveMember(userId: string, workspaceId: string): Promise<{ memberId: string }> {
+  const member = await db.workspaceMember.findFirst({
+    where: { userId, workspaceId, status: "active" },
+  });
+  if (!member) {
+    throw new Error("You're not an active member of this workspace.");
+  }
+  return { memberId: member.id };
+}
+
 export interface TeamMemberRow {
   id: string;
   userId: string;

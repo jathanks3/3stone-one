@@ -132,6 +132,8 @@ model Workspace {
   knowledgeArticles  KnowledgeArticle[]
   installations      WorkspaceInstallation[]
   branding           Branding?
+  notes              Note[]
+  calendarEvents     CalendarEvent[]
 
   // platform-side relations (see PLATFORM section)
   subscription       Subscription?
@@ -216,6 +218,8 @@ model User {
   securityEvents       SecurityEvent[]
   invitationsSent      Invitation[] @relation("InvitedBy")
   uploadedFiles        UploadedFile[]
+  notes                Note[]
+  calendarEvents       CalendarEvent[]
 
   @@map("users")
 }
@@ -608,6 +612,43 @@ model Document {
   createdAt          DateTime @default(now())
 
   @@map("documents")
+}
+
+// Workspace and Student editions (see src/lib/editionModules.ts) - a
+// lightweight notes space, distinct from the heavier Document model
+// above (files, categories, sharing tiers). Also visible to Business
+// edition since EDITION_MODULES.business is unrestricted (null).
+model Note {
+  id          String   @id @default(cuid())
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id])
+  authorId    String
+  author      User     @relation(fields: [authorId], references: [id])
+  title       String
+  body        String
+  pinned      Boolean  @default(false)
+  updatedAt   DateTime @updatedAt
+  createdAt   DateTime @default(now())
+
+  @@index([workspaceId])
+  @@map("notes")
+}
+
+// Workspace and Student editions - a real add/delete calendar, lighter
+// than the Meetings module (no agenda/action-items/decisions concept).
+model CalendarEvent {
+  id          String   @id @default(cuid())
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id])
+  createdById String
+  createdBy   User     @relation(fields: [createdById], references: [id])
+  title       String
+  date        String   // "YYYY-MM-DD" - matches the demo type exactly, no timezone math
+  time        String   // "HH:MM" 24h, formatted for display client-side
+  createdAt   DateTime @default(now())
+
+  @@index([workspaceId, date])
+  @@map("calendar_events")
 }
 
 // =============================================================================

@@ -38,22 +38,33 @@ is the mechanism that lets one codebase serve every industry — see
   `src/features/<module>/hooks` and `/api` client functions.
 - Mock data lives behind the service layer (`src/server/services/*`) so
   swapping mock for real Postgres/Prisma later never touches routes or UI.
-- Do not connect real third-party APIs or a real database yet — mock data
-  only, until [Phase 12](docs/11-roadmap.md#phase-12--backend-reality-pass)
-  (Stripe test-mode for Client Portal payments is the one deliberate
-  exception, starting Phase 8 — see
-  [docs/08-integration-strategy.md](docs/08-integration-strategy.md)).
+- **This is no longer true of every module** — real Postgres/Prisma (Neon),
+  real Stripe checkout/webhooks, and real Anthropic AI are already live in
+  production. A module is real once its page stops rendering
+  `<NotYetConnected />` for non-demo sessions; the demo (`isDemo`) path is
+  untouched either way. See
+  `/Users/jathan/.claude/plans/valiant-sleeping-sprout.md` for the current
+  module-by-module conversion status and the exact pattern to follow for
+  the next one (service function → Server Action → real Client component,
+  reusing `requireActiveMember`/`requireTeamManager` from `teamService.ts`
+  and `logActivity` from `activityService.ts`).
 - Every business-data table/record carries a `workspaceId`; every query is
   scoped to the active workspace.
 - **Any AI feature is a new entry in the `AiCapability` registry
   (`src/server/ai/capabilities/*`), never a bespoke integration.** It's
   used via one component, `<AiActionButton capability="..." />`. See
   [docs/01-architecture.md §5](docs/01-architecture.md#5-ai-everywhere-one-capability-many-modules).
+  This registry does not exist yet (docs-only aspiration) — real modules
+  converted so far deliberately skip AI actions rather than half-build
+  this, per the phased plan above.
 - **Any create/update/delete on a user-facing record must also call
   `searchIndexService.upsert`/`.remove` in the same function** — this is
   what keeps Global Search (and "AI Knowledge" results) from silently
   going stale. See
   [docs/01-architecture.md §6](docs/01-architecture.md#6-global-search-one-index-every-entity).
+  This service does not exist yet either (docs-only aspiration) — Global
+  Search is explicitly deferred by the phased plan above, so real modules
+  converted so far do not call it.
 - **Any "someone needs to approve this" flow uses the generic
   `ApprovalRequest` mechanism** — do not build a second bespoke approval
   system for a new module. See
