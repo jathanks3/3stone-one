@@ -54,6 +54,27 @@ export async function submitProblemReport(
   });
   if (recentReports >= 5) return { error: "We received several reports from this email. Please wait a few minutes before sending another." };
 
+  // The canonical company inbox lives in 3Stone Admin. Only report
+  // success after that system accepts the issue, so customers are never
+  // told a report reached staff when it only exists in a product silo.
+  const adminResponse = await fetch(
+    process.env.ADMIN_ISSUE_REPORT_URL ?? "https://admin.3stoneai.com/api/v1/public/issue-reports",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        sourceProduct: productArea,
+        pageUrl: sourceUrl || "https://one.3stoneai.com",
+        reporterEmail: requestedByEmail,
+        description: `${subject}\n\n${body}`.slice(0, 2000),
+      }),
+      cache: "no-store",
+    }
+  );
+  if (!adminResponse.ok) return { error: "We could not reach the support dashboard. Please try again in a moment." };
+
+  // Keep a product-local copy for workspace context and audit history;
+  // the canonical staff workflow remains admin.3stoneai.com above.
   await db.supportTicket.create({
     data: {
       workspaceId: membership?.workspaceId,
