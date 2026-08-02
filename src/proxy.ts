@@ -88,5 +88,10 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!api|_next/static|_next/image|.*\\.(?:png|svg|ico)$).*)"],
+  // Real bug found while verifying SEO files live: .txt/.xml weren't
+  // excluded, so /robots.txt and /sitemap.xml (public/, no session
+  // possible for a crawler) hit the "no session, not a public route" auth
+  // gate below and got redirected to /login - a 307, not the actual
+  // file. Google never saw real content at either URL.
+  matcher: ["/((?!api|_next/static|_next/image|.*\\.(?:png|svg|ico|txt|xml)$).*)"],
 };
