@@ -7,6 +7,8 @@ const MICROSOFT_SCOPES = [
   "Calendars.ReadWrite",
   "Mail.ReadWrite",
   "Mail.Send",
+  "Files.Read",
+  "OnlineMeetings.ReadWrite",
   "User.Read",
   "offline_access",
   "openid",
@@ -316,4 +318,70 @@ export async function sendOutlookMail(
     const responseBody = await res.text().catch(() => "");
     throw new Error(`Microsoft couldn't send the email: ${res.status} ${responseBody}`);
   }
+}
+
+export interface OneDriveFile {
+  id: string;
+  name: string;
+  sizeBytes: number;
+  mimeType: string;
+  modifiedAt: string;
+  webUrl: string;
+}
+
+export async function getRecentOneDriveFiles(workspaceId: string, limit = 50): Promise<OneDriveFile[]> {
+  const accessToken = await getValidMicrosoftAccessToken(workspaceId);
+  const params = new URLSearchParams({
+    $top: String(Math.min(Math.max(limit, 1), 100)),
+    $orderby: "lastModifiedDateTime desc",
+    $select: "id,name,size,file,lastModifiedDateTime,webUrl",
+  });
+  const res = await fetch(`https://graph.microsoft.com/v1.0/me/drive/root/children?${params.toString()}`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`Microsoft OneDrive request failed: ${res.status} ${body}`);
+  }
+  const data = await res.json();
+  return (Array.isArray(data.value) ? data.value : [])
+    .filter((item: { file?: unknown }) => Boolean(item.file))
+    .map((item: { id?: string; name?: string; size?: number; file?: { mimeType?: string }; lastModifiedDateTime?: string; webUrl?: string }) => ({
+      id: item.id ?? "",
+      name: item.name?.trim() || "Untitled file",
+      sizeBytes: item.size ?? 0,
+      mimeType: item.file?.mimeType ?? "application/octet-stream",
+      modifiedAt: item.lastModifiedDateTime ?? "",
+      webUrl: item.webUrl ?? "",
+    }))
+    .filter((item: OneDriveFile) => item.id && item.webUrl);
+}
+
+export interface TeamsMeetingResult {
+  id: string;
+  joinUrl: string;
+}
+
+export async function createTeamsMeeting(
+  workspaceId: string,
+  input: { subject: string; startsAt: Date; endsAt: Date }
+): Promise<TeamsMeetingResult> {
+  const accessToken = await getValidMicrosoftAccessToken(workspaceId);
+  const res = await fetch("https://graph.microsoft.com/v1.0/me/onlineMeetings", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      subject: input.subject,
+      startDateTime: input.startsAt.toISOString(),
+      endDateTime: input.endsAt.toISOString(),
+    }),
+  });
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`Microsoft couldn't create the Teams meeting: ${res.status} ${body}`);
+  }
+  const data = await res.json();
+  if (!data.id || !data.joinWebUrl) throw new Error("Microsoft created a meeting without a join link.");
+  return { id: String(data.id), joinUrl: String(data.joinWebUrl) };
 }

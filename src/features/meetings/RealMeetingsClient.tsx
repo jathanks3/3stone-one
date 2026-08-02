@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { CalendarClock, CheckCircle2, Circle, Plus, Trash2, Users } from "lucide-react";
+import { CalendarClock, CheckCircle2, Circle, Plus, Users } from "lucide-react";
 import { Tabs } from "@/ui/Tabs";
 import { Card } from "@/ui/Card";
 import { DetailPanel } from "@/ui/DetailPanel";
@@ -49,6 +49,8 @@ export function RealMeetingsClient({ initialMeetings }: { initialMeetings: Meeti
           actionItems: [],
           decisions: [],
           isPast: new Date(String(form.get("scheduledAt"))).getTime() < Date.now(),
+          externalProvider: result.joinUrl ? "microsoft_teams" : null,
+          externalJoinUrl: result.joinUrl ?? null,
         },
         ...prev,
       ]);
@@ -98,6 +100,10 @@ export function RealMeetingsClient({ initialMeetings }: { initialMeetings: Meeti
             Title
             <input name="title" required autoFocus className="mt-1 h-10 w-full rounded-[9px] border border-line-strong bg-bg px-3 text-[14px] text-ink-1 outline-none focus:border-accent" />
           </label>
+          <label className="flex items-start gap-2.5 rounded-[9px] border border-line bg-surface-raised p-3 text-[12.5px] text-ink-2">
+            <input name="createTeamsMeeting" type="checkbox" className="mt-0.5" />
+            <span><strong className="text-ink-1">Create a Microsoft Teams meeting</strong><br />Adds a real Teams join link using the connected Microsoft account.</span>
+          </label>
           <label className="text-[12.5px] font-medium text-ink-2">
             Date & time
             <input name="scheduledAt" type="datetime-local" required className="mt-1 h-10 w-full rounded-[9px] border border-line-strong bg-bg px-3 text-[14px] text-ink-1 outline-none focus:border-accent" />
@@ -146,6 +152,7 @@ function MeetingList({ meetings, onSelect }: { meetings: MeetingRow[]; onSelect:
               {m.actionItems.filter((a) => a.status === "done").length}/{m.actionItems.length} action items complete
             </p>
           ) : null}
+          {m.externalJoinUrl ? <a href={m.externalJoinUrl} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} className="mt-2 inline-flex text-[12.5px] font-semibold text-accent hover:underline">Join Microsoft Teams meeting</a> : null}
         </Card>
       ))}
     </div>
@@ -219,6 +226,8 @@ function MeetingDetail({ meeting, onChange, onDelete }: { meeting: MeetingRow; o
           </ul>
         </div>
       ) : null}
+
+      {meeting.externalJoinUrl ? <a href={meeting.externalJoinUrl} target="_blank" rel="noreferrer" className="inline-flex h-9 items-center justify-center rounded-[9px] bg-accent px-4 text-[13px] font-semibold text-on-accent">Join Microsoft Teams</a> : null}
 
       <div>
         <p className="mb-2 text-[12px] font-semibold uppercase tracking-wide text-ink-3">Action items</p>

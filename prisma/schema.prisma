@@ -1236,6 +1236,9 @@ model Meeting {
   attendeeIds     Json
   agenda          String?
   calendarEventId String?
+  externalProvider String?
+  externalMeetingId String?
+  externalJoinUrl String?
   createdAt       DateTime @default(now())
 
   actionItems     MeetingActionItem[]

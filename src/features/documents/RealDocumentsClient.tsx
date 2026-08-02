@@ -8,16 +8,18 @@ import { DetailPanel } from "@/ui/DetailPanel";
 import { EmptyState } from "@/ui/EmptyState";
 import { Badge } from "@/ui/Badge";
 import { Button } from "@/ui/Button";
+import { Card } from "@/ui/Card";
 import { useToast } from "@/lib/toast";
 import { createDocumentAction, deleteDocumentAction, setDocumentVisibilityAction } from "@/app/(app)/documents/actions";
 import type { DocumentRow } from "@/server/services/documentService";
+import type { OneDriveFile } from "@/server/services/microsoftIntegrationService";
 
 function formatSize(bytes: number) {
   if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   return `${Math.max(1, Math.round(bytes / 1024))} KB`;
 }
 
-export function RealDocumentsClient({ initialDocuments }: { initialDocuments: DocumentRow[] }) {
+export function RealDocumentsClient({ initialDocuments, oneDriveConnected = false, oneDriveFiles = [] }: { initialDocuments: DocumentRow[]; oneDriveConnected?: boolean; oneDriveFiles?: OneDriveFile[] | null }) {
   const [docs, setDocs] = useState<DocumentRow[]>(initialDocuments);
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<DocumentRow | null>(null);
@@ -150,7 +152,7 @@ export function RealDocumentsClient({ initialDocuments }: { initialDocuments: Do
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-[22px] font-bold text-ink-1">Documents</h1>
-          <p className="mt-1 text-[14px] text-ink-2">Your workspace's files, private by default.</p>
+          <p className="mt-1 text-[14px] text-ink-2">Your workspace&apos;s files, private by default.</p>
         </div>
         <Button variant="primary" disabled={uploading} onClick={() => fileInputRef.current?.click()}>
           <Upload size={14} /> {uploading ? "Uploading…" : "Upload"}
@@ -169,6 +171,29 @@ export function RealDocumentsClient({ initialDocuments }: { initialDocuments: Do
           <DataTable columns={columns} rows={filtered} rowKey={(d) => d.id} onRowClick={setSelected} />
         )}
       </div>
+
+      {oneDriveConnected ? (
+        <div className="mt-8">
+          <div className="mb-3">
+            <h2 className="text-[16px] font-semibold text-ink-1">Microsoft OneDrive</h2>
+            <p className="mt-0.5 text-[12.5px] text-ink-3">Files stay in OneDrive and open there; 3Stone One does not duplicate their contents.</p>
+          </div>
+          {oneDriveFiles === null ? (
+            <Card className="p-4 text-[13px] text-ink-2">Reconnect Microsoft in Integrations to approve OneDrive access.</Card>
+          ) : oneDriveFiles.length === 0 ? (
+            <Card className="p-4 text-[13px] text-ink-3">No files found at the root of this OneDrive.</Card>
+          ) : (
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              {oneDriveFiles.map((file) => (
+                <a key={file.id} href={file.webUrl} target="_blank" rel="noreferrer" className="rounded-xl border border-line bg-surface p-3 hover:bg-surface-raised">
+                  <p className="truncate text-[13.5px] font-semibold text-ink-1">{file.name}</p>
+                  <p className="mt-1 text-[11.5px] text-ink-3">{formatSize(file.sizeBytes)}{file.modifiedAt ? ` · Updated ${new Date(file.modifiedAt).toLocaleDateString()}` : ""}</p>
+                </a>
+              ))}
+            </div>
+          )}
+        </div>
+      ) : null}
 
       <DetailPanel
         open={!!selected}

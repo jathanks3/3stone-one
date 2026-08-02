@@ -23,6 +23,8 @@ export interface MeetingRow {
   actionItems: MeetingActionItemRow[];
   decisions: DecisionRow[];
   isPast: boolean;
+  externalProvider: string | null;
+  externalJoinUrl: string | null;
 }
 
 function toRow(m: {
@@ -33,6 +35,8 @@ function toRow(m: {
   agenda: string | null;
   actionItems: { id: string; title: string; status: MeetingActionItemStatus }[];
   decisions: { id: string; summary: string; decidedAt: Date }[];
+  externalProvider: string | null;
+  externalJoinUrl: string | null;
 }): MeetingRow {
   const attendees = Array.isArray(m.attendeeIds) ? (m.attendeeIds as string[]) : [];
   return {
@@ -44,6 +48,8 @@ function toRow(m: {
     actionItems: m.actionItems.map((a) => ({ id: a.id, title: a.title, status: a.status })),
     decisions: m.decisions.map((d) => ({ id: d.id, summary: d.summary, decidedAt: d.decidedAt })),
     isPast: m.scheduledAt.getTime() < Date.now(),
+    externalProvider: m.externalProvider,
+    externalJoinUrl: m.externalJoinUrl,
   };
 }
 
@@ -61,12 +67,23 @@ export interface CreateMeetingInput {
   scheduledAt: string;
   attendees: string[];
   agenda: string;
+  createTeamsMeeting?: boolean;
 }
 
 export async function createMeeting(workspaceId: string, actorId: string, input: CreateMeetingInput): Promise<MeetingRow> {
   const trimmed = input.title.trim();
   if (!trimmed) throw new Error("Meeting title is required.");
   if (!input.scheduledAt) throw new Error("A date and time are required.");
+  let teams: { id: string; joinUrl: string } | null = null;
+  if (input.createTeamsMeeting) {
+    const { createTeamsMeeting } = await import("@/server/services/microsoftIntegrationService");
+    const startsAt = new Date(input.scheduledAt);
+    teams = await createTeamsMeeting(workspaceId, {
+      subject: trimmed,
+      startsAt,
+      endsAt: new Date(startsAt.getTime() + 60 * 60 * 1000),
+    });
+  }
   const meeting = await db.meeting.create({
     data: {
       workspaceId,
@@ -74,6 +91,9 @@ export async function createMeeting(workspaceId: string, actorId: string, input:
       scheduledAt: new Date(input.scheduledAt),
       attendeeIds: input.attendees.filter(Boolean) as never,
       agenda: input.agenda.trim() || null,
+      externalProvider: teams ? "microsoft_teams" : null,
+      externalMeetingId: teams?.id ?? null,
+      externalJoinUrl: teams?.joinUrl ?? null,
     },
     include: { actionItems: true, decisions: true },
   });

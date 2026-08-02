@@ -4,6 +4,8 @@ import { RealDocumentsClient } from "@/features/documents/RealDocumentsClient";
 import { getSession } from "@/lib/session";
 import { getActiveWorkspaceIdForUser } from "@/server/services/onboardingService";
 import { listDocuments } from "@/server/services/documentService";
+import { db } from "@/server/db";
+import { getRecentOneDriveFiles } from "@/server/services/microsoftIntegrationService";
 
 export const metadata: Metadata = { title: "Documents — 3Stone One" };
 export const dynamic = "force-dynamic";
@@ -13,7 +15,9 @@ export default async function DocumentsPage() {
   if (session && !session.isDemo) {
     const workspaceId = await getActiveWorkspaceIdForUser(session.userId);
     const docs = workspaceId ? await listDocuments(workspaceId) : [];
-    return <RealDocumentsClient initialDocuments={docs} />;
+    const microsoft = workspaceId ? await db.integration.findUnique({ where: { workspaceId_provider: { workspaceId, provider: "microsoft" } } }) : null;
+    const oneDriveFiles = workspaceId && microsoft?.status === "connected" ? await getRecentOneDriveFiles(workspaceId).catch(() => null) : [];
+    return <RealDocumentsClient initialDocuments={docs} oneDriveConnected={microsoft?.status === "connected"} oneDriveFiles={oneDriveFiles} />;
   }
   return <DocumentsClient />;
 }
