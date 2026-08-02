@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { db } from "@/server/db";
 
 export const metadata: Metadata = { title: "3Stone AI — Internal" };
 
@@ -17,15 +18,16 @@ export const metadata: Metadata = { title: "3Stone AI — Internal" };
 // which reads real data directly from admin.3stoneai.com's own
 // database (read-only, see workspaceCustomerService.ts) — the cross-
 // product integration this comment used to describe as not-yet-started.
-export default function ThreeStoneAiDashboardPage() {
+export default async function ThreeStoneAiDashboardPage() {
+  const openReports = await db.supportTicket.count({ where: { status: { in: ["open", "pending"] } } });
   return (
     <div className="mx-auto max-w-2xl">
       <h1 className="text-[22px] font-bold text-ink-1">3Stone AI Founder Platform</h1>
       <p className="mt-2 text-[14px] text-ink-2">
         The company-wide control center for 3Stone AI — not a second product. Feature Flags,
         Announcements, Staff, Audit Log, System Health, Sales Pipeline, Integrations, and now real
-        Workspace Customers are live here — Feature Flags and Announcements already reach BetAI in
-        production. Revenue, Billing, Subscriptions, Support, AI Usage, Roles/Permissions
+        Workspace Customers and Problem Reports are live here — Feature Flags and Announcements already reach BetAI in
+        production. Revenue, Billing, Subscriptions, AI Usage, Roles/Permissions
         granularity, and Legal are still ahead.
       </p>
       <Link
@@ -33,6 +35,9 @@ export default function ThreeStoneAiDashboardPage() {
         className="mt-5 inline-flex h-10 items-center rounded-[10px] bg-accent px-4 text-[13.5px] font-semibold text-on-accent hover:opacity-90"
       >
         View Workspace Customers →
+      </Link>
+      <Link href="/3stone-ai/support" className="ml-3 mt-5 inline-flex h-10 items-center rounded-[10px] border border-line-strong bg-surface px-4 text-[13.5px] font-semibold text-ink-1 hover:bg-surface-raised">
+        Problem Reports ({openReports}) →
       </Link>
     </div>
   );

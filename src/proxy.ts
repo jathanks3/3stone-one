@@ -24,7 +24,7 @@ const STAFF_PREFIX = "/3stone-ai";
 // was clicked. The Route Handler itself already safely no-ops for a
 // real (non-demo) session, so making it always-reachable doesn't risk
 // clobbering a real customer's session.
-const ALWAYS_ACCESSIBLE_PREFIXES = ["/signup", "/reset-password", "/invite", "/pricing", "/workspace", "/student", "/demo"];
+const ALWAYS_ACCESSIBLE_PREFIXES = ["/signup", "/reset-password", "/invite", "/pricing", "/workspace", "/student", "/demo", "/report-problem"];
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;

@@ -6,6 +6,7 @@ import { ReducedMotionProvider, REDUCED_MOTION_NO_FLASH_SCRIPT } from "@/lib/red
 import { AccentColorProvider } from "@/lib/accentColor";
 import { ToastProvider } from "@/lib/toast";
 import { PageTracker } from "@/components/shared/PageTracker";
+import { ReportProblemButton } from "@/components/shared/ReportProblemButton";
 import "./globals.css";
 
 const inter = Inter({
@@ -57,6 +58,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <ToastProvider>
                   <PageTracker />
                   {children}
+                  <ReportProblemButton />
                 </ToastProvider>
               </AccentColorProvider>
             </ReducedMotionProvider>

@@ -1501,10 +1501,12 @@ enum SupportTicketPriority {
 
 model SupportTicket {
   id                String   @id @default(cuid())
-  workspaceId       String
-  workspace         Workspace @relation(fields: [workspaceId], references: [id])
+  workspaceId       String?
+  workspace         Workspace? @relation(fields: [workspaceId], references: [id])
   requestedByEmail  String
   subject           String
+  sourceUrl         String?
+  productArea       String?
   status            SupportTicketStatus @default(open)
   priority          SupportTicketPriority @default(normal)
   assignedStaffId   String?
