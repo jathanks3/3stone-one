@@ -63,7 +63,7 @@ export function BriefingCard() {
         <div className="flex flex-shrink-0 items-center gap-4 border-t border-accent-wash-strong pt-5 sm:border-t-0 sm:border-l sm:pl-6 sm:pt-0">
           <HealthMeter score={health.score} label={health.label} tone={health.tone} />
           <div className="max-w-[168px]">
-            <p className="text-[12px] font-semibold uppercase tracking-wide text-ink-3">Business health</p>
+            <p className="text-[12px] font-semibold uppercase tracking-wide text-ink-3">Overall health</p>
             <p className="mt-1 text-[13px] leading-snug text-ink-2">{health.explanation}</p>
           </div>
         </div>

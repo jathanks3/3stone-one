@@ -116,12 +116,17 @@ export function getBusinessHealthScoreForDataset(dataset: IndustryDataset): Busi
 
   const tone: HealthTone = score >= 85 ? "good" : score >= 65 ? "warning" : "critical";
   const label = score >= 85 ? "Strong" : score >= 65 ? "Fair" : "Needs attention";
+  // Deliberately edition-neutral - this scores overdue jobs/invoices where
+  // those concepts apply (business), but reads exactly the same widget for
+  // Workspace (no invoices) and Student (no invoices, "jobs" = assignments
+  // via that edition's terminology map) - "clean books"/"revenue" wording
+  // would be nonsense on a student account.
   const explanation =
     score >= 85
-      ? "Revenue growth and a clean books are outweighing any open issues."
+      ? "Steady progress, with nothing urgent slipping through the cracks."
       : score >= 65
-        ? "Keep an eye on overdue work — it's starting to offset otherwise solid growth."
-        : "Overdue work and unpaid invoices need attention before this trend continues.";
+        ? "A few things need attention before they become bigger problems."
+        : "Overdue items are piling up and need attention soon.";
 
   return { score, tone, label, explanation };
 }
