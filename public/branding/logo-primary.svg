@@ -8,5 +8,5 @@
   <polygon points="15,46 88,46 104,69 15,69" fill="#6e93d6" />
   <polygon points="15,81 104,81 120,104 15,104" fill="#6e93d6" />
   <polygon points="112,46 112,104 180,75" fill="#6e93d6" />
-  <text x="220" y="100" font-family="Inter, -apple-system, sans-serif" font-weight="800" font-size="76" fill="#ffffff" letter-spacing="-2">3Stone AI</text>
+  <text x="220" y="100" font-family="Inter, -apple-system, sans-serif" font-weight="800" font-size="66" fill="#ffffff" letter-spacing="-2">3Stone One</text>
 </svg>
