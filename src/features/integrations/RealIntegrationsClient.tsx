@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Plug, Calendar, ArrowUpRight } from "lucide-react";
 import { Card } from "@/ui/Card";
@@ -145,6 +145,7 @@ export function RealIntegrationsClient({
   const catalog = integrationsForEdition(editionKey);
   const [canvasState, canvasAction, canvasPending] = useActionState(connectCanvasAction, emptyState);
   const [canvasDisconnectState, canvasDisconnectAction, canvasDisconnectPending] = useActionState(disconnectCanvasAction, emptyState);
+  const [canvasGuideOpen, setCanvasGuideOpen] = useState(false);
 
   useEffect(() => {
     const error = searchParams.get("error");
@@ -219,12 +220,37 @@ export function RealIntegrationsClient({
                 <form action={canvasDisconnectAction}><Button type="submit" variant="secondary" disabled={canvasDisconnectPending}>{canvasDisconnectPending ? "Disconnecting…" : "Disconnect"}</Button></form>
               ) : null}
             </div>
-            {canvasStatus !== "connected" ? (
-              <form action={canvasAction} className="mt-4 grid gap-3 border-t border-line pt-4 sm:grid-cols-[1fr_1fr_auto]">
-                <input name="baseUrl" type="url" required placeholder="https://school.instructure.com" aria-label="Canvas school URL" className="rounded-[9px] border border-line bg-surface px-3 py-2 text-[13px] text-ink-1" />
-                <input name="accessToken" type="password" required placeholder="Personal access token" aria-label="Canvas personal access token" className="rounded-[9px] border border-line bg-surface px-3 py-2 text-[13px] text-ink-1" />
-                <Button type="submit" variant="primary" disabled={canvasPending}>{canvasPending ? "Testing…" : "Connect"}</Button>
-              </form>
+            {canvasStatus !== "connected" && !canvasGuideOpen ? (
+              <div className="mt-4 border-t border-line pt-4">
+                <Button type="button" variant="primary" onClick={() => setCanvasGuideOpen(true)}>Connect Canvas</Button>
+              </div>
+            ) : null}
+            {canvasStatus !== "connected" && canvasGuideOpen ? (
+              <div className="mt-4 border-t border-line pt-4">
+                <div className="rounded-[12px] bg-surface-raised p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-[14px] font-semibold text-ink-1">Connect your school Canvas account</p>
+                      <p className="mt-1 text-[12.5px] text-ink-2">Your email is used to sign into your school—not sent to 3Stone One. Never enter your Canvas password here.</p>
+                    </div>
+                    <button type="button" onClick={() => setCanvasGuideOpen(false)} className="text-[12px] font-medium text-ink-3 hover:text-ink-1">Close</button>
+                  </div>
+                  <ol className="mt-4 space-y-3 text-[12.5px] leading-relaxed text-ink-2">
+                    <li><strong className="text-ink-1">1. Find your Canvas website.</strong> Open Canvas from your school portal or a Canvas course email. Copy the address through the school domain, such as <span className="font-mono text-[11.5px]">https://school.instructure.com</span> or <span className="font-mono text-[11.5px]">https://canvas.school.edu</span>.</li>
+                    <li><strong className="text-ink-1">2. Sign in with your school account.</strong> Use the email, username, or student ID your institution requires. Complete school SSO or MFA if prompted.</li>
+                    <li><strong className="text-ink-1">3. Open Account → Settings.</strong> In Canvas's left navigation, select <strong>Account</strong>, then <strong>Settings</strong>.</li>
+                    <li><strong className="text-ink-1">4. Create a token.</strong> Scroll to <strong>Approved Integrations</strong>, choose <strong>+ New Access Token</strong>, enter <strong>3Stone One</strong> as the purpose, choose an expiration date if your school requires one, and select <strong>Generate Token</strong>.</li>
+                    <li><strong className="text-ink-1">5. Copy it immediately.</strong> Canvas normally shows the complete token only once. Return here, paste the school URL and token below, then connect.</li>
+                  </ol>
+                  <p className="mt-3 rounded-[8px] border border-line px-3 py-2 text-[11.5px] text-ink-3">Don’t see “+ New Access Token”? Your institution disabled personal tokens. Contact its Canvas/IT help desk and ask whether student API access is permitted.</p>
+                  <a href="https://community.canvaslms.com/html/assets/Canvas_Student_Guide.pdf" target="_blank" rel="noreferrer" className="mt-3 inline-flex text-[12px] font-semibold text-accent hover:underline">Open the official Canvas Student Guide</a>
+                </div>
+                <form action={canvasAction} className="mt-4 grid gap-3 sm:grid-cols-[1fr_1fr_auto]">
+                  <label className="text-[12px] font-medium text-ink-2">School Canvas URL<input name="baseUrl" type="url" required placeholder="https://school.instructure.com" aria-label="Canvas school URL" className="mt-1 w-full rounded-[9px] border border-line bg-surface px-3 py-2 text-[13px] text-ink-1" /></label>
+                  <label className="text-[12px] font-medium text-ink-2">Personal access token<input name="accessToken" type="password" required placeholder="Paste the token Canvas showed once" aria-label="Canvas personal access token" className="mt-1 w-full rounded-[9px] border border-line bg-surface px-3 py-2 text-[13px] text-ink-1" /></label>
+                  <Button type="submit" variant="primary" disabled={canvasPending} className="self-end">{canvasPending ? "Testing…" : "Connect securely"}</Button>
+                </form>
+              </div>
             ) : null}
             {(canvasState.error || canvasDisconnectState.error) ? <p className="mt-3 text-[12px] text-critical">{canvasState.error ?? canvasDisconnectState.error}</p> : null}
             {canvasState.success ? <p className="mt-3 text-[12px] text-positive">{canvasState.success}</p> : null}
