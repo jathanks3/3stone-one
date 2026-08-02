@@ -9,6 +9,11 @@ const MICROSOFT_SCOPES = [
   "Mail.Send",
   "Files.Read",
   "OnlineMeetings.ReadWrite",
+  // Low-impact, no-admin-consent scope - lets calendar events come back
+  // expressed in the mailbox's own configured timezone instead of forced
+  // UTC (see getUpcomingOutlookEvents), so a wall-clock read of the
+  // returned dateTime is actually correct.
+  "MailboxSettings.Read",
   "User.Read",
   "offline_access",
   "openid",
@@ -201,8 +206,21 @@ export interface UpcomingOutlookEvent {
   start: string;
 }
 
+// Graph always returns event times in UTC unless told otherwise via this
+// header - falls back to "UTC" itself if the lookup fails, same
+// (correct, just unlocalized) behavior as before this existed.
+async function getMailboxTimeZone(accessToken: string): Promise<string> {
+  const res = await fetch("https://graph.microsoft.com/v1.0/me/mailboxSettings", {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  if (!res.ok) return "UTC";
+  const data = await res.json().catch(() => null);
+  return typeof data?.timeZone === "string" && data.timeZone ? data.timeZone : "UTC";
+}
+
 export async function getUpcomingOutlookEvents(workspaceId: string, limit = 5): Promise<UpcomingOutlookEvent[]> {
   const accessToken = await getValidMicrosoftAccessToken(workspaceId);
+  const timeZone = await getMailboxTimeZone(accessToken);
   const params = new URLSearchParams({
     startDateTime: new Date().toISOString(),
     endDateTime: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
@@ -211,7 +229,7 @@ export async function getUpcomingOutlookEvents(workspaceId: string, limit = 5): 
     $select: "id,subject,start",
   });
   const res = await fetch(`https://graph.microsoft.com/v1.0/me/calendarView?${params.toString()}`, {
-    headers: { Authorization: `Bearer ${accessToken}`, Prefer: 'outlook.timezone="UTC"' },
+    headers: { Authorization: `Bearer ${accessToken}`, Prefer: `outlook.timezone="${timeZone}"` },
   });
   if (!res.ok) {
     const body = await res.text().catch(() => "");

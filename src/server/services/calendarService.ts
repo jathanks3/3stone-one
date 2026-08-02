@@ -24,16 +24,17 @@ export async function listCalendarEvents(workspaceId: string): Promise<CalendarE
 }
 
 // Google/Microsoft return an ISO instant ("2026-08-05T14:00:00-04:00") for
-// timed events or a bare date ("2026-08-05") for all-day ones — split
-// either into this app's date/time strings without going through UTC
-// (that would shift a timed event onto the wrong local day/hour).
+// timed events or a bare date ("2026-08-05") for all-day ones. The digits
+// before the offset ARE the wall-clock time the event owner sees on their
+// own calendar - read them directly with a regex. Going through
+// `new Date(iso).getHours()` instead reinterprets that instant in
+// whatever timezone the server process happens to run in (Vercel:
+// UTC) - that's exactly what previously shifted an 11am event to 3pm.
 function splitIsoStart(iso: string): { date: string; time: string; allDay: boolean } {
   if (!iso) return { date: "", time: "00:00", allDay: true };
-  if (!iso.includes("T")) return { date: iso, time: "00:00", allDay: true };
-  const d = new Date(iso);
-  const date = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-  const time = `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
-  return { date, time, allDay: false };
+  const match = iso.match(/^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2})/);
+  if (!match) return { date: iso, time: "00:00", allDay: true };
+  return { date: match[1], time: match[2], allDay: false };
 }
 
 // Live, read-only pull from whichever calendar providers this workspace has

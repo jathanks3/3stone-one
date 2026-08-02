@@ -295,7 +295,7 @@ function AssistantPanel({ onClose }: { onClose: () => void }) {
                 <div
                   key={m.id}
                   className={cn(
-                    "max-w-[85%] rounded-[12px] px-3.5 py-2.5 text-[13.5px] leading-relaxed",
+                    "max-w-[85%] whitespace-pre-wrap rounded-[12px] px-3.5 py-2.5 text-[13.5px] leading-relaxed",
                     m.role === "user"
                       ? "ml-auto bg-accent text-on-accent"
                       : "mr-auto border border-line bg-bg text-ink-2"
@@ -324,7 +324,7 @@ function AssistantPanel({ onClose }: { onClose: () => void }) {
           <input
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Ask about your business…"
+            placeholder={!isDemo ? "Ask anything…" : editionKey === "student" ? "Ask about your coursework…" : "Ask about your business…"}
             className="flex-1 rounded-[10px] border border-line bg-bg px-3 py-2 text-[13.5px] text-ink-1 outline-none placeholder:text-ink-3 focus:border-line-strong"
           />
           <button
