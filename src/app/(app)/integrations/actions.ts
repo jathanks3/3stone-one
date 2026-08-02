@@ -5,6 +5,7 @@ import { getSession } from "@/lib/session";
 import { getActiveWorkspaceIdForUser } from "@/server/services/onboardingService";
 import { requireTeamManager } from "@/server/services/teamService";
 import { disconnectGoogle } from "@/server/services/googleIntegrationService";
+import { disconnectMicrosoft } from "@/server/services/microsoftIntegrationService";
 
 export interface ActionState {
   error?: string;
@@ -26,6 +27,18 @@ export async function disconnectGoogleAction(_prev: ActionState, _formData: Form
     await disconnectGoogle(workspaceId);
     revalidatePath("/integrations");
     return { success: "Google disconnected." };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Something went wrong." };
+  }
+}
+
+export async function disconnectMicrosoftAction(_prev: ActionState, _formData: FormData): Promise<ActionState> {
+  try {
+    const { userId, workspaceId } = await currentWorkspaceId();
+    await requireTeamManager(userId, workspaceId);
+    await disconnectMicrosoft(workspaceId);
+    revalidatePath("/integrations");
+    return { success: "Microsoft disconnected." };
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Something went wrong." };
   }

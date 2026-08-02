@@ -7,41 +7,137 @@ import { Card } from "@/ui/Card";
 import { Badge } from "@/ui/Badge";
 import { Button } from "@/ui/Button";
 import { useToast } from "@/lib/toast";
-import { disconnectGoogleAction, type ActionState } from "@/app/(app)/integrations/actions";
+import { disconnectGoogleAction, disconnectMicrosoftAction, type ActionState } from "@/app/(app)/integrations/actions";
 
 const emptyState: ActionState = {};
 
 const ERROR_MESSAGES: Record<string, string> = {
   not_authorized: "Only the workspace owner or an admin can connect integrations.",
-  not_configured: "Google integration isn't configured yet.",
-  access_denied: "Google connection was cancelled.",
-  missing_code: "Something went wrong starting the Google connection. Try again.",
+  not_configured: "That integration isn't configured yet.",
+  access_denied: "Connection was cancelled.",
+  missing_code: "Something went wrong starting the connection. Try again.",
   session_mismatch: "That connection link was for a different session. Try connecting again.",
-  connection_failed: "Couldn't complete the Google connection. Try again.",
+  connection_failed: "Couldn't complete the connection. Try again.",
 };
 
 const COMING_SOON = [
-  { name: "Microsoft 365 & Teams", blurb: "Sync Outlook email, calendar, OneDrive documents, and Teams chat/meetings." },
+  { name: "Outlook Mail, OneDrive & Teams", blurb: "Sync Outlook email, OneDrive documents, and Teams chat/meetings — calendar is already live above." },
+  { name: "Gmail, Drive & Sheets", blurb: "Sync Gmail, Drive documents, and live spreadsheet reports — calendar is already live above." },
   { name: "Zoom", blurb: "Create and join Zoom meetings straight from Meetings." },
   { name: "Canvas", blurb: "Pull real assignments and due dates from your school's Canvas." },
   { name: "Slack", blurb: "Mirror key channels and get notifications in Slack." },
   { name: "QuickBooks", blurb: "Revenue, expenses, and invoice status sync into Finance automatically." },
 ];
 
+type Status = "connected" | "not_connected" | "error";
+type CalendarEvent = { summary: string; start: string };
+
+function IntegrationCard({
+  name,
+  blurb,
+  status,
+  connectedAt,
+  configured,
+  connectHref,
+  disconnectAction,
+  events,
+  eventsLabel,
+}: {
+  name: string;
+  blurb: string;
+  status: Status;
+  connectedAt: string | null;
+  configured: boolean;
+  connectHref: string;
+  disconnectAction: (state: ActionState, formData: FormData) => Promise<ActionState>;
+  events: CalendarEvent[] | null;
+  eventsLabel: string;
+}) {
+  const [state, formAction, pending] = useActionState(disconnectAction, emptyState);
+
+  return (
+    <Card className="p-5">
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex items-start gap-3">
+          <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-[10px] bg-surface-raised">
+            <Plug size={18} className="text-ink-2" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <p className="text-[14.5px] font-semibold text-ink-1">{name}</p>
+              <Badge tone={status === "connected" ? "good" : "neutral"}>
+                {status === "connected" ? "Connected" : "Not connected"}
+              </Badge>
+            </div>
+            <p className="mt-1 text-[13px] text-ink-2">{blurb}</p>
+            {status === "connected" && connectedAt ? (
+              <p className="mt-1 text-[11.5px] text-ink-3">Connected {new Date(connectedAt).toLocaleDateString()}</p>
+            ) : null}
+          </div>
+        </div>
+        {status === "connected" ? (
+          <form action={formAction}>
+            <Button type="submit" variant="secondary" disabled={pending}>
+              {pending ? "Disconnecting…" : "Disconnect"}
+            </Button>
+          </form>
+        ) : configured ? (
+          <a href={connectHref}>
+            <Button type="button" variant="primary">
+              Connect
+            </Button>
+          </a>
+        ) : (
+          <Button type="button" variant="primary" disabled>
+            Connect
+          </Button>
+        )}
+      </div>
+      {state.error ? <p className="mt-3 text-[12px] text-critical">{state.error}</p> : null}
+
+      {status === "connected" && events ? (
+        <div className="mt-4 border-t border-line pt-4">
+          <p className="flex items-center gap-1.5 text-[12px] font-semibold uppercase tracking-wide text-ink-3">
+            <Calendar size={13} /> {eventsLabel}
+          </p>
+          {events.length === 0 ? (
+            <p className="mt-2 text-[13px] text-ink-3">Nothing coming up.</p>
+          ) : (
+            <ul className="mt-2 flex flex-col gap-1.5">
+              {events.map((e, i) => (
+                <li key={i} className="text-[13px] text-ink-2">
+                  {e.summary} — <span className="text-ink-3">{new Date(e.start).toLocaleString()}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      ) : null}
+    </Card>
+  );
+}
+
 export function RealIntegrationsClient({
   googleConfigured,
   googleStatus,
   googleConnectedAt,
   googleEvents,
+  microsoftConfigured,
+  microsoftStatus,
+  microsoftConnectedAt,
+  microsoftEvents,
 }: {
   googleConfigured: boolean;
-  googleStatus: "connected" | "not_connected" | "error";
+  googleStatus: Status;
   googleConnectedAt: string | null;
-  googleEvents: { summary: string; start: string }[] | null;
+  googleEvents: CalendarEvent[] | null;
+  microsoftConfigured: boolean;
+  microsoftStatus: Status;
+  microsoftConnectedAt: string | null;
+  microsoftEvents: CalendarEvent[] | null;
 }) {
   const searchParams = useSearchParams();
   const { showToast } = useToast();
-  const [state, formAction, pending] = useActionState(disconnectGoogleAction, emptyState);
 
   useEffect(() => {
     const error = searchParams.get("error");
@@ -49,7 +145,9 @@ export function RealIntegrationsClient({
     if (error) {
       showToast({ title: "Couldn't connect", description: ERROR_MESSAGES[error] ?? "Something went wrong." });
     } else if (connected === "google") {
-      showToast({ title: "Google connected", description: "Calendar, Gmail, Drive, and Sheets are now linked." });
+      showToast({ title: "Google connected", description: "Your Google Calendar is now linked." });
+    } else if (connected === "microsoft") {
+      showToast({ title: "Microsoft connected", description: "Your Outlook Calendar is now linked." });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -62,66 +160,28 @@ export function RealIntegrationsClient({
       </p>
 
       <div className="mt-6 flex flex-col gap-4">
-        <Card className="p-5">
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex items-start gap-3">
-              <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-[10px] bg-surface-raised">
-                <Plug size={18} className="text-ink-2" />
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <p className="text-[14.5px] font-semibold text-ink-1">Google Workspace</p>
-                  <Badge tone={googleStatus === "connected" ? "good" : "neutral"}>
-                    {googleStatus === "connected" ? "Connected" : "Not connected"}
-                  </Badge>
-                </div>
-                <p className="mt-1 text-[13px] text-ink-2">Calendar, Gmail, Drive, and Sheets.</p>
-                {googleStatus === "connected" && googleConnectedAt ? (
-                  <p className="mt-1 text-[11.5px] text-ink-3">
-                    Connected {new Date(googleConnectedAt).toLocaleDateString()}
-                  </p>
-                ) : null}
-              </div>
-            </div>
-            {googleStatus === "connected" ? (
-              <form action={formAction}>
-                <Button type="submit" variant="secondary" disabled={pending}>
-                  {pending ? "Disconnecting…" : "Disconnect"}
-                </Button>
-              </form>
-            ) : googleConfigured ? (
-              <a href="/api/integrations/google/connect">
-                <Button type="button" variant="primary">
-                  Connect
-                </Button>
-              </a>
-            ) : (
-              <Button type="button" variant="primary" disabled>
-                Connect
-              </Button>
-            )}
-          </div>
-          {state.error ? <p className="mt-3 text-[12px] text-critical">{state.error}</p> : null}
-
-          {googleStatus === "connected" && googleEvents ? (
-            <div className="mt-4 border-t border-line pt-4">
-              <p className="flex items-center gap-1.5 text-[12px] font-semibold uppercase tracking-wide text-ink-3">
-                <Calendar size={13} /> Next on your Google Calendar
-              </p>
-              {googleEvents.length === 0 ? (
-                <p className="mt-2 text-[13px] text-ink-3">Nothing coming up.</p>
-              ) : (
-                <ul className="mt-2 flex flex-col gap-1.5">
-                  {googleEvents.map((e, i) => (
-                    <li key={i} className="text-[13px] text-ink-2">
-                      {e.summary} — <span className="text-ink-3">{new Date(e.start).toLocaleString()}</span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          ) : null}
-        </Card>
+        <IntegrationCard
+          name="Google Calendar"
+          blurb="Real Google Calendar access — more Google Workspace features are coming."
+          status={googleStatus}
+          connectedAt={googleConnectedAt}
+          configured={googleConfigured}
+          connectHref="/api/integrations/google/connect"
+          disconnectAction={disconnectGoogleAction}
+          events={googleEvents}
+          eventsLabel="Next on your Google Calendar"
+        />
+        <IntegrationCard
+          name="Outlook Calendar"
+          blurb="Real Microsoft/Outlook Calendar access — Teams and Mail are coming."
+          status={microsoftStatus}
+          connectedAt={microsoftConnectedAt}
+          configured={microsoftConfigured}
+          connectHref="/api/integrations/microsoft/connect"
+          disconnectAction={disconnectMicrosoftAction}
+          events={microsoftEvents}
+          eventsLabel="Next on your Outlook Calendar"
+        />
       </div>
 
       <p className="mt-8 mb-2 text-[12px] font-semibold uppercase tracking-wide text-ink-3">More on the way</p>

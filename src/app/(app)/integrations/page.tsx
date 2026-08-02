@@ -5,6 +5,7 @@ import { getSession } from "@/lib/session";
 import { getActiveWorkspaceIdForUser } from "@/server/services/onboardingService";
 import { db } from "@/server/db";
 import { isGoogleIntegrationConfigured, getUpcomingGoogleCalendarEvents } from "@/server/services/googleIntegrationService";
+import { isMicrosoftIntegrationConfigured, getUpcomingOutlookEvents } from "@/server/services/microsoftIntegrationService";
 
 export const metadata: Metadata = { title: "Integrations — 3Stone One" };
 
@@ -19,15 +20,25 @@ export default async function IntegrationsPage() {
     return <IntegrationsClient />;
   }
 
-  const google = await db.integration.findUnique({ where: { workspaceId_provider: { workspaceId, provider: "google" } } });
-  const events = google?.status === "connected" ? await getUpcomingGoogleCalendarEvents(workspaceId).catch(() => null) : null;
+  const [google, microsoft] = await Promise.all([
+    db.integration.findUnique({ where: { workspaceId_provider: { workspaceId, provider: "google" } } }),
+    db.integration.findUnique({ where: { workspaceId_provider: { workspaceId, provider: "microsoft" } } }),
+  ]);
+  const [googleEvents, microsoftEvents] = await Promise.all([
+    google?.status === "connected" ? getUpcomingGoogleCalendarEvents(workspaceId).catch(() => null) : Promise.resolve(null),
+    microsoft?.status === "connected" ? getUpcomingOutlookEvents(workspaceId).catch(() => null) : Promise.resolve(null),
+  ]);
 
   return (
     <RealIntegrationsClient
       googleConfigured={isGoogleIntegrationConfigured()}
       googleStatus={google?.status ?? "not_connected"}
       googleConnectedAt={google?.connectedAt?.toISOString() ?? null}
-      googleEvents={events}
+      googleEvents={googleEvents}
+      microsoftConfigured={isMicrosoftIntegrationConfigured()}
+      microsoftStatus={microsoft?.status ?? "not_connected"}
+      microsoftConnectedAt={microsoft?.connectedAt?.toISOString() ?? null}
+      microsoftEvents={microsoftEvents}
     />
   );
 }
