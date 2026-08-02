@@ -38,21 +38,42 @@ const STUDENT_SUGGESTIONS = [
   "Draft an outline for a project proposal",
 ];
 
+const WORKSPACE_SUGGESTIONS = [
+  "Draft a status update for a project",
+  "Help me plan a meeting agenda",
+  "Summarize a document I'll paste in",
+];
+
+const BUSINESS_SUGGESTIONS = [
+  "Draft a customer follow-up",
+  "Summarize a document I'll paste in",
+  "Help me plan a meeting agenda",
+];
+
+function realSessionSuggestions(editionKey: string): string[] {
+  if (editionKey === "student") return STUDENT_SUGGESTIONS;
+  if (editionKey === "workspace") return WORKSPACE_SUGGESTIONS;
+  return BUSINESS_SUGGESTIONS;
+}
+
+function realSessionHint(editionKey: string): string {
+  if (editionKey === "student") return "Ask anything — coursework, writing, planning";
+  return "Ask anything — documents, planning, writing";
+}
+
 export function AiAssistant() {
   const [open, setOpen] = useState(false);
-  const { isDemo, editionKey, aiAddOnEnabled } = useIndustry();
+  const { isDemo } = useIndustry();
 
   // Real bug found during an earlier AI audit: this widget used to answer
   // every question from DEMO_VENDORS / getIndustryDataset(profile.key) —
   // entirely fictional data — with no isDemo check at all. A real
   // customer opening it got confident, specific answers ("X owes a
-  // $500 deposit") about a business that isn't theirs. Fixed by hiding it
-  // for every real session except the one case that now has a real
-  // backing model: a Student-edition workspace with the AI add-on
-  // enabled (src/app/api/ai/assistant/route.ts re-checks both server-side
-  // — this is UX only, not the authorization boundary).
-  const canUseRealAi = editionKey === "student" && aiAddOnEnabled;
-  if (!isDemo && !canUseRealAi) return null;
+  // $500 deposit") about a business that isn't theirs. That's fixed by
+  // the branch in ask() below: every real (non-demo) session always
+  // hits the real model at /api/ai/assistant, never the mock data path.
+  // Real AI is included for every edition now - what keeps it safe is
+  // the server-side usage cap (usageCapService.ts), not an edition gate.
 
   return (
     <>
@@ -74,7 +95,7 @@ export function AiAssistant() {
 }
 
 function AssistantPanel({ onClose }: { onClose: () => void }) {
-  const { profile, isDemo } = useIndustry();
+  const { profile, isDemo, editionKey } = useIndustry();
   const pathname = usePathname();
   const isExecutive = isDemo && pathname === "/portfolio";
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -160,7 +181,7 @@ function AssistantPanel({ onClose }: { onClose: () => void }) {
             <p className="text-[14px] font-bold text-ink-1">3Stone AI</p>
             <p className="text-[12px] text-ink-3">
               {!isDemo
-                ? "Ask anything — coursework, writing, planning"
+                ? realSessionHint(editionKey)
                 : isExecutive
                   ? "Ask anything across all your businesses"
                   : `Ask anything about ${getIndustryDataset(profile.key).orgName}`}
@@ -180,11 +201,11 @@ function AssistantPanel({ onClose }: { onClose: () => void }) {
             <div className="flex flex-col gap-3">
               <p className="text-[13px] leading-relaxed text-ink-2">
                 {!isDemo
-                  ? "Ask me to help outline an assignment, plan out a project, or improve something you've written. Try one:"
+                  ? "Ask me to help outline something, plan out work, or improve something you've written. Try one:"
                   : "I can answer questions across every module — customers, projects, finance, your team, and more. Try one:"}
               </p>
               <div className="flex flex-col gap-1.5">
-                {(!isDemo ? STUDENT_SUGGESTIONS : isExecutive ? EXECUTIVE_SUGGESTIONS : SUGGESTIONS).map((s) => (
+                {(!isDemo ? realSessionSuggestions(editionKey) : isExecutive ? EXECUTIVE_SUGGESTIONS : SUGGESTIONS).map((s) => (
                   <button
                     key={s}
                     onClick={() => ask(s)}

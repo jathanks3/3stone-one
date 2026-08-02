@@ -8,7 +8,6 @@ import { IndustryProvider } from "@/lib/industry";
 import { getAllowedModuleKeys } from "@/lib/editionModules";
 import { getAllNavItems } from "@/lib/nav";
 import { getIndustryProfile } from "@/config/industry-profiles";
-import { getBillingSummary } from "@/server/services/billingService";
 import { AppShell } from "@/components/shell/AppShell";
 import type { IndustryProfileKey, SessionUser } from "@/types";
 
@@ -27,7 +26,6 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   let workspace: { id: string; name: string; industryProfileKey: IndustryProfileKey; editionKey: string };
   let user: SessionUser;
-  let aiAddOnEnabled: boolean;
 
   if (!session || session.isDemo) {
     // Unchanged from the mock-only era — demo never touches the database.
@@ -48,10 +46,6 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       editionKey: demoEditionKey,
     };
     user = DEMO_USER;
-    // Demo has no real Subscription row — always true so a prospective
-    // Student customer can see the real widget in the demo regardless of
-    // billing state.
-    aiAddOnEnabled = true;
   } else {
     const membership = await db.workspaceMember.findFirst({
       where: { userId: session.userId, status: "active" },
@@ -100,8 +94,6 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       role: membership.role.name as SessionUser["role"],
       title: membership.role.name,
     };
-    const billing = await getBillingSummary(workspace.id);
-    aiAddOnEnabled = billing.aiAddOnEnabled;
   }
 
   // Route-level enforcement: nav hiding alone doesn't stop a direct URL
@@ -126,7 +118,6 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       isDemo={!session || session.isDemo}
       workspaceName={workspace.name}
       editionKey={workspace.editionKey}
-      aiAddOnEnabled={aiAddOnEnabled}
     >
       <AppShell user={user}>{children}</AppShell>
     </IndustryProvider>

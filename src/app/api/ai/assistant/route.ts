@@ -2,13 +2,14 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getSession } from "@/lib/session";
 import { db } from "@/server/db";
-import { getBillingSummary } from "@/server/services/billingService";
 import { generateChatReply, isAiProviderConfigured, type AiChatMessage } from "@/server/ai/aiProvider";
+import { assertAiCapacity, recordAiUsage, UsageCapError } from "@/server/services/usageCapService";
 
-// Real AI, first wired up for the Student edition's paid add-on. Every
-// gate here is re-checked server-side against the database — the client
-// (AiAssistant.tsx) also checks editionKey/aiAddOnEnabled before showing
-// the widget, but that's UX only, never trusted for authorization.
+// Real AI, included for every real workspace on every edition - no more
+// Student-only paid toggle. What keeps this safe isn't an edition check,
+// it's the usage cap (usageCapService.ts): assertAiCapacity below throws
+// before this ever reaches the billable Anthropic call, and every
+// success is recorded so the cap can't be bypassed by racing requests.
 export const dynamic = "force-dynamic";
 
 const RATE_LIMIT_WINDOW_MS = 60_000;
@@ -23,11 +24,20 @@ function isRateLimited(key: string): boolean {
   return timestamps.length > RATE_LIMIT_MAX;
 }
 
-const SYSTEM_PROMPT = `You are the 3Stone One Student assistant, a helpful AI built into 3Stone One's Student edition — a lightweight workspace for college and grad school coursework and group projects (documents, tasks/projects, and meetings).
+function systemPromptFor(editionKey: string): string {
+  const context =
+    editionKey === "student"
+      ? "a lightweight workspace for college and grad school coursework and group projects (documents, tasks/projects, and meetings)"
+      : editionKey === "workspace"
+        ? "a day-to-day team workspace (CRM, projects, people, meetings, documents, and more)"
+        : "a full business operating system (customers, projects, finance, people, meetings, documents, and more)";
 
-Help with things like: explaining or outlining a document, breaking an assignment into tasks, drafting or improving writing, summarizing notes, and general study/project-planning questions. You do not have access to the student's actual documents, tasks, or grades in this conversation — if their question depends on specific content they haven't pasted in, ask them to share it rather than guessing.
+  return `You are the 3Stone One assistant, a helpful AI built into 3Stone One — ${context}.
+
+Help with things like: explaining or outlining a document, breaking work into tasks, drafting or improving writing, summarizing notes, and general planning questions. You do not have access to the workspace's actual documents, tasks, customers, or numbers in this conversation — if their question depends on specific content they haven't pasted in, ask them to share it rather than guessing.
 
 Be concise, direct, and encouraging. No hype, no filler.`;
+}
 
 const MAX_MESSAGES = 20;
 const MAX_MESSAGE_LENGTH = 4000;
@@ -51,17 +61,17 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "No workspace found." }, { status: 403 });
   }
 
-  if (membership.workspace.editionKey !== "student") {
-    return NextResponse.json({ error: "The AI assistant is only available on the Student edition." }, { status: 403 });
-  }
-
-  const billing = await getBillingSummary(membership.workspace.id);
-  if (!billing.aiAddOnEnabled) {
-    return NextResponse.json({ error: "The AI add-on isn't enabled for this workspace." }, { status: 403 });
-  }
-
   if (!isAiProviderConfigured()) {
     return NextResponse.json({ error: "AI isn't configured yet." }, { status: 503 });
+  }
+
+  try {
+    await assertAiCapacity(membership.workspace.id);
+  } catch (err) {
+    if (err instanceof UsageCapError) {
+      return NextResponse.json({ error: err.message }, { status: 402 });
+    }
+    throw err;
   }
 
   const body = await req.json().catch(() => null);
@@ -85,7 +95,10 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const result = await generateChatReply(SYSTEM_PROMPT, messages);
+    const result = await generateChatReply(systemPromptFor(membership.workspace.editionKey), messages);
+    // Only a successful, billed call counts against the cap - a failed
+    // generation must never cost the customer part of their allowance.
+    await recordAiUsage(membership.workspace.id, session.userId);
     return NextResponse.json({ text: result.text });
   } catch (err) {
     console.error("[api/ai/assistant] generation failed:", err);

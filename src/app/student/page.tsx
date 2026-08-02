@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import type { CSSProperties } from "react";
 import { FolderKanban, Calendar, StickyNote, Sparkles, Calculator, Briefcase } from "lucide-react";
-import { STUDENT_PLAN_TIERS, AI_ADD_ON_PRICE_MONTHLY } from "@/config/pricing";
+import { STUDENT_PLAN_TIERS } from "@/config/pricing";
+import { AI_ACTIONS_INCLUDED_PER_CYCLE } from "@/config/usageCaps";
 import { TierGrid } from "@/components/marketing/TierGrid";
 import { StudentMark } from "@/components/shell/EditionMark";
 import { SpotlightCards } from "@/components/marketing/SpotlightCards";
@@ -64,8 +65,8 @@ const FEATURES = [
   },
   {
     icon: Sparkles,
-    title: "AI assistant, as an add-on",
-    detail: `Turn on real AI help for $${AI_ADD_ON_PRICE_MONTHLY}/month - outline an assignment, get feedback on writing, or plan out a project.`,
+    title: "Real AI, included",
+    detail: `${AI_ACTIONS_INCLUDED_PER_CYCLE} AI actions included every month, no add-on required - outline an assignment, get feedback on writing, or plan out a project.`,
   },
 ];
 

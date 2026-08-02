@@ -83,9 +83,9 @@ export const WORKSPACE_PLAN_TIERS: PlanTier[] = [
 ];
 
 // Student edition (editionKey "student") - same philosophy as Workspace,
-// lighter still: no CRM, client portal, or team directory. AI is a paid
-// add-on (Subscription.aiAddOnEnabled), never included here - see
-// AiAssistant.tsx for why the assistant itself isn't wired to it yet.
+// lighter still: no CRM, client portal, or team directory. Real AI is
+// included on every tier (no separate add-on) - see
+// src/config/usageCaps.ts for the included allowance and overage pricing.
 export const STUDENT_PLAN_TIERS: PlanTier[] = [
   {
     key: "student_starter",
@@ -112,8 +112,6 @@ export const STUDENT_PLAN_TIERS: PlanTier[] = [
     stripePriceEnvVar: "STRIPE_PRICE_STUDENT_PREMIUM",
   },
 ];
-
-export const AI_ADD_ON_PRICE_MONTHLY = 25;
 
 // Enterprise has no fixed price on the marketing site (TierQuote.tierKey
 // is null for it — "price is a discovery-call conversation"), so it

@@ -32,7 +32,7 @@ export function FileUploadField({
       const signRes = await fetch("/api/uploads/sign", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ kind, filename: file.name }),
+        body: JSON.stringify({ kind, filename: file.name, sizeBytes: file.size }),
       });
       const signData = await signRes.json();
       if (!signRes.ok) throw new Error(signData.error ?? "Could not start upload.");

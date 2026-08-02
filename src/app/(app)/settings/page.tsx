@@ -7,6 +7,7 @@ import { listMembers, listPendingInvitations } from "@/server/services/teamServi
 import { getBillingSummary } from "@/server/services/billingService";
 import { isStripeConfigured } from "@/server/services/stripeService";
 import { isStorageConfigured } from "@/server/services/storageService";
+import { getAiUsageStatus, getStorageUsageStatus } from "@/server/services/usageCapService";
 import { RealSettingsClient } from "./RealSettingsClient";
 
 export const metadata: Metadata = { title: "Settings — 3Stone One" };
@@ -22,11 +23,13 @@ export default async function SettingsPage() {
     return <SettingsClient />;
   }
 
-  const [settings, members, invitations, billing] = await Promise.all([
+  const [settings, members, invitations, billing, aiUsage, storageUsage] = await Promise.all([
     getWorkspaceSettings(workspaceId),
     listMembers(workspaceId),
     listPendingInvitations(workspaceId),
     getBillingSummary(workspaceId),
+    getAiUsageStatus(workspaceId),
+    getStorageUsageStatus(workspaceId),
   ]);
 
   const ownMember = members.find((m) => m.userId === session.userId);
@@ -37,6 +40,8 @@ export default async function SettingsPage() {
       members={members}
       invitations={invitations}
       billing={billing}
+      aiUsage={aiUsage}
+      storageUsage={storageUsage}
       ownMemberId={ownMember?.id ?? ""}
       isOwner={ownMember?.roleName === "Owner"}
       stripeConfigured={isStripeConfigured()}

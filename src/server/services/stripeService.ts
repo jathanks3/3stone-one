@@ -2,6 +2,12 @@ import Stripe from "stripe";
 import { db } from "@/server/db";
 import { getPlanTier, type PlanTier } from "@/config/pricing";
 import { createNotification } from "@/server/services/notificationService";
+import {
+  AI_OVERAGE_PACK_ACTIONS,
+  AI_OVERAGE_PACK_PRICE_CENTS,
+  STORAGE_OVERAGE_PACK_GB,
+  STORAGE_OVERAGE_PACK_PRICE_CENTS,
+} from "@/config/usageCaps";
 import type { WorkspacePlan } from "@/types";
 
 // Lazy singleton, same reasoning as src/server/db.ts's Proxy-wrapped
@@ -133,6 +139,73 @@ export async function createCheckoutSession(
   return { url: session.url };
 }
 
+// Usage-cap overage packs (usageCapService.ts) - one-time purchases, not
+// subscriptions. Same auto-create-Product-if-missing pattern as
+// ensurePriceForPlan, so these never need hand-creating in the Stripe
+// dashboard either.
+const OVERAGE_PACKS = {
+  ai_overage: {
+    name: "3Stone One — +100 AI actions this cycle",
+    priceCents: AI_OVERAGE_PACK_PRICE_CENTS,
+    envVar: "STRIPE_PRICE_AI_OVERAGE_PACK",
+  },
+  storage_overage: {
+    name: "3Stone One — +5GB storage",
+    priceCents: STORAGE_OVERAGE_PACK_PRICE_CENTS,
+    envVar: "STRIPE_PRICE_STORAGE_OVERAGE_PACK",
+  },
+} as const;
+export type OveragePackKey = keyof typeof OVERAGE_PACKS;
+
+async function ensurePriceForOveragePack(packKey: OveragePackKey): Promise<string> {
+  const stripe = getStripeClient();
+  const pack = OVERAGE_PACKS[packKey];
+  const envPriceId = process.env[pack.envVar];
+  if (envPriceId) return envPriceId;
+
+  const existingProducts = await stripe.products.search({
+    query: `metadata['app']:'3stone-one' AND metadata['packKey']:'${packKey}'`,
+  });
+  const existingProduct = existingProducts.data[0];
+  if (existingProduct) {
+    const prices = await stripe.prices.list({ product: existingProduct.id, active: true, limit: 1 });
+    if (prices.data[0]) return prices.data[0].id;
+  }
+
+  const product =
+    existingProduct ??
+    (await stripe.products.create({ name: pack.name, metadata: { app: "3stone-one", packKey } }));
+  const price = await stripe.prices.create({
+    product: product.id,
+    currency: "usd",
+    unit_amount: pack.priceCents,
+    metadata: { app: "3stone-one", packKey },
+  });
+  return price.id;
+}
+
+export async function createOveragePackCheckoutSession(
+  workspaceId: string,
+  packKey: OveragePackKey,
+  urls: { successUrl: string; cancelUrl: string }
+): Promise<{ url: string }> {
+  const stripe = getStripeClient();
+  const customerId = await ensureCustomer(workspaceId);
+  const priceId = await ensurePriceForOveragePack(packKey);
+
+  const session = await stripe.checkout.sessions.create({
+    mode: "payment",
+    customer: customerId,
+    line_items: [{ price: priceId, quantity: 1 }],
+    success_url: urls.successUrl,
+    cancel_url: urls.cancelUrl,
+    metadata: { workspaceId, packKey },
+  });
+
+  if (!session.url) throw new Error("Stripe did not return a checkout URL.");
+  return { url: session.url };
+}
+
 export async function createBillingPortalSession(workspaceId: string, returnUrl: string): Promise<{ url: string }> {
   const stripe = getStripeClient();
   const subscription = await db.subscription.findUnique({ where: { workspaceId } });
@@ -181,8 +254,25 @@ export async function handleWebhookEvent(event: Stripe.Event): Promise<void> {
     case "checkout.session.completed": {
       const session = event.data.object as Stripe.Checkout.Session;
       const workspaceId = session.metadata?.workspaceId;
+      if (!workspaceId) break;
+
+      const packKey = session.metadata?.packKey as "ai_overage" | "storage_overage" | undefined;
+      if (packKey) {
+        // One-time overage-pack purchase, not a plan change - increments
+        // the cap, doesn't touch plan/status. AI actions are a per-cycle
+        // top-up (reset alongside the cycle below); storage is permanent.
+        await db.subscription.update({
+          where: { workspaceId },
+          data:
+            packKey === "ai_overage"
+              ? { aiActionsPurchased: { increment: AI_OVERAGE_PACK_ACTIONS } }
+              : { storageGbPurchased: { increment: STORAGE_OVERAGE_PACK_GB } },
+        });
+        break;
+      }
+
       const planKey = planKeyFromMetadata(session.metadata);
-      if (!workspaceId || !planKey) break;
+      if (!planKey) break;
       await db.workspace.update({ where: { id: workspaceId }, data: { plan: planKey } });
       await db.subscription.update({
         where: { workspaceId },
@@ -210,6 +300,16 @@ export async function handleWebhookEvent(event: Stripe.Event): Promise<void> {
         incomplete: "past_due",
         incomplete_expired: "canceled",
       };
+      const newPeriodStart = item?.current_period_start ? new Date(item.current_period_start * 1000) : undefined;
+
+      // A new billing cycle starting is what resets the AI overage top-up
+      // - it was only ever a top-up for the cycle it was bought in, per
+      // usageCapService.ts. Compare against what's already stored so this
+      // doesn't fire on every unrelated subscription.updated event.
+      const existing = await db.subscription.findUnique({ where: { workspaceId } });
+      const isNewCycle =
+        newPeriodStart && (!existing?.currentPeriodStart || existing.currentPeriodStart.getTime() !== newPeriodStart.getTime());
+
       await db.subscription.update({
         where: { workspaceId },
         data: {
@@ -218,7 +318,9 @@ export async function handleWebhookEvent(event: Stripe.Event): Promise<void> {
           stripePriceId: item?.price.id,
           mrrCents: item?.price.unit_amount ?? undefined,
           cancelAtPeriodEnd: sub.cancel_at_period_end,
+          currentPeriodStart: newPeriodStart,
           currentPeriodEnd: item?.current_period_end ? new Date(item.current_period_end * 1000) : undefined,
+          ...(isNewCycle ? { aiActionsPurchased: 0 } : {}),
         },
       });
       break;

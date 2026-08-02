@@ -9,11 +9,18 @@ import { Badge } from "@/ui/Badge";
 import { Avatar } from "@/ui/Avatar";
 import { FileUploadField } from "@/components/shared/FileUploadField";
 import { industryProfileList } from "@/config/industry-profiles";
-import { getPlanTiersForEdition, AI_ADD_ON_PRICE_MONTHLY, type PlanTier } from "@/config/pricing";
+import { getPlanTiersForEdition, type PlanTier } from "@/config/pricing";
 import { useIndustry } from "@/lib/industry";
 import type { WorkspaceSettings } from "@/server/services/workspaceSettingsService";
 import type { TeamMemberRow, PendingInvitationRow, AssignableRoleName } from "@/server/services/teamService";
 import type { BillingSummary } from "@/server/services/billingService";
+import type { AiUsageStatus, StorageUsageStatus } from "@/server/services/usageCapService";
+import {
+  AI_OVERAGE_PACK_ACTIONS,
+  AI_OVERAGE_PACK_PRICE_CENTS,
+  STORAGE_OVERAGE_PACK_GB,
+  STORAGE_OVERAGE_PACK_PRICE_CENTS,
+} from "@/config/usageCaps";
 import {
   type ActionState,
   updateSettingsAction,
@@ -25,7 +32,7 @@ import {
   transferOwnershipAction,
   startCheckoutAction,
   openBillingPortalAction,
-  toggleAiAddOnAction,
+  buyOveragePackAction,
 } from "./actions";
 
 const ASSIGNABLE_ROLES: AssignableRoleName[] = ["Admin", "Manager", "Member", "Client"];
@@ -378,30 +385,72 @@ function PlanCard({ plan, stripeConfigured }: { plan: PlanTier; stripeConfigured
   );
 }
 
-function AiAddOnCard({ aiAddOnEnabled }: { aiAddOnEnabled: boolean }) {
-  const [state, formAction, pending] = useActionState(toggleAiAddOnAction, emptyState);
+function UsageMeter({ label, used, total, unit }: { label: string; used: number; total: number; unit: string }) {
+  const pct = total > 0 ? Math.min(100, (used / total) * 100) : 0;
+  const nearCap = pct >= 90;
+  return (
+    <div>
+      <div className="flex items-baseline justify-between">
+        <p className="text-[12.5px] text-ink-3">{label}</p>
+        <p className={`text-[12.5px] font-medium ${nearCap ? "text-critical" : "text-ink-2"}`}>
+          {used.toLocaleString()} / {total.toLocaleString()} {unit}
+        </p>
+      </div>
+      <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-surface-raised">
+        <div
+          className={`h-full rounded-full ${nearCap ? "bg-critical" : "bg-accent"}`}
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+    </div>
+  );
+}
+
+function BuyPackButton({ packKey, label }: { packKey: "ai_overage" | "storage_overage"; label: string }) {
+  const [state, formAction, pending] = useActionState(buyOveragePackAction, emptyState);
+  return (
+    <form action={formAction}>
+      <input type="hidden" name="packKey" value={packKey} />
+      <Button type="submit" variant="secondary" disabled={pending}>
+        {pending ? "Opening…" : label}
+      </Button>
+      {state.error ? <p className="mt-2 text-[11px] text-critical">{state.error}</p> : null}
+    </form>
+  );
+}
+
+function UsageCard({ aiUsage, storageUsage }: { aiUsage: AiUsageStatus; storageUsage: StorageUsageStatus }) {
+  const storageUsedGb = storageUsage.usedBytes / 1_000_000_000;
+  const storageTotalGb = storageUsage.includedGb + storageUsage.purchasedGb;
   return (
     <Card className="p-5">
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <p className="text-[14px] font-semibold text-ink-1">AI Assistant add-on</p>
-          <p className="mt-1 text-[12.5px] text-ink-3">
-            ${AI_ADD_ON_PRICE_MONTHLY}/mo · not included in Student plans by default.
-          </p>
-        </div>
-        <form action={formAction}>
-          <input type="hidden" name="aiAddOnEnabled" value={aiAddOnEnabled ? "false" : "true"} />
-          <Button type="submit" variant={aiAddOnEnabled ? "secondary" : "primary"} disabled={pending}>
-            {pending ? "Saving…" : aiAddOnEnabled ? "Turn off" : "Turn on"}
-          </Button>
-        </form>
+      <p className="text-[14px] font-semibold text-ink-1">AI &amp; storage usage</p>
+      <p className="mt-1 text-[12.5px] text-ink-3">
+        Real AI is included on every plan — this cycle's allowance, and what more costs if you need it.
+      </p>
+      <div className="mt-4 flex flex-col gap-4">
+        <UsageMeter label="AI actions this cycle" used={aiUsage.used} total={aiUsage.total} unit="actions" />
+        <UsageMeter label="Storage" used={Math.round(storageUsedGb * 10) / 10} total={storageTotalGb} unit="GB" />
       </div>
-      {state.error ? <p className="mt-2 text-[11px] text-critical">{state.error}</p> : null}
+      <div className="mt-4 flex flex-wrap gap-2">
+        <BuyPackButton packKey="ai_overage" label={`+${AI_OVERAGE_PACK_ACTIONS} AI actions — $${(AI_OVERAGE_PACK_PRICE_CENTS / 100).toFixed(0)}`} />
+        <BuyPackButton packKey="storage_overage" label={`+${STORAGE_OVERAGE_PACK_GB}GB storage — $${(STORAGE_OVERAGE_PACK_PRICE_CENTS / 100).toFixed(0)}`} />
+      </div>
     </Card>
   );
 }
 
-function BillingTab({ billing, stripeConfigured }: { billing: BillingSummary; stripeConfigured: boolean }) {
+function BillingTab({
+  billing,
+  stripeConfigured,
+  aiUsage,
+  storageUsage,
+}: {
+  billing: BillingSummary;
+  stripeConfigured: boolean;
+  aiUsage: AiUsageStatus;
+  storageUsage: StorageUsageStatus;
+}) {
   const [portalState, portalAction, portalPending] = useActionState(openBillingPortalAction, emptyState);
   const { editionKey } = useIndustry();
   const planTiers = getPlanTiersForEdition(editionKey);
@@ -446,7 +495,7 @@ function BillingTab({ billing, stripeConfigured }: { billing: BillingSummary; st
         </div>
       </div>
 
-      {editionKey === "student" ? <AiAddOnCard aiAddOnEnabled={billing.aiAddOnEnabled} /> : null}
+      <UsageCard aiUsage={aiUsage} storageUsage={storageUsage} />
 
       <div>
         <p className="mb-2 text-[12px] font-semibold uppercase tracking-wide text-ink-3">Invoice history</p>
@@ -475,6 +524,8 @@ export function RealSettingsClient({
   members,
   invitations,
   billing,
+  aiUsage,
+  storageUsage,
   ownMemberId,
   isOwner,
   stripeConfigured,
@@ -484,6 +535,8 @@ export function RealSettingsClient({
   members: TeamMemberRow[];
   invitations: PendingInvitationRow[];
   billing: BillingSummary;
+  aiUsage: AiUsageStatus;
+  storageUsage: StorageUsageStatus;
   ownMemberId: string;
   isOwner: boolean;
   stripeConfigured: boolean;
@@ -507,7 +560,11 @@ export function RealSettingsClient({
               label: "Team",
               content: <TeamTab members={members} invitations={invitations} ownMemberId={ownMemberId} isOwner={isOwner} />,
             },
-            { key: "billing", label: "Billing", content: <BillingTab billing={billing} stripeConfigured={stripeConfigured} /> },
+            {
+              key: "billing",
+              label: "Billing",
+              content: <BillingTab billing={billing} stripeConfigured={stripeConfigured} aiUsage={aiUsage} storageUsage={storageUsage} />,
+            },
           ]}
         />
       </div>

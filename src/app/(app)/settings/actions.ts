@@ -4,7 +4,6 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { getSession } from "@/lib/session";
-import { db } from "@/server/db";
 import { getActiveWorkspaceIdForUser } from "@/server/services/onboardingService";
 import {
   requireTeamManager,
@@ -17,7 +16,7 @@ import {
   type AssignableRoleName,
 } from "@/server/services/teamService";
 import { updateWorkspaceSettings } from "@/server/services/workspaceSettingsService";
-import { createCheckoutSession, createBillingPortalSession } from "@/server/services/stripeService";
+import { createCheckoutSession, createBillingPortalSession, createOveragePackCheckoutSession, type OveragePackKey } from "@/server/services/stripeService";
 import type { IndustryProfileKey, WorkspacePlan } from "@/types";
 
 export interface ActionState {
@@ -189,23 +188,23 @@ export async function openBillingPortalAction(_prev: ActionState, _formData: For
   redirect(url);
 }
 
-// Student edition's AI add-on (see src/config/pricing.ts's
-// AI_ADD_ON_PRICE_MONTHLY and AiAssistant.tsx). Data-only toggle for now -
-// not wired to a real Stripe subscription item or real AI yet (the
-// assistant itself is still a deliberate demo-only stub). Recording the
-// real intent to buy it now means nothing has to be re-modeled once both
-// of those are built.
-export async function toggleAiAddOnAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+// Usage-cap overage packs (usageCapService.ts) - one-time purchases past
+// a workspace's included AI actions or storage. Always an explicit
+// purchase the customer triggers themselves, never a silent auto-charge.
+export async function buyOveragePackAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const { userId, workspaceId } = await currentWorkspaceId();
   await requireTeamManager(userId, workspaceId);
-  const aiAddOnEnabled = formData.get("aiAddOnEnabled") === "true";
+  const packKey = String(formData.get("packKey") ?? "") as OveragePackKey;
+  const origin = await currentOrigin();
 
-  await db.subscription.upsert({
-    where: { workspaceId },
-    update: { aiAddOnEnabled },
-    create: { workspaceId, aiAddOnEnabled, status: "trialing" },
-  });
-
-  revalidatePath("/settings");
-  return { success: aiAddOnEnabled ? "AI add-on enabled." : "AI add-on turned off." };
+  let url: string;
+  try {
+    ({ url } = await createOveragePackCheckoutSession(workspaceId, packKey, {
+      successUrl: `${origin}/settings?billing=success`,
+      cancelUrl: `${origin}/settings?billing=cancelled`,
+    }));
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Checkout is not available yet." };
+  }
+  redirect(url);
 }

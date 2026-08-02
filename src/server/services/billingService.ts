@@ -5,7 +5,6 @@ export interface BillingSummary {
   status: string;
   mrrCents: number;
   isFounderPricing: boolean;
-  aiAddOnEnabled: boolean;
   trialEndsAt: Date | null;
   currentPeriodEnd: Date | null;
   invoices: { id: string; amountCents: number; status: string; dueDate: Date | null; paidAt: Date | null }[];
@@ -29,7 +28,6 @@ export async function getBillingSummary(workspaceId: string): Promise<BillingSum
     status: subscription?.status ?? "trialing",
     mrrCents: subscription?.mrrCents ?? 0,
     isFounderPricing: subscription?.isFounderPricing ?? false,
-    aiAddOnEnabled: subscription?.aiAddOnEnabled ?? false,
     trialEndsAt: subscription?.trialEndsAt ?? null,
     currentPeriodEnd: subscription?.currentPeriodEnd ?? null,
     invoices: invoices.map((i) => ({

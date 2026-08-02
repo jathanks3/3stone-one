@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
 import { getActiveWorkspaceIdForUser } from "@/server/services/onboardingService";
 import { createSignedUploadUrl } from "@/server/services/storageService";
+import { assertStorageCapacity, UsageCapError } from "@/server/services/usageCapService";
 import type { UploadedFileKind } from "../../../../../generated/prisma/client";
 
 const VALID_KINDS: UploadedFileKind[] = ["avatar", "logo", "document"];
@@ -22,8 +23,20 @@ export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
   const kind = body?.kind as UploadedFileKind | undefined;
   const filename = typeof body?.filename === "string" ? body.filename : undefined;
-  if (!kind || !VALID_KINDS.includes(kind) || !filename) {
-    return NextResponse.json({ error: "kind and filename are required" }, { status: 400 });
+  const sizeBytes = typeof body?.sizeBytes === "number" ? body.sizeBytes : undefined;
+  if (!kind || !VALID_KINDS.includes(kind) || !filename || sizeBytes === undefined) {
+    return NextResponse.json({ error: "kind, filename, and sizeBytes are required" }, { status: 400 });
+  }
+
+  // Checked here, before a signed URL ever exists - rejecting after the
+  // bytes are already uploaded would waste the transfer for nothing.
+  try {
+    await assertStorageCapacity(workspaceId, sizeBytes);
+  } catch (e) {
+    if (e instanceof UsageCapError) {
+      return NextResponse.json({ error: e.message }, { status: 402 });
+    }
+    throw e;
   }
 
   try {

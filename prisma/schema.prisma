@@ -100,6 +100,7 @@ model Workspace {
   members            WorkspaceMember[]
   invitations        Invitation[]
   uploadedFiles      UploadedFile[]
+  aiUsageEvents      AiUsageEvent[]
   roles              Role[]
   sites              Site[]
   organizations      Organization[]
@@ -1378,15 +1379,33 @@ model Subscription {
   priceOverrideCents   Int?
   mrrCents             Int      @default(0)
   trialEndsAt          DateTime?
+  currentPeriodStart   DateTime?
   currentPeriodEnd     DateTime?
   createdAt            DateTime @default(now())
-  // Student edition paid add-on - the AI Assistant is never included in a
-  // base plan (see WorkspacePlan's student_* comment). Toggle only; the
-  // add-on's own real-AI wiring is separate, later work (AiAssistant.tsx
-  // and aiProvider.ts are still a deliberate stub regardless of this flag).
-  aiAddOnEnabled       Boolean  @default(false)
+  // Usage-cap overage, purchased via a one-time Stripe charge
+  // (usageCapService.ts / stripe/actions.ts). aiActionsPurchased resets
+  // to 0 every billing cycle (it's a top-up for THIS cycle only);
+  // storageGbPurchased is cumulative and never resets (purchased storage
+  // is permanent, unlike a monthly action allowance).
+  aiActionsPurchased   Int      @default(0)
+  storageGbPurchased   Int      @default(0)
 
   @@map("platform_subscriptions")
+}
+
+// One row per real AI call, per workspace - this IS the usage-cap
+// counter (count rows in the current billing cycle) rather than a
+// separate incrementing field, so it can never drift out of sync and
+// doubles as a real audit trail. See usageCapService.ts.
+model AiUsageEvent {
+  id          String   @id @default(cuid())
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id])
+  userId      String
+  createdAt   DateTime @default(now())
+
+  @@index([workspaceId, createdAt])
+  @@map("ai_usage_events")
 }
 
 // 3Stone AI -> workspace billing — distinct from the workspace's own Invoice

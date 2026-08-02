@@ -37,7 +37,7 @@ export function RealDocumentsClient({ initialDocuments }: { initialDocuments: Do
       const signRes = await fetch("/api/uploads/sign", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ kind: "document", filename: file.name }),
+        body: JSON.stringify({ kind: "document", filename: file.name, sizeBytes: file.size }),
       });
       const signed = await signRes.json();
       if (!signRes.ok) throw new Error(signed.error ?? "Could not start upload.");
