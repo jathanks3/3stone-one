@@ -867,9 +867,37 @@ model Integration {
   status      IntegrationStatus @default(not_connected)
   connectedAt DateTime?
   config      Json?
+  // Real OAuth token storage (googleIntegrationService.ts - first real
+  // provider, after this was schema-only for a long time). Encrypted at
+  // rest (src/lib/tokenEncryption.ts, AES-256-GCM, a dedicated key -
+  // never reusing SESSION_SECRET, which exists for a different purpose).
+  // scope is stored plain (not secret) so a UI can show what was
+  // actually granted without decrypting anything.
+  accessTokenEncrypted  String?
+  refreshTokenEncrypted String?
+  tokenExpiresAt        DateTime?
+  scope                 String?
+  connectedByUserId     String?
 
   @@unique([workspaceId, provider])
   @@map("integrations")
+}
+
+// Short-lived, single-use CSRF token for an OAuth round-trip
+// (googleIntegrationService.ts) - the id itself IS the state value
+// passed to the provider and back, so there's nothing for a client to
+// tamper with (it can't forge a valid id, and a used/expired one is
+// rejected outright).
+model OAuthState {
+  id          String   @id @default(cuid())
+  provider    String
+  workspaceId String
+  userId      String
+  expiresAt   DateTime
+  usedAt      DateTime?
+  createdAt   DateTime @default(now())
+
+  @@map("oauth_states")
 }
 
 model ApiKey {
