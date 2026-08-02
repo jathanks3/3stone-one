@@ -18,6 +18,7 @@ export interface ActionState {
   success?: string;
   id?: string;
   joinUrl?: string;
+  provider?: string;
 }
 
 async function currentWorkspaceId(): Promise<{ userId: string; workspaceId: string }> {
@@ -38,10 +39,11 @@ export async function createMeetingAction(_prev: ActionState, formData: FormData
       attendees: String(formData.get("attendees") ?? "").split(",").map((s) => s.trim()).filter(Boolean),
       agenda: String(formData.get("agenda") ?? ""),
       createTeamsMeeting: formData.get("createTeamsMeeting") === "on",
+      zoomJoinUrl: String(formData.get("zoomJoinUrl") ?? ""),
     };
     const meeting = await createMeeting(workspaceId, userId, input);
     revalidatePath("/meetings");
-    return { success: "Meeting scheduled.", id: meeting.id, joinUrl: meeting.externalJoinUrl ?? undefined };
+    return { success: "Meeting scheduled.", id: meeting.id, joinUrl: meeting.externalJoinUrl ?? undefined, provider: meeting.externalProvider ?? undefined };
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Something went wrong." };
   }

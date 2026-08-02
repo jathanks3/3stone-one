@@ -68,6 +68,7 @@ export interface CreateMeetingInput {
   attendees: string[];
   agenda: string;
   createTeamsMeeting?: boolean;
+  zoomJoinUrl?: string;
 }
 
 export async function createMeeting(workspaceId: string, actorId: string, input: CreateMeetingInput): Promise<MeetingRow> {
@@ -75,6 +76,13 @@ export async function createMeeting(workspaceId: string, actorId: string, input:
   if (!trimmed) throw new Error("Meeting title is required.");
   if (!input.scheduledAt) throw new Error("A date and time are required.");
   let teams: { id: string; joinUrl: string } | null = null;
+  let zoomJoinUrl: string | null = null;
+  if (input.zoomJoinUrl?.trim()) {
+    const candidate = new URL(input.zoomJoinUrl.trim());
+    if (candidate.protocol !== "https:" || !/(^|\.)zoom\.us$/i.test(candidate.hostname)) throw new Error("Enter a valid https://zoom.us meeting link.");
+    zoomJoinUrl = candidate.toString();
+  }
+  if (input.createTeamsMeeting && zoomJoinUrl) throw new Error("Choose either Teams or Zoom for this meeting.");
   if (input.createTeamsMeeting) {
     const { createTeamsMeeting } = await import("@/server/services/microsoftIntegrationService");
     const startsAt = new Date(input.scheduledAt);
@@ -91,9 +99,9 @@ export async function createMeeting(workspaceId: string, actorId: string, input:
       scheduledAt: new Date(input.scheduledAt),
       attendeeIds: input.attendees.filter(Boolean) as never,
       agenda: input.agenda.trim() || null,
-      externalProvider: teams ? "microsoft_teams" : null,
+      externalProvider: teams ? "microsoft_teams" : zoomJoinUrl ? "zoom" : null,
       externalMeetingId: teams?.id ?? null,
-      externalJoinUrl: teams?.joinUrl ?? null,
+      externalJoinUrl: teams?.joinUrl ?? zoomJoinUrl,
     },
     include: { actionItems: true, decisions: true },
   });
