@@ -5,6 +5,7 @@ import { hashPassword, verifyPassword } from "@/lib/password";
 import { createNotification } from "@/server/services/notificationService";
 import { getActiveWorkspaceIdForUser } from "@/server/services/onboardingService";
 import { sendEmail } from "@/server/services/emailService";
+import { renderEmailHtml } from "@/server/services/emailTemplates";
 
 async function currentOrigin(): Promise<string> {
   const headerList = await headers();
@@ -141,11 +142,18 @@ export async function requestPasswordReset(
   await logSecurityEvent(user.id, "password_reset_requested", context);
 
   const origin = await currentOrigin();
+  const resetUrl = `${origin}/reset-password/confirm?token=${token}`;
   const { delivered } = await sendEmail(
     {
       to: normalizedEmail,
       subject: "Reset your password — 3Stone One",
-      text: `Reset your password: ${origin}/reset-password/confirm?token=${token}`,
+      text: `Reset your password: ${resetUrl}`,
+      html: renderEmailHtml({
+        heading: "Reset your password",
+        bodyHtml: "We got a request to reset your 3Stone One password. If this wasn't you, you can safely ignore this email.",
+        ctaLabel: "Reset password",
+        ctaUrl: resetUrl,
+      }),
     },
     "password_reset"
   );

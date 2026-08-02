@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import { db } from "@/server/db";
 import { hashPassword } from "@/lib/password";
 import { sendEmail } from "@/server/services/emailService";
+import { renderEmailHtml } from "@/server/services/emailTemplates";
 import type { IndustryProfileKey, WorkspacePlan } from "@/types";
 
 async function currentOrigin(): Promise<string> {
@@ -81,11 +82,18 @@ export async function startSignup(email: string): Promise<{ userId: string; veri
   // unconditionally once real delivery works would defeat the point of
   // email verification — anyone with page access could self-verify.
   const origin = await currentOrigin();
+  const verifyUrl = `${origin}/signup/verify?token=${token}`;
   const { delivered } = await sendEmail(
     {
       to: normalizedEmail,
       subject: "Verify your email — 3Stone One",
-      text: `Verify your email to continue setting up your workspace: ${origin}/signup/verify?token=${token}`,
+      text: `Verify your email to continue setting up your workspace: ${verifyUrl}`,
+      html: renderEmailHtml({
+        heading: "Verify your email",
+        bodyHtml: "One more step before your workspace is ready — confirm this is your email address.",
+        ctaLabel: "Verify email",
+        ctaUrl: verifyUrl,
+      }),
     },
     "email_verification"
   );

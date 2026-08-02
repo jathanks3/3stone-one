@@ -4,6 +4,7 @@ import { db } from "@/server/db";
 import { hashPassword } from "@/lib/password";
 import { createNotification } from "@/server/services/notificationService";
 import { sendEmail } from "@/server/services/emailService";
+import { renderEmailHtml } from "@/server/services/emailTemplates";
 
 async function currentOrigin(): Promise<string> {
   const headerList = await headers();
@@ -165,11 +166,18 @@ export async function inviteMember(
   });
 
   const origin = await currentOrigin();
+  const acceptUrl = `${origin}/invite/accept?token=${inviteToken}`;
   const { delivered } = await sendEmail(
     {
       to: normalizedEmail,
       subject: "You're invited to 3Stone One",
-      text: `You've been invited to join a workspace on 3Stone One: ${origin}/invite/accept?token=${inviteToken}`,
+      text: `You've been invited to join a workspace on 3Stone One: ${acceptUrl}`,
+      html: renderEmailHtml({
+        heading: "You're invited to 3Stone One",
+        bodyHtml: "Someone on your team invited you to join their workspace on 3Stone One.",
+        ctaLabel: "Accept invitation",
+        ctaUrl: acceptUrl,
+      }),
     },
     "team_invitation"
   );
@@ -189,11 +197,18 @@ export async function resendInvitation(workspaceId: string, invitationId: string
     data: { expiresAt: new Date(Date.now() + INVITATION_TTL_MS) },
   });
   const origin = await currentOrigin();
+  const acceptUrl = `${origin}/invite/accept?token=${invitation.token}`;
   const { delivered } = await sendEmail(
     {
       to: invitation.email,
       subject: "Reminder: you're invited to 3Stone One",
-      text: `Reminder — you've been invited to join a workspace on 3Stone One: ${origin}/invite/accept?token=${invitation.token}`,
+      text: `Reminder — you've been invited to join a workspace on 3Stone One: ${acceptUrl}`,
+      html: renderEmailHtml({
+        heading: "Reminder: you're invited to 3Stone One",
+        bodyHtml: "Just a reminder — you still have an open invitation to join a workspace on 3Stone One.",
+        ctaLabel: "Accept invitation",
+        ctaUrl: acceptUrl,
+      }),
     },
     "team_invitation_reminder"
   );
