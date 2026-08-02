@@ -58,7 +58,12 @@ async function slackCall(workspaceId: string, method: string, init?: RequestInit
   const accessToken = await token(workspaceId);
   const res = await fetch(`https://slack.com/api/${method}`, { ...init, headers: { Authorization: `Bearer ${accessToken}`, ...(init?.headers ?? {}) }, cache: "no-store" });
   const data = await res.json();
-  if (!res.ok || !data.ok) throw new Error(`Slack request failed: ${data.error ?? res.status}`);
+  if (!res.ok || !data.ok) {
+    if (data.error === "not_in_channel") {
+      throw new Error("Invite @3Stone One to that Slack channel, then try again.");
+    }
+    throw new Error(`Slack request failed: ${data.error ?? res.status}`);
+  }
   return data;
 }
 

@@ -7,6 +7,7 @@ import { requireTeamManager } from "@/server/services/teamService";
 import { disconnectGoogle } from "@/server/services/googleIntegrationService";
 import { disconnectMicrosoft } from "@/server/services/microsoftIntegrationService";
 import { disconnectSlack } from "@/server/services/slackIntegrationService";
+import { connectCanvas, disconnectCanvas } from "@/server/services/canvasIntegrationService";
 
 export interface ActionState {
   error?: string;
@@ -54,5 +55,31 @@ export async function disconnectSlackAction(_prev: ActionState, _formData: FormD
     return { success: "Slack disconnected." };
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Something went wrong." };
+  }
+}
+
+export async function connectCanvasAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  try {
+    const { userId, workspaceId } = await currentWorkspaceId();
+    await requireTeamManager(userId, workspaceId);
+    await connectCanvas(workspaceId, userId, String(formData.get("baseUrl") ?? ""), String(formData.get("accessToken") ?? ""));
+    revalidatePath("/integrations");
+    revalidatePath("/calendar");
+    return { success: "Canvas connected. Upcoming assignments now populate Calendar." };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Couldn't connect Canvas." };
+  }
+}
+
+export async function disconnectCanvasAction(_prev: ActionState, _formData: FormData): Promise<ActionState> {
+  try {
+    const { userId, workspaceId } = await currentWorkspaceId();
+    await requireTeamManager(userId, workspaceId);
+    await disconnectCanvas(workspaceId);
+    revalidatePath("/integrations");
+    revalidatePath("/calendar");
+    return { success: "Canvas disconnected." };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Couldn't disconnect Canvas." };
   }
 }

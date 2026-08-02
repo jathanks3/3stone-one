@@ -2,6 +2,7 @@ import { db } from "@/server/db";
 import { logActivity } from "@/server/services/activityService";
 import { getUpcomingGoogleCalendarEvents } from "@/server/services/googleIntegrationService";
 import { getUpcomingOutlookEvents, deleteOutlookEvent } from "@/server/services/microsoftIntegrationService";
+import { listCanvasAssignments } from "@/server/services/canvasIntegrationService";
 
 export interface CalendarEventRow {
   id: string;
@@ -11,7 +12,7 @@ export interface CalendarEventRow {
   // Absent/"internal" = a real row this workspace owns (editable/deletable).
   // "google"/"outlook" = read-only, synced live from that provider each
   // page load — there is no local row to edit or delete.
-  source?: "internal" | "google" | "outlook";
+  source?: "internal" | "google" | "outlook" | "canvas";
   allDay?: boolean;
 }
 
@@ -41,14 +42,16 @@ function splitIsoStart(iso: string): { date: string; time: string; allDay: boole
 // connected — nothing here is stored locally, so a disconnect or a change
 // made in Google/Outlook shows up immediately on next page load.
 export async function listSyncedCalendarEvents(workspaceId: string): Promise<CalendarEventRow[]> {
-  const [google, microsoft] = await Promise.all([
+  const [google, microsoft, canvas] = await Promise.all([
     db.integration.findUnique({ where: { workspaceId_provider: { workspaceId, provider: "google" } } }),
     db.integration.findUnique({ where: { workspaceId_provider: { workspaceId, provider: "microsoft" } } }),
+    db.integration.findUnique({ where: { workspaceId_provider: { workspaceId, provider: "canvas" } } }),
   ]);
 
-  const [googleEvents, microsoftEvents] = await Promise.all([
+  const [googleEvents, microsoftEvents, canvasAssignments] = await Promise.all([
     google?.status === "connected" ? getUpcomingGoogleCalendarEvents(workspaceId, 25).catch(() => []) : Promise.resolve([]),
     microsoft?.status === "connected" ? getUpcomingOutlookEvents(workspaceId, 25).catch(() => []) : Promise.resolve([]),
+    canvas?.status === "connected" ? listCanvasAssignments(workspaceId).catch(() => []) : Promise.resolve([]),
   ]);
 
   const rows: CalendarEventRow[] = [];
@@ -64,6 +67,11 @@ export async function listSyncedCalendarEvents(workspaceId: string): Promise<Cal
     // - Calendars.ReadWrite is already granted, so this id is enough to
     // actually delete the event later via deleteSyncedCalendarEvent.
     rows.push({ id: `outlook:${e.id}`, title: e.summary, date, time, allDay, source: "outlook" });
+  });
+  canvasAssignments.forEach((assignment) => {
+    const { date, time, allDay } = splitIsoStart(assignment.dueAt);
+    if (!date) return;
+    rows.push({ id: `canvas:${assignment.id}`, title: assignment.title, date, time, allDay, source: "canvas" });
   });
   return rows;
 }

@@ -7,7 +7,7 @@ import { Card } from "@/ui/Card";
 import { Badge } from "@/ui/Badge";
 import { Button } from "@/ui/Button";
 import { useToast } from "@/lib/toast";
-import { disconnectGoogleAction, disconnectMicrosoftAction, disconnectSlackAction, type ActionState } from "@/app/(app)/integrations/actions";
+import { connectCanvasAction, disconnectCanvasAction, disconnectGoogleAction, disconnectMicrosoftAction, disconnectSlackAction, type ActionState } from "@/app/(app)/integrations/actions";
 import { integrationsForEdition, type IntegrationReadiness } from "@/lib/integrationCatalog";
 
 const emptyState: ActionState = {};
@@ -122,6 +122,8 @@ export function RealIntegrationsClient({
   slackConfigured,
   slackStatus,
   slackConnectedAt,
+  canvasStatus,
+  canvasConnectedAt,
 }: {
   googleConfigured: boolean;
   googleStatus: Status;
@@ -135,10 +137,14 @@ export function RealIntegrationsClient({
   slackConfigured: boolean;
   slackStatus: Status;
   slackConnectedAt: string | null;
+  canvasStatus: Status;
+  canvasConnectedAt: string | null;
 }) {
   const searchParams = useSearchParams();
   const { showToast } = useToast();
   const catalog = integrationsForEdition(editionKey);
+  const [canvasState, canvasAction, canvasPending] = useActionState(connectCanvasAction, emptyState);
+  const [canvasDisconnectState, canvasDisconnectAction, canvasDisconnectPending] = useActionState(disconnectCanvasAction, emptyState);
 
   useEffect(() => {
     const error = searchParams.get("error");
@@ -197,6 +203,32 @@ export function RealIntegrationsClient({
             events={null}
             eventsLabel=""
           />
+        ) : null}
+        {catalog.some((item) => item.key === "canvas") ? (
+          <Card className="p-5">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <div className="flex items-center gap-2">
+                  <p className="text-[14.5px] font-semibold text-ink-1">Canvas</p>
+                  <Badge tone={canvasStatus === "connected" ? "good" : "neutral"}>{canvasStatus === "connected" ? "Connected" : "Not connected"}</Badge>
+                </div>
+                <p className="mt-1 text-[13px] text-ink-2">Uses the student's school Canvas URL and personal access token. Upcoming assignments populate Calendar.</p>
+                {canvasConnectedAt ? <p className="mt-1 text-[11.5px] text-ink-3">Connected {new Date(canvasConnectedAt).toLocaleDateString()}</p> : null}
+              </div>
+              {canvasStatus === "connected" ? (
+                <form action={canvasDisconnectAction}><Button type="submit" variant="secondary" disabled={canvasDisconnectPending}>{canvasDisconnectPending ? "Disconnecting…" : "Disconnect"}</Button></form>
+              ) : null}
+            </div>
+            {canvasStatus !== "connected" ? (
+              <form action={canvasAction} className="mt-4 grid gap-3 border-t border-line pt-4 sm:grid-cols-[1fr_1fr_auto]">
+                <input name="baseUrl" type="url" required placeholder="https://school.instructure.com" aria-label="Canvas school URL" className="rounded-[9px] border border-line bg-surface px-3 py-2 text-[13px] text-ink-1" />
+                <input name="accessToken" type="password" required placeholder="Personal access token" aria-label="Canvas personal access token" className="rounded-[9px] border border-line bg-surface px-3 py-2 text-[13px] text-ink-1" />
+                <Button type="submit" variant="primary" disabled={canvasPending}>{canvasPending ? "Testing…" : "Connect"}</Button>
+              </form>
+            ) : null}
+            {(canvasState.error || canvasDisconnectState.error) ? <p className="mt-3 text-[12px] text-critical">{canvasState.error ?? canvasDisconnectState.error}</p> : null}
+            {canvasState.success ? <p className="mt-3 text-[12px] text-positive">{canvasState.success}</p> : null}
+          </Card>
         ) : null}
       </div>
 

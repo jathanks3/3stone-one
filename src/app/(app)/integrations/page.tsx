@@ -21,10 +21,11 @@ export default async function IntegrationsPage() {
     return <IntegrationsClient />;
   }
 
-  const [google, microsoft, slack] = await Promise.all([
+  const [google, microsoft, slack, canvas] = await Promise.all([
     db.integration.findUnique({ where: { workspaceId_provider: { workspaceId, provider: "google" } } }),
     db.integration.findUnique({ where: { workspaceId_provider: { workspaceId, provider: "microsoft" } } }),
     db.integration.findUnique({ where: { workspaceId_provider: { workspaceId, provider: "slack" } } }),
+    db.integration.findUnique({ where: { workspaceId_provider: { workspaceId, provider: "canvas" } } }),
   ]);
   const workspace = await db.workspace.findUnique({ where: { id: workspaceId }, select: { editionKey: true } });
   const [googleEvents, microsoftEvents] = await Promise.all([
@@ -46,6 +47,8 @@ export default async function IntegrationsPage() {
       slackConfigured={isSlackIntegrationConfigured()}
       slackStatus={slack?.status ?? "not_connected"}
       slackConnectedAt={slack?.connectedAt?.toISOString() ?? null}
+      canvasStatus={canvas?.status ?? "not_connected"}
+      canvasConnectedAt={canvas?.connectedAt?.toISOString() ?? null}
     />
   );
 }
