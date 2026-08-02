@@ -125,30 +125,56 @@ export default function HomePage() {
       </header>
 
       <main className="relative mx-auto max-w-3xl px-6 pb-24 pt-10 text-center">
-        <h1 className="text-balance text-[42px] font-extrabold leading-[1.1] tracking-tight text-ink-1 sm:text-[52px]">
-          The single screen for running your whole business.
-        </h1>
-        <p className="mx-auto mt-5 max-w-[560px] text-[16px] leading-relaxed text-ink-2">
-          CRM, projects, finance, and scheduling, sitting on top of the tools you already use - not replacing
-          them - with AI woven into every module.
-        </p>
-        <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-          <Link
-            href="/signup"
-            className="inline-flex h-11 items-center rounded-[10px] bg-accent px-6 text-[14.5px] font-semibold text-on-accent hover:opacity-90"
-          >
-            Get started
-          </Link>
-          {/* Plain <a>, not Link - /demo issues a new session cookie and
-              redirects to /dashboard. A client-side transition can serve
-              a cached /dashboard from before the cookie changed; a real
-              navigation never does. */}
-          <a
-            href="/demo"
-            className="inline-flex h-11 items-center rounded-[10px] border border-line-strong px-6 text-[14.5px] font-semibold text-ink-1 hover:bg-surface"
-          >
-            Try the live demo
-          </a>
+        <div className="mx-auto max-w-5xl">
+          <div className="grid items-center gap-10 text-left lg:grid-cols-[1.05fr_1fr] lg:gap-14">
+            <div className="text-center lg:text-left">
+              <h1 className="text-balance text-[42px] font-extrabold leading-[1.1] tracking-tight text-ink-1 sm:text-[52px]">
+                The single screen for running your whole business.
+              </h1>
+              <p className="mx-auto mt-5 max-w-[520px] text-[16px] leading-relaxed text-ink-2 lg:mx-0">
+                CRM, projects, finance, and scheduling, sitting on top of the tools you already use - not
+                replacing them - with AI woven into every module.
+              </p>
+              <div className="mt-8 flex flex-wrap items-center justify-center gap-3 lg:justify-start">
+                <Link
+                  href="/signup"
+                  className="inline-flex h-11 items-center rounded-[10px] bg-accent px-6 text-[14.5px] font-semibold text-on-accent hover:opacity-90"
+                >
+                  Get started
+                </Link>
+                {/* Plain <a>, not Link - /demo issues a new session cookie and
+                    redirects to /dashboard. A client-side transition can serve
+                    a cached /dashboard from before the cookie changed; a real
+                    navigation never does. */}
+                <a
+                  href="/demo"
+                  className="inline-flex h-11 items-center rounded-[10px] border border-line-strong px-6 text-[14.5px] font-semibold text-ink-1 hover:bg-surface"
+                >
+                  Try the live demo
+                </a>
+              </div>
+            </div>
+
+            {/* A real screenshot of the actual live dashboard (demo mode,
+                flagship edition) - not a mockup. Framed like a browser
+                window so it reads as "the real product" rather than a
+                floating image. */}
+            <div className="overflow-hidden rounded-[14px] border border-line bg-surface shadow-[0_30px_70px_-30px_rgba(0,0,0,0.8)]">
+              <div className="flex items-center gap-1.5 border-b border-line px-3.5 py-2.5">
+                <span className="h-2.5 w-2.5 rounded-full bg-[#ff5f57]" />
+                <span className="h-2.5 w-2.5 rounded-full bg-[#febc2e]" />
+                <span className="h-2.5 w-2.5 rounded-full bg-[#28c840]" />
+              </div>
+              <Image
+                src="/marketing/hero-dashboard.png"
+                alt="The real 3Stone One dashboard - morning briefing, business health score, what needs attention, and recent activity"
+                width={1600}
+                height={1000}
+                className="w-full"
+                priority
+              />
+            </div>
+          </div>
         </div>
 
         <div className="mt-20 grid gap-5 text-left sm:grid-cols-3">
