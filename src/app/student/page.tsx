@@ -8,7 +8,11 @@ import { TierGrid } from "@/components/marketing/TierGrid";
 import { StudentMark } from "@/components/shell/EditionMark";
 import { SpotlightCards } from "@/components/marketing/SpotlightCards";
 
-export const metadata: Metadata = { title: "3Stone One Student — coursework and group projects, in one place" };
+export const metadata: Metadata = {
+  title: "3Stone One Student — coursework and group projects, in one place",
+  alternates: { canonical: "/student" },
+  openGraph: { title: "3Stone One Student — coursework and group projects, in one place", url: "/student", type: "website" },
+};
 
 // Dedicated marketing page for the Student edition. Accent is the same
 // violet used in the real in-app sidebar for this edition (globals.css

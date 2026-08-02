@@ -20,9 +20,19 @@ const plexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://one.3stoneai.com"),
   title: "3Stone One — One place to run your business",
   description:
     "The operating system for a business: CRM, projects, finance, and your team, in one place.",
+  alternates: { canonical: "/" },
+  openGraph: {
+    title: "3Stone One — One place to run your business",
+    description:
+      "The operating system for a business: CRM, projects, finance, and your team, in one place.",
+    url: "/",
+    siteName: "3Stone One",
+    type: "website",
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

@@ -7,7 +7,11 @@ import { TierGrid } from "@/components/marketing/TierGrid";
 import { WorkspaceMark } from "@/components/shell/EditionMark";
 import { SpotlightCards } from "@/components/marketing/SpotlightCards";
 
-export const metadata: Metadata = { title: "3Stone One Workspace — for day-to-day workers, CEOs, and managers" };
+export const metadata: Metadata = {
+  title: "3Stone One Workspace — for day-to-day workers, CEOs, and managers",
+  alternates: { canonical: "/workspace" },
+  openGraph: { title: "3Stone One Workspace — for day-to-day workers, CEOs, and managers", url: "/workspace", type: "website" },
+};
 
 // Dedicated marketing page for the Workspace edition. Accent is the same
 // teal used in the real in-app sidebar for this edition (globals.css

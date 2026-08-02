@@ -6,7 +6,11 @@ import { PLAN_TIERS, WORKSPACE_PLAN_TIERS, STUDENT_PLAN_TIERS, ENTERPRISE_LABEL,
 import { TierGrid } from "@/components/marketing/TierGrid";
 import { SpotlightCards } from "@/components/marketing/SpotlightCards";
 
-export const metadata: Metadata = { title: "Pricing — 3Stone One" };
+export const metadata: Metadata = {
+  title: "Pricing — 3Stone One",
+  alternates: { canonical: "/pricing" },
+  openGraph: { title: "Pricing — 3Stone One", url: "/pricing", type: "website" },
+};
 
 // Same dark-brand treatment as the homepage and signup wizard - one
 // visual language across every public-facing surface. Renders tier data
