@@ -54,11 +54,19 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     });
 
     if (!membership) {
-      // A real, authenticated person with no workspace of their own yet
-      // (today, only possible for staff-only accounts like the founder's).
-      // Never fall back to demo/mock content for a real session — send
-      // them somewhere that's actually theirs, or nowhere.
-      redirect(hasStaffAccess(session) ? "/3stone-ai" : "/login");
+      // A real, authenticated person with no workspace of their own yet.
+      // Real bug found here: this used to send non-staff accounts to
+      // /login - but proxy.ts treats /login as "already logged in? go to
+      // /dashboard", and this layout treats /dashboard as "no membership?
+      // go to /login" - an account with a password but no workspace
+      // (signup abandoned right after setting a password, before
+      // createWorkspace ran) got stuck bouncing between the two forever
+      // ("this page isn't working" / ERR_TOO_MANY_REDIRECTS). Send them
+      // to finish creating a workspace instead - that page only requires
+      // a real session (see signup/workspace/page.tsx), so it works
+      // exactly the same whether they arrived via the normal wizard or
+      // by resuming here after logging back in.
+      redirect(hasStaffAccess(session) ? "/3stone-ai" : "/signup/workspace");
     }
 
     // Session revocation check: a password change/reset increments
