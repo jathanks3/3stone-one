@@ -13,7 +13,7 @@ export default async function SignupProductPage() {
   }
 
   return (
-    <SignupShell title="Choose your product" subtitle="You can't change this later without contacting support." stepIndex={5}>
+    <SignupShell title="Choose your product" subtitle="You can't change this later without contacting support." stepIndex={4}>
       <ProductForm />
     </SignupShell>
   );

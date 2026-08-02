@@ -27,13 +27,15 @@ export async function selectEditionAction(_prevState: ProductFormState, formData
 
   await confirmProductAndEdition(workspaceId, editionKey);
 
-  // "Which industry are you in" only makes sense for the flagship product
-  // - Workspace and Student each have exactly one fixed profile (see
-  // src/config/industry-profiles/workplace.ts, student.ts), so there's
-  // nothing to ask; skip straight to plan selection instead of showing a
-  // construction/restaurant/etc picker that doesn't apply to them.
+  // "What's your business name" and "which industry are you in" only
+  // make sense for the flagship product - Workspace is a day-to-day
+  // worker/manager's own workspace (not necessarily "a business"), and
+  // Student definitely isn't one. Workspace/Student each get a fixed
+  // industry profile (see src/config/industry-profiles/workplace.ts,
+  // student.ts) and skip both steps straight to plan selection, rather
+  // than being asked for a business name they don't have.
   if (editionKey === "business") {
-    redirect("/signup/industry");
+    redirect("/signup/business-info");
   }
   await selectIndustry(workspaceId, editionKey === "workspace" ? "workplace" : "student");
   redirect("/signup/plan");

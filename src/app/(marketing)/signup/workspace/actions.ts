@@ -33,5 +33,5 @@ export async function createWorkspaceAction(_prevState: WorkspaceFormState, form
     return { error: e instanceof Error ? e.message : "Something went wrong." };
   }
 
-  redirect("/signup/business-info");
+  redirect("/signup/product");
 }
