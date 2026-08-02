@@ -2,12 +2,13 @@
 
 import { useActionState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
-import { Plug, Calendar } from "lucide-react";
+import { Plug, Calendar, ArrowUpRight } from "lucide-react";
 import { Card } from "@/ui/Card";
 import { Badge } from "@/ui/Badge";
 import { Button } from "@/ui/Button";
 import { useToast } from "@/lib/toast";
 import { disconnectGoogleAction, disconnectMicrosoftAction, type ActionState } from "@/app/(app)/integrations/actions";
+import { integrationsForEdition, type IntegrationReadiness } from "@/lib/integrationCatalog";
 
 const emptyState: ActionState = {};
 
@@ -19,15 +20,6 @@ const ERROR_MESSAGES: Record<string, string> = {
   session_mismatch: "That connection link was for a different session. Try connecting again.",
   connection_failed: "Couldn't complete the connection. Try again.",
 };
-
-const COMING_SOON = [
-  { name: "OneDrive & Teams", blurb: "Sync OneDrive documents and Teams chat/meetings when those product features are built." },
-  { name: "Gmail, Drive & Sheets", blurb: "Sync Gmail, Drive documents, and live spreadsheet reports — calendar is already live above." },
-  { name: "Zoom", blurb: "Create and join Zoom meetings straight from Meetings." },
-  { name: "Canvas", blurb: "Pull real assignments and due dates from your school's Canvas." },
-  { name: "Slack", blurb: "Mirror key channels and get notifications in Slack." },
-  { name: "QuickBooks", blurb: "Revenue, expenses, and invoice status sync into Finance automatically." },
-];
 
 type Status = "connected" | "not_connected" | "error";
 type CalendarEvent = { summary: string; start: string };
@@ -126,6 +118,7 @@ export function RealIntegrationsClient({
   microsoftStatus,
   microsoftConnectedAt,
   microsoftEvents,
+  editionKey,
 }: {
   googleConfigured: boolean;
   googleStatus: Status;
@@ -135,9 +128,11 @@ export function RealIntegrationsClient({
   microsoftStatus: Status;
   microsoftConnectedAt: string | null;
   microsoftEvents: CalendarEvent[] | null;
+  editionKey: string;
 }) {
   const searchParams = useSearchParams();
   const { showToast } = useToast();
+  const catalog = integrationsForEdition(editionKey);
 
   useEffect(() => {
     const error = searchParams.get("error");
@@ -173,7 +168,7 @@ export function RealIntegrationsClient({
         />
         <IntegrationCard
           name="Microsoft Outlook"
-          blurb="Real Outlook Calendar and Mail access — read your inbox and send email from Communications."
+          blurb="Outlook Mail and Calendar are live. Reconnect once for OneDrive files and Teams meeting links."
           status={microsoftStatus}
           connectedAt={microsoftConnectedAt}
           configured={microsoftConfigured}
@@ -184,15 +179,32 @@ export function RealIntegrationsClient({
         />
       </div>
 
-      <p className="mt-8 mb-2 text-[12px] font-semibold uppercase tracking-wide text-ink-3">More on the way</p>
+      <p className="mt-8 mb-2 text-[12px] font-semibold uppercase tracking-wide text-ink-3">Available for this edition</p>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        {COMING_SOON.map((item) => (
-          <Card key={item.name} className="p-4 opacity-60">
-            <p className="text-[13.5px] font-semibold text-ink-1">{item.name}</p>
-            <p className="mt-1 text-[12.5px] text-ink-2">{item.blurb}</p>
+        {catalog.map((item) => (
+          <Card key={item.key} className="p-4">
+            <div className="flex items-start justify-between gap-3">
+              <p className="text-[13.5px] font-semibold text-ink-1">{item.name}</p>
+              <Badge tone={item.readiness === "live" ? "good" : item.readiness === "configured" ? "accent" : "neutral"}>{readinessLabel(item.readiness)}</Badge>
+            </div>
+            <p className="mt-1 text-[12.5px] leading-relaxed text-ink-2">{item.summary}</p>
+            <div className="mt-3 flex flex-wrap gap-1.5">
+              {item.destinations.map((destination) => (
+                <a key={`${item.key}-${destination.href}-${destination.label}`} href={destination.href} className="inline-flex items-center gap-1 rounded-full border border-line px-2.5 py-1 text-[11.5px] font-medium text-ink-2 hover:border-accent hover:text-accent">
+                  {destination.label} <ArrowUpRight size={11} />
+                </a>
+              ))}
+            </div>
           </Card>
         ))}
       </div>
     </div>
   );
+}
+
+function readinessLabel(readiness: IntegrationReadiness): string {
+  if (readiness === "live") return "Live path";
+  if (readiness === "configured") return "App configured";
+  if (readiness === "approval_required") return "Vendor approval";
+  return "In build";
 }

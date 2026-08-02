@@ -29,7 +29,9 @@ export async function createJobApplicationAction(_prev: ActionState, formData: F
       userId,
       String(formData.get("company") ?? ""),
       String(formData.get("role") ?? ""),
-      String(formData.get("notes") ?? "")
+      String(formData.get("notes") ?? ""),
+      String(formData.get("source") ?? "manual"),
+      String(formData.get("sourceUrl") ?? "")
     );
     revalidatePath("/job-tracker");
     return { success: "Application added.", id: application.id };

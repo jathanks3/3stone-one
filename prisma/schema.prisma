@@ -714,6 +714,8 @@ model JobApplication {
   status      ApplicationStatus @default(saved)
   appliedDate DateTime?
   notes       String?
+  source      String            @default("manual")
+  sourceUrl   String?
   createdAt   DateTime          @default(now())
 
   @@index([workspaceId, studentId])

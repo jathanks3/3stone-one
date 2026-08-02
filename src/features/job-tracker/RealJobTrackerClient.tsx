@@ -31,6 +31,8 @@ export function RealJobTrackerClient({ initialApplications }: { initialApplicati
   const [company, setCompany] = useState("");
   const [role, setRole] = useState("");
   const [notes, setNotes] = useState("");
+  const [source, setSource] = useState("manual");
+  const [sourceUrl, setSourceUrl] = useState("");
   const [isPending, startTransition] = useTransition();
   const { showToast } = useToast();
 
@@ -44,10 +46,12 @@ export function RealJobTrackerClient({ initialApplications }: { initialApplicati
       fd.set("notes", notes.trim());
       const result = await createJobApplicationAction({}, fd);
       if (result.error || !result.id) return showToast({ title: "Couldn't add application", description: result.error ?? "Something went wrong." });
-      setApplications((prev) => [...prev, { id: result.id!, company: company.trim(), role: role.trim(), status: "saved", appliedDate: null, notes: notes.trim() || null }]);
+      setApplications((prev) => [...prev, { id: result.id!, company: company.trim(), role: role.trim(), status: "saved", appliedDate: null, notes: notes.trim() || null, source, sourceUrl: sourceUrl.trim() || null }]);
       setCompany("");
       setRole("");
       setNotes("");
+      setSource("manual");
+      setSourceUrl("");
       setAdding(false);
     });
   }
@@ -103,7 +107,7 @@ export function RealJobTrackerClient({ initialApplications }: { initialApplicati
 
       {adding ? (
         <Card className="mt-5 p-4">
-          <form onSubmit={addApplication} className="flex flex-col gap-3 sm:flex-row sm:items-end">
+          <form onSubmit={addApplication} className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
             <label className="flex-1 text-[12.5px] font-medium text-ink-2">
               Company
               <input
@@ -113,6 +117,20 @@ export function RealJobTrackerClient({ initialApplications }: { initialApplicati
                 placeholder="e.g. Cedar & Co."
                 className="mt-1 h-9 w-full rounded-[8px] border border-line-strong bg-bg px-3 text-[13.5px] text-ink-1 outline-none focus:border-accent"
               />
+            </label>
+            <label className="text-[12.5px] font-medium text-ink-2">
+              Source
+              <select name="source" value={source} onChange={(e) => setSource(e.target.value)} className="mt-1 h-9 w-full rounded-[8px] border border-line-strong bg-bg px-3 text-[13.5px] text-ink-1 outline-none focus:border-accent">
+                <option value="manual">Manual</option>
+                <option value="linkedin">LinkedIn</option>
+                <option value="handshake">Handshake</option>
+                <option value="company_site">Company site</option>
+                <option value="other">Other</option>
+              </select>
+            </label>
+            <label className="text-[12.5px] font-medium text-ink-2 sm:col-span-2">
+              Job or internship link (optional)
+              <input name="sourceUrl" type="url" value={sourceUrl} onChange={(e) => setSourceUrl(e.target.value)} placeholder="https://…" className="mt-1 h-9 w-full rounded-[8px] border border-line-strong bg-bg px-3 text-[13.5px] text-ink-1 outline-none focus:border-accent" />
             </label>
             <label className="flex-1 text-[12.5px] font-medium text-ink-2">
               Role
@@ -132,7 +150,7 @@ export function RealJobTrackerClient({ initialApplications }: { initialApplicati
                 className="mt-1 h-9 w-full rounded-[8px] border border-line-strong bg-bg px-3 text-[13.5px] text-ink-1 outline-none focus:border-accent"
               />
             </label>
-            <button type="submit" disabled={isPending} className="h-9 flex-shrink-0 rounded-[8px] bg-accent px-4 text-[13px] font-semibold text-on-accent hover:opacity-90 disabled:opacity-60">
+            <button type="submit" disabled={isPending} className="h-9 self-end rounded-[8px] bg-accent px-4 text-[13px] font-semibold text-on-accent hover:opacity-90 disabled:opacity-60">
               Add
             </button>
           </form>
@@ -170,6 +188,10 @@ export function RealJobTrackerClient({ initialApplications }: { initialApplicati
                           </button>
                         </div>
                         <p className="mt-0.5 text-[12.5px] text-ink-2">{app.role}</p>
+                        <div className="mt-1.5 flex items-center gap-2">
+                          <span className="rounded-full bg-surface-raised px-2 py-0.5 text-[10.5px] font-medium capitalize text-ink-3">{app.source.replace("_", " ")}</span>
+                          {app.sourceUrl ? <a href={app.sourceUrl} target="_blank" rel="noreferrer" className="text-[11px] font-semibold text-accent hover:underline">Open listing</a> : null}
+                        </div>
                         {displayDate ? <p className="mt-1.5 text-[11px] text-ink-3">Applied {displayDate}</p> : null}
                         {app.notes ? <p className="mt-1.5 line-clamp-2 text-[11.5px] leading-relaxed text-ink-3">{app.notes}</p> : null}
                         <div className="mt-2.5 flex items-center justify-between border-t border-line pt-2">

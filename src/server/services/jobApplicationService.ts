@@ -9,22 +9,27 @@ export interface JobApplicationRow {
   status: ApplicationStatus;
   appliedDate: Date | null;
   notes: string | null;
+  source: string;
+  sourceUrl: string | null;
 }
 
 export async function listJobApplications(workspaceId: string, studentId: string): Promise<JobApplicationRow[]> {
   return db.jobApplication.findMany({
     where: { workspaceId, studentId },
     orderBy: { createdAt: "asc" },
-    select: { id: true, company: true, role: true, status: true, appliedDate: true, notes: true },
+    select: { id: true, company: true, role: true, status: true, appliedDate: true, notes: true, source: true, sourceUrl: true },
   });
 }
 
-export async function createJobApplication(workspaceId: string, studentId: string, company: string, role: string, notes: string): Promise<JobApplicationRow> {
+export async function createJobApplication(workspaceId: string, studentId: string, company: string, role: string, notes: string, source = "manual", sourceUrl = ""): Promise<JobApplicationRow> {
   const trimmedCompany = company.trim();
   const trimmedRole = role.trim();
   if (!trimmedCompany || !trimmedRole) throw new Error("Company and role are required.");
+  const normalizedSource = ["manual", "linkedin", "handshake", "company_site", "other"].includes(source) ? source : "other";
+  const normalizedUrl = sourceUrl.trim();
+  if (normalizedUrl && !/^https?:\/\//i.test(normalizedUrl)) throw new Error("The job link must start with http:// or https://.");
   const application = await db.jobApplication.create({
-    data: { workspaceId, studentId, company: trimmedCompany, role: trimmedRole, notes: notes.trim() || null, status: "saved" },
+    data: { workspaceId, studentId, company: trimmedCompany, role: trimmedRole, notes: notes.trim() || null, source: normalizedSource, sourceUrl: normalizedUrl || null, status: "saved" },
   });
   await logActivity(workspaceId, studentId, "added_job_application", "JobApplication", application.id, { company: trimmedCompany, role: trimmedRole });
   return application;

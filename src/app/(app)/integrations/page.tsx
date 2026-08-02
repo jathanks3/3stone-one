@@ -24,6 +24,7 @@ export default async function IntegrationsPage() {
     db.integration.findUnique({ where: { workspaceId_provider: { workspaceId, provider: "google" } } }),
     db.integration.findUnique({ where: { workspaceId_provider: { workspaceId, provider: "microsoft" } } }),
   ]);
+  const workspace = await db.workspace.findUnique({ where: { id: workspaceId }, select: { editionKey: true } });
   const [googleEvents, microsoftEvents] = await Promise.all([
     google?.status === "connected" ? getUpcomingGoogleCalendarEvents(workspaceId).catch(() => null) : Promise.resolve(null),
     microsoft?.status === "connected" ? getUpcomingOutlookEvents(workspaceId).catch(() => null) : Promise.resolve(null),
@@ -39,6 +40,7 @@ export default async function IntegrationsPage() {
       microsoftStatus={microsoft?.status ?? "not_connected"}
       microsoftConnectedAt={microsoft?.connectedAt?.toISOString() ?? null}
       microsoftEvents={microsoftEvents}
+      editionKey={workspace?.editionKey ?? "business"}
     />
   );
 }
