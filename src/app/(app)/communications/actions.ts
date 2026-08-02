@@ -5,6 +5,7 @@ import { getSession } from "@/lib/session";
 import { getActiveWorkspaceIdForUser } from "@/server/services/onboardingService";
 import { requireActiveMember } from "@/server/services/teamService";
 import { createCallNote, createChannel, sendMessage } from "@/server/services/communicationsService";
+import { sendOutlookMail } from "@/server/services/microsoftIntegrationService";
 
 export interface ActionState {
   error?: string;
@@ -51,6 +52,22 @@ export async function createCallNoteAction(_prev: ActionState, formData: FormDat
     const note = await createCallNote(workspaceId, userId, String(formData.get("personId") ?? ""), String(formData.get("summary") ?? ""));
     revalidatePath("/communications");
     return { success: "Call note logged.", id: note.id };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Something went wrong." };
+  }
+}
+
+export async function sendOutlookMailAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  try {
+    const { userId, workspaceId } = await currentWorkspaceId();
+    await requireActiveMember(userId, workspaceId);
+    await sendOutlookMail(workspaceId, {
+      to: String(formData.get("to") ?? ""),
+      subject: String(formData.get("subject") ?? ""),
+      body: String(formData.get("body") ?? ""),
+    });
+    revalidatePath("/communications");
+    return { success: "Email sent." };
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Something went wrong." };
   }

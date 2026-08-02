@@ -1,12 +1,17 @@
 import { db } from "@/server/db";
 import { encryptToken, decryptToken } from "@/lib/tokenEncryption";
 
-// Real Microsoft OAuth (Microsoft Graph) - same shape as
-// googleIntegrationService.ts, same lesson applied from day one: only
-// request the scope for what's actually built. Calendar only for now -
-// Mail/Files/Teams scopes get added later, one at a time, alongside the
-// real feature each one backs, never before.
-const MICROSOFT_SCOPES = ["Calendars.ReadWrite", "User.Read", "offline_access", "openid", "email"].join(" ");
+// Request only scopes backed by live product features: calendar plus Outlook
+// mailbox reading and sending. Files and Teams remain out until implemented.
+const MICROSOFT_SCOPES = [
+  "Calendars.ReadWrite",
+  "Mail.ReadWrite",
+  "Mail.Send",
+  "User.Read",
+  "offline_access",
+  "openid",
+  "email",
+].join(" ");
 const AUTHORITY = "https://login.microsoftonline.com/common/oauth2/v2.0";
 
 function isConfigured(): boolean {
@@ -214,4 +219,83 @@ export async function getUpcomingOutlookEvents(workspaceId: string, limit = 5): 
     summary: item.subject ?? "(no title)",
     start: item.start?.dateTime ?? "",
   }));
+}
+
+export interface OutlookMessage {
+  id: string;
+  subject: string;
+  senderName: string;
+  senderAddress: string;
+  receivedAt: string;
+  preview: string;
+  isRead: boolean;
+  webLink: string | null;
+}
+
+export async function getRecentOutlookMessages(workspaceId: string, limit = 25): Promise<OutlookMessage[]> {
+  const accessToken = await getValidMicrosoftAccessToken(workspaceId);
+  const params = new URLSearchParams({
+    $top: String(Math.min(Math.max(limit, 1), 50)),
+    $orderby: "receivedDateTime desc",
+    $select: "id,subject,from,receivedDateTime,bodyPreview,isRead,webLink",
+  });
+  const res = await fetch(`https://graph.microsoft.com/v1.0/me/mailFolders/inbox/messages?${params.toString()}`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`Microsoft mailbox request failed: ${res.status} ${body}`);
+  }
+  const data = await res.json();
+  const items = Array.isArray(data.value) ? data.value : [];
+  return items.map((item: {
+    id?: string;
+    subject?: string;
+    from?: { emailAddress?: { name?: string; address?: string } };
+    receivedDateTime?: string;
+    bodyPreview?: string;
+    isRead?: boolean;
+    webLink?: string;
+  }) => ({
+    id: item.id ?? "",
+    subject: item.subject?.trim() || "(no subject)",
+    senderName: item.from?.emailAddress?.name?.trim() || item.from?.emailAddress?.address || "Unknown sender",
+    senderAddress: item.from?.emailAddress?.address ?? "",
+    receivedAt: item.receivedDateTime ?? "",
+    preview: item.bodyPreview?.trim() ?? "",
+    isRead: Boolean(item.isRead),
+    webLink: item.webLink ?? null,
+  })).filter((item: OutlookMessage) => item.id);
+}
+
+export async function sendOutlookMail(
+  workspaceId: string,
+  input: { to: string; subject: string; body: string }
+): Promise<void> {
+  const to = input.to.trim();
+  const subject = input.subject.trim();
+  const body = input.body.trim();
+  if (!/^\S+@\S+\.\S+$/.test(to)) throw new Error("Enter a valid recipient email address.");
+  if (!subject) throw new Error("Enter a subject.");
+  if (!body) throw new Error("Enter a message.");
+  if (subject.length > 998 || body.length > 100_000) throw new Error("That email is too long.");
+
+  const accessToken = await getValidMicrosoftAccessToken(workspaceId);
+  const res = await fetch("https://graph.microsoft.com/v1.0/me/sendMail", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      message: {
+        subject,
+        body: { contentType: "Text", content: body },
+        toRecipients: [{ emailAddress: { address: to } }],
+      },
+      saveToSentItems: true,
+    }),
+  });
+  if (!res.ok) {
+    const responseBody = await res.text().catch(() => "");
+    throw new Error(`Microsoft couldn't send the email: ${res.status} ${responseBody}`);
+  }
 }

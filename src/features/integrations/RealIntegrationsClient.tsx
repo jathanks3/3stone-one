@@ -21,7 +21,7 @@ const ERROR_MESSAGES: Record<string, string> = {
 };
 
 const COMING_SOON = [
-  { name: "Outlook Mail, OneDrive & Teams", blurb: "Sync Outlook email, OneDrive documents, and Teams chat/meetings — calendar is already live above." },
+  { name: "OneDrive & Teams", blurb: "Sync OneDrive documents and Teams chat/meetings when those product features are built." },
   { name: "Gmail, Drive & Sheets", blurb: "Sync Gmail, Drive documents, and live spreadsheet reports — calendar is already live above." },
   { name: "Zoom", blurb: "Create and join Zoom meetings straight from Meetings." },
   { name: "Canvas", blurb: "Pull real assignments and due dates from your school's Canvas." },
@@ -147,7 +147,7 @@ export function RealIntegrationsClient({
     } else if (connected === "google") {
       showToast({ title: "Google connected", description: "Your Google Calendar is now linked." });
     } else if (connected === "microsoft") {
-      showToast({ title: "Microsoft connected", description: "Your Outlook Calendar is now linked." });
+      showToast({ title: "Microsoft connected", description: "Your Outlook Calendar and Mail are now linked." });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -172,8 +172,8 @@ export function RealIntegrationsClient({
           eventsLabel="Next on your Google Calendar"
         />
         <IntegrationCard
-          name="Outlook Calendar"
-          blurb="Real Microsoft/Outlook Calendar access — Teams and Mail are coming."
+          name="Microsoft Outlook"
+          blurb="Real Outlook Calendar and Mail access — read your inbox and send email from Communications."
           status={microsoftStatus}
           connectedAt={microsoftConnectedAt}
           configured={microsoftConfigured}

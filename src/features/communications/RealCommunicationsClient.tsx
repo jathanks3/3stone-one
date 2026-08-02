@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Hash, MessageSquare, Phone, Plus, Send } from "lucide-react";
+import { Hash, Mail, MessageSquare, Phone, Plus, Send } from "lucide-react";
 import { Tabs } from "@/ui/Tabs";
 import { Avatar } from "@/ui/Avatar";
 import { DataTable, type Column } from "@/ui/DataTable";
@@ -9,34 +9,101 @@ import { DetailPanel } from "@/ui/DetailPanel";
 import { EmptyState } from "@/ui/EmptyState";
 import { cn, initialsFromName } from "@/lib/utils";
 import { useToast } from "@/lib/toast";
-import { createCallNoteAction, createChannelAction, sendMessageAction } from "@/app/(app)/communications/actions";
+import { createCallNoteAction, createChannelAction, sendMessageAction, sendOutlookMailAction } from "@/app/(app)/communications/actions";
 import type { CallNoteRow, ChatChannelRow, ChatMessageRow } from "@/server/services/communicationsService";
 import type { PersonRow } from "@/server/services/crmService";
+import type { OutlookMessage } from "@/server/services/microsoftIntegrationService";
 
 export function RealCommunicationsClient({
   initialChannels,
   initialMessages,
   initialCallNotes,
   people,
+  outlookConnected,
+  outlookMessages,
 }: {
   initialChannels: ChatChannelRow[];
   initialMessages: ChatMessageRow[];
   initialCallNotes: CallNoteRow[];
   people: PersonRow[];
+  outlookConnected: boolean;
+  outlookMessages: OutlookMessage[] | null;
 }) {
   return (
     <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-8">
       <h1 className="text-[22px] font-bold text-ink-1">Communications</h1>
-      <p className="mt-1 text-[14px] text-ink-2">Team chat and call notes — one searchable hub.</p>
+      <p className="mt-1 text-[14px] text-ink-2">Team chat, Outlook email, and call notes — one searchable hub.</p>
 
       <div className="mt-6">
         <Tabs
           tabs={[
             { key: "chat", label: "Chat", content: <ChatTab initialChannels={initialChannels} initialMessages={initialMessages} /> },
+            { key: "email", label: "Outlook Mail", content: <OutlookMailTab connected={outlookConnected} initialMessages={outlookMessages} /> },
             { key: "calls", label: "Call Notes", content: <CallNotesTab initial={initialCallNotes} people={people} /> },
           ]}
         />
       </div>
+    </div>
+  );
+}
+
+function OutlookMailTab({ connected, initialMessages }: { connected: boolean; initialMessages: OutlookMessage[] | null }) {
+  const [composing, setComposing] = useState(false);
+  const [isPending, startTransition] = useTransition();
+  const { showToast } = useToast();
+
+  if (!connected) {
+    return <EmptyState icon={Mail} title="Connect Microsoft to use Outlook Mail" description="Connect Microsoft in Integrations to read and send Outlook email." />;
+  }
+  if (initialMessages === null) {
+    return <EmptyState icon={Mail} title="Reconnect Microsoft for mailbox access" description="Your calendar connection predates Outlook Mail. Reconnect once to approve the new mailbox permissions." />;
+  }
+
+  function sendEmail(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const form = new FormData(e.currentTarget);
+    startTransition(async () => {
+      const result = await sendOutlookMailAction({}, form);
+      if (result.error) return showToast({ title: "Couldn't send email", description: result.error });
+      showToast({ title: "Email sent", description: `Sent to ${String(form.get("to"))}.` });
+      setComposing(false);
+    });
+  }
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="flex items-center justify-between">
+        <p className="text-[13px] text-ink-2">Your 25 most recent inbox messages.</p>
+        <button onClick={() => setComposing(true)} className="flex h-9 items-center gap-1.5 rounded-[10px] bg-accent px-3.5 text-[13px] font-semibold text-on-accent hover:opacity-90">
+          <Mail size={14} /> Compose
+        </button>
+      </div>
+      {initialMessages.length === 0 ? (
+        <EmptyState icon={Mail} title="Inbox is empty" description="New Outlook messages will appear here." />
+      ) : (
+        <div className="overflow-hidden rounded-2xl border border-line bg-surface">
+          {initialMessages.map((message) => (
+            <a key={message.id} href={message.webLink ?? undefined} target="_blank" rel="noreferrer" className="block border-b border-line px-4 py-3 last:border-b-0 hover:bg-surface-raised">
+              <div className="flex items-start justify-between gap-4">
+                <div className="min-w-0">
+                  <p className={`truncate text-[13.5px] text-ink-1 ${message.isRead ? "font-medium" : "font-bold"}`}>{message.subject}</p>
+                  <p className="mt-0.5 truncate text-[12px] text-ink-2">{message.senderName}{message.senderAddress ? ` <${message.senderAddress}>` : ""}</p>
+                  {message.preview ? <p className="mt-1 line-clamp-2 text-[12.5px] text-ink-3">{message.preview}</p> : null}
+                </div>
+                <span className="flex-shrink-0 text-[11px] text-ink-3">{message.receivedAt ? new Date(message.receivedAt).toLocaleString() : ""}</span>
+              </div>
+            </a>
+          ))}
+        </div>
+      )}
+      <DetailPanel open={composing} onClose={() => setComposing(false)} title="New Outlook email">
+        <form onSubmit={sendEmail} className="flex flex-col gap-4">
+          <label className="text-[12.5px] font-medium text-ink-2">To<input name="to" type="email" required autoFocus className="mt-1 h-10 w-full rounded-[9px] border border-line-strong bg-bg px-3 text-[14px] text-ink-1 outline-none focus:border-accent" /></label>
+          <label className="text-[12.5px] font-medium text-ink-2">Subject<input name="subject" required maxLength={998} className="mt-1 h-10 w-full rounded-[9px] border border-line-strong bg-bg px-3 text-[14px] text-ink-1 outline-none focus:border-accent" /></label>
+          <label className="text-[12.5px] font-medium text-ink-2">Message<textarea name="body" required rows={8} className="mt-1 w-full resize-y rounded-[9px] border border-line-strong bg-bg px-3 py-2 text-[13.5px] text-ink-1 outline-none focus:border-accent" /></label>
+          <button type="submit" disabled={isPending} className="h-9 rounded-[9px] bg-accent px-4 text-[13px] font-semibold text-on-accent hover:opacity-90 disabled:opacity-60">{isPending ? "Sending…" : "Send email"}</button>
+        </form>
+      </DetailPanel>
     </div>
   );
 }
