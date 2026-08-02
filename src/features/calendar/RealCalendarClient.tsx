@@ -73,12 +73,21 @@ function getMonthMatrix(monthCursor: Date): Date[] {
   });
 }
 
+const SOURCE_LABEL: Record<"google" | "outlook", string> = {
+  google: "Google Calendar",
+  outlook: "Outlook",
+};
+
 function EventRow({ event, onDelete, disabled }: { event: CalendarEventRow; onDelete: (id: string) => void; disabled: boolean }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   useOnClickOutside(ref, () => setMenuOpen(false));
   useEscapeKey(menuOpen, () => setMenuOpen(false));
   const badge = dayBadge(event.date);
+  // Synced events are a live read from the provider each page load — there
+  // is no local row to edit or delete, and re-adding it to Google from here
+  // would just duplicate what's already there.
+  const isSynced = event.source === "google" || event.source === "outlook";
 
   return (
     <Card className="group flex items-center gap-3.5 p-3.5">
@@ -88,49 +97,54 @@ function EventRow({ event, onDelete, disabled }: { event: CalendarEventRow; onDe
       </div>
       <div className="min-w-0 flex-1">
         <p className="truncate text-[14px] font-semibold text-ink-1">{event.title}</p>
-        <p className="text-[12.5px] text-ink-3">{formatTime12h(event.time)}</p>
+        <p className="truncate text-[12.5px] text-ink-3">
+          {event.allDay ? "All day" : formatTime12h(event.time)}
+          {isSynced ? ` · Synced from ${SOURCE_LABEL[event.source as "google" | "outlook"]}` : ""}
+        </p>
       </div>
-      <div className="relative flex flex-shrink-0 items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100" ref={ref}>
-        <button
-          onClick={() => setMenuOpen((v) => !v)}
-          aria-label="Export this event"
-          className="flex h-8 w-8 items-center justify-center rounded-[8px] text-ink-3 hover:bg-surface-raised hover:text-ink-1"
-        >
-          <MoreHorizontal size={15} />
-        </button>
-        {menuOpen ? (
-          <div className="absolute right-0 top-[calc(100%+4px)] z-20 w-52 rounded-[10px] border border-line bg-surface p-1 shadow-[var(--shadow)]">
-            <a
-              href={googleCalendarAddUrl(event)}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={() => setMenuOpen(false)}
-              className="flex items-center gap-2 rounded-[7px] px-2.5 py-2 text-left text-[12.5px] text-ink-2 hover:bg-surface-raised hover:text-ink-1"
-            >
-              <ExternalLink size={14} />
-              Add to Google Calendar
-            </a>
-            <button
-              onClick={() => {
-                downloadTextFile(`${event.title.replace(/[^\w-]+/g, "_")}.ics`, buildIcsCalendar([event], event.title), "text/calendar");
-                setMenuOpen(false);
-              }}
-              className="flex w-full items-center gap-2 rounded-[7px] px-2.5 py-2 text-left text-[12.5px] text-ink-2 hover:bg-surface-raised hover:text-ink-1"
-            >
-              <Download size={14} />
-              Download .ics (Apple/Outlook)
-            </button>
-          </div>
-        ) : null}
-        <button
-          onClick={() => onDelete(event.id)}
-          disabled={disabled}
-          aria-label="Delete event"
-          className="flex h-8 w-8 items-center justify-center rounded-[8px] text-ink-3 hover:bg-critical-wash hover:text-critical"
-        >
-          <Trash2 size={15} />
-        </button>
-      </div>
+      {isSynced ? null : (
+        <div className="relative flex flex-shrink-0 items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100" ref={ref}>
+          <button
+            onClick={() => setMenuOpen((v) => !v)}
+            aria-label="Export this event"
+            className="flex h-8 w-8 items-center justify-center rounded-[8px] text-ink-3 hover:bg-surface-raised hover:text-ink-1"
+          >
+            <MoreHorizontal size={15} />
+          </button>
+          {menuOpen ? (
+            <div className="absolute right-0 top-[calc(100%+4px)] z-20 w-52 rounded-[10px] border border-line bg-surface p-1 shadow-[var(--shadow)]">
+              <a
+                href={googleCalendarAddUrl(event)}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => setMenuOpen(false)}
+                className="flex items-center gap-2 rounded-[7px] px-2.5 py-2 text-left text-[12.5px] text-ink-2 hover:bg-surface-raised hover:text-ink-1"
+              >
+                <ExternalLink size={14} />
+                Add to Google Calendar
+              </a>
+              <button
+                onClick={() => {
+                  downloadTextFile(`${event.title.replace(/[^\w-]+/g, "_")}.ics`, buildIcsCalendar([event], event.title), "text/calendar");
+                  setMenuOpen(false);
+                }}
+                className="flex w-full items-center gap-2 rounded-[7px] px-2.5 py-2 text-left text-[12.5px] text-ink-2 hover:bg-surface-raised hover:text-ink-1"
+              >
+                <Download size={14} />
+                Download .ics (Apple/Outlook)
+              </button>
+            </div>
+          ) : null}
+          <button
+            onClick={() => onDelete(event.id)}
+            disabled={disabled}
+            aria-label="Delete event"
+            className="flex h-8 w-8 items-center justify-center rounded-[8px] text-ink-3 hover:bg-critical-wash hover:text-critical"
+          >
+            <Trash2 size={15} />
+          </button>
+        </div>
+      )}
     </Card>
   );
 }
