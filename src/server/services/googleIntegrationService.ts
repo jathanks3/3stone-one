@@ -6,16 +6,18 @@ import { encryptToken, decryptToken } from "@/lib/tokenEncryption";
 // OAuth client covers every 3Stone One edition (they're all the same
 // app/domain) - see the founder's own setup notes.
 //
-// Scope list deliberately requests ONLY Calendar right now, even though
-// the Google Cloud project has Gmail/Drive/Sheets APIs enabled too.
-// Google requires verification (including a demo video) per *restricted*
-// scope (Gmail, broad Drive access) proving it's actually used - we'd
-// have been requesting access this app doesn't do anything with yet,
-// which Google correctly blocked ("hasn't completed verification").
-// Real, honest order: build the Gmail/Drive/Sheets feature first, THEN
-// add its scope here and go through verification with a true demo of
-// that feature - never request a scope before the feature exists.
-const GOOGLE_SCOPES = ["https://www.googleapis.com/auth/calendar.readonly", "openid", "email"].join(" ");
+// Every requested scope below is backed by a real destination in the
+// product: Calendar, Gmail in Communications, Drive in Documents, and
+// Sheets exports from Analytics. Gmail/Drive scopes require Google review.
+const GOOGLE_SCOPES = [
+  "https://www.googleapis.com/auth/calendar.readonly",
+  "https://www.googleapis.com/auth/gmail.readonly",
+  "https://www.googleapis.com/auth/gmail.send",
+  "https://www.googleapis.com/auth/drive.readonly",
+  "https://www.googleapis.com/auth/spreadsheets",
+  "openid",
+  "email",
+].join(" ");
 
 function isConfigured(): boolean {
   return Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
@@ -240,4 +242,72 @@ export async function getUpcomingGoogleCalendarEvents(workspaceId: string, limit
     summary: item.summary ?? "(no title)",
     start: item.start?.dateTime ?? item.start?.date ?? "",
   }));
+}
+
+export interface GmailMessage {
+  id: string;
+  subject: string;
+  from: string;
+  receivedAt: string;
+  preview: string;
+}
+
+function decodeHeader(value: string | undefined): string {
+  return value?.trim() || "";
+}
+
+export async function getRecentGmailMessages(workspaceId: string, limit = 25): Promise<GmailMessage[]> {
+  const accessToken = await getValidGoogleAccessToken(workspaceId);
+  const listParams = new URLSearchParams({ maxResults: String(Math.min(Math.max(limit, 1), 50)), labelIds: "INBOX" });
+  const listRes = await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/messages?${listParams.toString()}`, { headers: { Authorization: `Bearer ${accessToken}` }, cache: "no-store" });
+  if (!listRes.ok) throw new Error(`Gmail list failed: ${listRes.status} ${await listRes.text().catch(() => "")}`);
+  const list = await listRes.json();
+  const ids = (Array.isArray(list.messages) ? list.messages : []).map((m: { id?: string }) => m.id).filter(Boolean);
+  const messages = await Promise.all(ids.map(async (id: string) => {
+    const params = new URLSearchParams({ format: "metadata", metadataHeaders: "Subject" });
+    params.append("metadataHeaders", "From");
+    params.append("metadataHeaders", "Date");
+    const res = await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/messages/${encodeURIComponent(id)}?${params.toString()}`, { headers: { Authorization: `Bearer ${accessToken}` }, cache: "no-store" });
+    if (!res.ok) return null;
+    const data = await res.json();
+    const headers = Array.isArray(data.payload?.headers) ? data.payload.headers : [];
+    const header = (name: string) => decodeHeader(headers.find((h: { name?: string }) => h.name?.toLowerCase() === name.toLowerCase())?.value);
+    return { id, subject: header("Subject") || "(no subject)", from: header("From") || "Unknown sender", receivedAt: header("Date"), preview: data.snippet ?? "" } satisfies GmailMessage;
+  }));
+  return messages.filter((message): message is GmailMessage => Boolean(message));
+}
+
+export async function sendGmail(workspaceId: string, input: { to: string; subject: string; body: string }): Promise<void> {
+  const to = input.to.trim();
+  const subject = input.subject.trim();
+  const body = input.body.trim();
+  if (!/^\S+@\S+\.\S+$/.test(to)) throw new Error("Enter a valid recipient email address.");
+  if (!subject || !body) throw new Error("Subject and message are required.");
+  const rawMessage = [`To: ${to}`, `Subject: ${subject.replace(/[\r\n]/g, " ")}`, "Content-Type: text/plain; charset=utf-8", "", body].join("\r\n");
+  const raw = Buffer.from(rawMessage).toString("base64url");
+  const accessToken = await getValidGoogleAccessToken(workspaceId);
+  const res = await fetch("https://gmail.googleapis.com/gmail/v1/users/me/messages/send", { method: "POST", headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" }, body: JSON.stringify({ raw }) });
+  if (!res.ok) throw new Error(`Gmail send failed: ${res.status} ${await res.text().catch(() => "")}`);
+}
+
+export interface GoogleDriveFile { id: string; name: string; mimeType: string; modifiedAt: string; webViewLink: string; sizeBytes: number }
+export async function getRecentGoogleDriveFiles(workspaceId: string, limit = 50): Promise<GoogleDriveFile[]> {
+  const accessToken = await getValidGoogleAccessToken(workspaceId);
+  const params = new URLSearchParams({ pageSize: String(limit), orderBy: "modifiedTime desc", q: "trashed = false", fields: "files(id,name,mimeType,modifiedTime,webViewLink,size)" });
+  const res = await fetch(`https://www.googleapis.com/drive/v3/files?${params.toString()}`, { headers: { Authorization: `Bearer ${accessToken}` }, cache: "no-store" });
+  if (!res.ok) throw new Error(`Google Drive request failed: ${res.status} ${await res.text().catch(() => "")}`);
+  const data = await res.json();
+  return (Array.isArray(data.files) ? data.files : []).map((file: { id?: string; name?: string; mimeType?: string; modifiedTime?: string; webViewLink?: string; size?: string }) => ({ id: file.id ?? "", name: file.name ?? "Untitled", mimeType: file.mimeType ?? "application/octet-stream", modifiedAt: file.modifiedTime ?? "", webViewLink: file.webViewLink ?? "", sizeBytes: Number(file.size ?? 0) })).filter((file: GoogleDriveFile) => file.id && file.webViewLink);
+}
+
+export async function createGoogleSpreadsheet(workspaceId: string, title: string, values: (string | number | boolean)[][]): Promise<string> {
+  const accessToken = await getValidGoogleAccessToken(workspaceId);
+  const createRes = await fetch("https://sheets.googleapis.com/v4/spreadsheets", { method: "POST", headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" }, body: JSON.stringify({ properties: { title } }) });
+  if (!createRes.ok) throw new Error(`Google Sheets creation failed: ${createRes.status} ${await createRes.text().catch(() => "")}`);
+  const spreadsheet = await createRes.json();
+  const id = spreadsheet.spreadsheetId;
+  if (!id) throw new Error("Google created a spreadsheet without an ID.");
+  const updateRes = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${encodeURIComponent(id)}/values/A1?valueInputOption=RAW`, { method: "PUT", headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" }, body: JSON.stringify({ range: "A1", majorDimension: "ROWS", values }) });
+  if (!updateRes.ok) throw new Error(`Google Sheets update failed: ${updateRes.status} ${await updateRes.text().catch(() => "")}`);
+  return spreadsheet.spreadsheetUrl ?? `https://docs.google.com/spreadsheets/d/${id}`;
 }

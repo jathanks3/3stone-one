@@ -9,11 +9,12 @@ import { DetailPanel } from "@/ui/DetailPanel";
 import { EmptyState } from "@/ui/EmptyState";
 import { cn, initialsFromName } from "@/lib/utils";
 import { useToast } from "@/lib/toast";
-import { createCallNoteAction, createChannelAction, sendMessageAction, sendOutlookMailAction, sendSlackMessageAction } from "@/app/(app)/communications/actions";
+import { createCallNoteAction, createChannelAction, sendMessageAction, sendOutlookMailAction, sendSlackMessageAction, sendGmailAction } from "@/app/(app)/communications/actions";
 import type { CallNoteRow, ChatChannelRow, ChatMessageRow } from "@/server/services/communicationsService";
 import type { PersonRow } from "@/server/services/crmService";
 import type { OutlookMessage } from "@/server/services/microsoftIntegrationService";
 import type { SlackChannel, SlackMessage } from "@/server/services/slackIntegrationService";
+import type { GmailMessage } from "@/server/services/googleIntegrationService";
 
 export function RealCommunicationsClient({
   initialChannels,
@@ -22,6 +23,8 @@ export function RealCommunicationsClient({
   people,
   outlookConnected,
   outlookMessages,
+  gmailConnected,
+  gmailMessages,
   slackConnected,
   slackChannels,
   slackMessages,
@@ -32,6 +35,8 @@ export function RealCommunicationsClient({
   people: PersonRow[];
   outlookConnected: boolean;
   outlookMessages: OutlookMessage[] | null;
+  gmailConnected: boolean;
+  gmailMessages: GmailMessage[] | null;
   slackConnected: boolean;
   slackChannels: SlackChannel[] | null;
   slackMessages: SlackMessage[] | null;
@@ -46,6 +51,7 @@ export function RealCommunicationsClient({
           tabs={[
             { key: "chat", label: "Chat", content: <ChatTab initialChannels={initialChannels} initialMessages={initialMessages} /> },
             { key: "email", label: "Outlook Mail", content: <OutlookMailTab connected={outlookConnected} initialMessages={outlookMessages} /> },
+            { key: "gmail", label: "Gmail", content: <GmailTab connected={gmailConnected} messages={gmailMessages} /> },
             { key: "slack", label: "Slack", content: <SlackTab connected={slackConnected} channels={slackChannels} messages={slackMessages} /> },
             { key: "calls", label: "Call Notes", content: <CallNotesTab initial={initialCallNotes} people={people} /> },
           ]}
@@ -53,6 +59,29 @@ export function RealCommunicationsClient({
       </div>
     </div>
   );
+}
+
+function GmailTab({ connected, messages }: { connected: boolean; messages: GmailMessage[] | null }) {
+  const [composing, setComposing] = useState(false);
+  const [isPending, startTransition] = useTransition();
+  const { showToast } = useToast();
+  if (!connected) return <EmptyState icon={Mail} title="Connect Google to use Gmail" description="Connect Google Workspace from Integrations." />;
+  if (messages === null) return <EmptyState icon={Mail} title="Reconnect Google for Gmail access" description="Gmail requires additional Google consent and verification." />;
+  function sendEmail(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const form = new FormData(e.currentTarget);
+    startTransition(async () => {
+      const result = await sendGmailAction({}, form);
+      if (result.error) return showToast({ title: "Couldn't send Gmail", description: result.error });
+      showToast({ title: "Gmail sent" });
+      setComposing(false);
+    });
+  }
+  return <div className="flex flex-col gap-4">
+    <div className="flex items-center justify-between"><p className="text-[13px] text-ink-2">Your 25 most recent Gmail inbox messages.</p><button onClick={() => setComposing(true)} className="flex h-9 items-center gap-1.5 rounded-[10px] bg-accent px-3.5 text-[13px] font-semibold text-on-accent"><Mail size={14} /> Compose</button></div>
+    {messages.length === 0 ? <EmptyState icon={Mail} title="Inbox is empty" description="New Gmail messages will appear here." /> : <div className="overflow-hidden rounded-2xl border border-line bg-surface">{messages.map((message) => <div key={message.id} className="border-b border-line px-4 py-3 last:border-b-0"><p className="truncate text-[13.5px] font-semibold text-ink-1">{message.subject}</p><p className="mt-0.5 truncate text-[12px] text-ink-2">{message.from}</p>{message.preview ? <p className="mt-1 line-clamp-2 text-[12.5px] text-ink-3">{message.preview}</p> : null}</div>)}</div>}
+    <DetailPanel open={composing} onClose={() => setComposing(false)} title="New Gmail message"><form onSubmit={sendEmail} className="flex flex-col gap-4"><label className="text-[12.5px] font-medium text-ink-2">To<input name="to" type="email" required autoFocus className="mt-1 h-10 w-full rounded-[9px] border border-line-strong bg-bg px-3" /></label><label className="text-[12.5px] font-medium text-ink-2">Subject<input name="subject" required className="mt-1 h-10 w-full rounded-[9px] border border-line-strong bg-bg px-3" /></label><label className="text-[12.5px] font-medium text-ink-2">Message<textarea name="body" required rows={8} className="mt-1 w-full rounded-[9px] border border-line-strong bg-bg px-3 py-2" /></label><button type="submit" disabled={isPending} className="h-9 rounded-[9px] bg-accent px-4 text-[13px] font-semibold text-on-accent">{isPending ? "Sending…" : "Send Gmail"}</button></form></DetailPanel>
+  </div>;
 }
 
 function SlackTab({ connected, channels, messages }: { connected: boolean; channels: SlackChannel[] | null; messages: SlackMessage[] | null }) {

@@ -6,6 +6,7 @@ import { getActiveWorkspaceIdForUser } from "@/server/services/onboardingService
 import { listDocuments } from "@/server/services/documentService";
 import { db } from "@/server/db";
 import { getRecentOneDriveFiles } from "@/server/services/microsoftIntegrationService";
+import { getRecentGoogleDriveFiles } from "@/server/services/googleIntegrationService";
 
 export const metadata: Metadata = { title: "Documents — 3Stone One" };
 export const dynamic = "force-dynamic";
@@ -16,8 +17,10 @@ export default async function DocumentsPage() {
     const workspaceId = await getActiveWorkspaceIdForUser(session.userId);
     const docs = workspaceId ? await listDocuments(workspaceId) : [];
     const microsoft = workspaceId ? await db.integration.findUnique({ where: { workspaceId_provider: { workspaceId, provider: "microsoft" } } }) : null;
+    const google = workspaceId ? await db.integration.findUnique({ where: { workspaceId_provider: { workspaceId, provider: "google" } } }) : null;
     const oneDriveFiles = workspaceId && microsoft?.status === "connected" ? await getRecentOneDriveFiles(workspaceId).catch(() => null) : [];
-    return <RealDocumentsClient initialDocuments={docs} oneDriveConnected={microsoft?.status === "connected"} oneDriveFiles={oneDriveFiles} />;
+    const googleDriveFiles = workspaceId && google?.status === "connected" ? await getRecentGoogleDriveFiles(workspaceId).catch(() => null) : [];
+    return <RealDocumentsClient initialDocuments={docs} oneDriveConnected={microsoft?.status === "connected"} oneDriveFiles={oneDriveFiles} googleDriveConnected={google?.status === "connected"} googleDriveFiles={googleDriveFiles} />;
   }
   return <DocumentsClient />;
 }
