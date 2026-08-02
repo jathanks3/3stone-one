@@ -81,7 +81,7 @@ export async function GET() {
   ]);
   return NextResponse.json({
     messages: rows.map((r) => ({ role: r.role, content: r.content, createdAt: r.createdAt })),
-    usage: { used: usage.used, total: usage.total },
+    usage: { used: usage.used, total: usage.total, isPaid: usage.isPaid },
   });
 }
 
@@ -141,7 +141,7 @@ export async function POST(req: NextRequest) {
       ],
     });
     const usage = await getAiUsageStatus(membership.workspace.id);
-    return NextResponse.json({ text: result.text, usage: { used: usage.used, total: usage.total } });
+    return NextResponse.json({ text: result.text, usage: { used: usage.used, total: usage.total, isPaid: usage.isPaid } });
   } catch (err) {
     console.error("[api/ai/assistant] generation failed:", err);
     return NextResponse.json({ error: "The assistant couldn't respond just now. Try again." }, { status: 502 });

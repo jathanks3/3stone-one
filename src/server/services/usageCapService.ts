@@ -1,5 +1,5 @@
 import { db } from "@/server/db";
-import { AI_ACTIONS_INCLUDED_PER_CYCLE, STORAGE_GB_INCLUDED } from "@/config/usageCaps";
+import { AI_ACTIONS_INCLUDED_PER_CYCLE, STORAGE_GB_INCLUDED, TRIAL_AI_ACTIONS_TOTAL } from "@/config/usageCaps";
 
 const BYTES_PER_GB = 1_000_000_000;
 
@@ -28,21 +28,44 @@ export interface AiUsageStatus {
   remaining: number;
   atCap: boolean;
   cycleEnd: Date;
+  isPaid: boolean;
 }
 
 export async function getAiUsageStatus(workspaceId: string): Promise<AiUsageStatus> {
   const subscription = await db.subscription.findUnique({ where: { workspaceId } });
-  const createdAt = subscription?.createdAt ?? new Date();
+  const isPaid = subscription?.status === "active";
+
+  // Not an active paying subscription: a one-time, non-cycling total
+  // (trialing, past_due, canceled, paused, or no subscription row at
+  // all) - never the full per-cycle allowance. Counted since account
+  // creation, not per-cycle, since there's no real billing cycle to
+  // reset against without a paid Stripe subscription.
+  if (!isPaid) {
+    const createdAt = subscription?.createdAt ?? new Date(0);
+    const used = await db.aiUsageEvent.count({ where: { workspaceId, createdAt: { gte: createdAt } } });
+    const total = TRIAL_AI_ACTIONS_TOTAL;
+    return {
+      used,
+      included: total,
+      purchased: 0,
+      total,
+      remaining: Math.max(0, total - used),
+      atCap: used >= total,
+      cycleEnd: subscription?.trialEndsAt ?? new Date(),
+      isPaid: false,
+    };
+  }
+
   const { start, end } = cycleWindow({
-    currentPeriodStart: subscription?.currentPeriodStart ?? null,
-    currentPeriodEnd: subscription?.currentPeriodEnd ?? null,
-    createdAt,
+    currentPeriodStart: subscription.currentPeriodStart,
+    currentPeriodEnd: subscription.currentPeriodEnd,
+    createdAt: subscription.createdAt,
   });
 
   const used = await db.aiUsageEvent.count({
     where: { workspaceId, createdAt: { gte: start, lt: end } },
   });
-  const purchased = subscription?.aiActionsPurchased ?? 0;
+  const purchased = subscription.aiActionsPurchased;
   const total = AI_ACTIONS_INCLUDED_PER_CYCLE + purchased;
 
   return {
@@ -53,15 +76,21 @@ export async function getAiUsageStatus(workspaceId: string): Promise<AiUsageStat
     remaining: Math.max(0, total - used),
     atCap: used >= total,
     cycleEnd: end,
+    isPaid: true,
   };
 }
 
 /** Call before making the real (billable) Anthropic request - never after. */
 export async function assertAiCapacity(workspaceId: string): Promise<void> {
   const status = await getAiUsageStatus(workspaceId);
-  if (status.atCap) {
+  if (status.atCap && status.isPaid) {
     throw new UsageCapError(
       `You've used all ${status.total} AI actions included this billing cycle. Buy more in Settings → Billing, or it resets ${status.cycleEnd.toLocaleDateString()}.`
+    );
+  }
+  if (status.atCap && !status.isPaid) {
+    throw new UsageCapError(
+      `You've used your ${status.total} free trial AI actions. Upgrade to a paid plan in Settings → Billing to keep using the assistant.`
     );
   }
 }

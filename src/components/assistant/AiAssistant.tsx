@@ -128,7 +128,7 @@ function AssistantPanel({ onClose }: { onClose: () => void }) {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [historyLoaded, setHistoryLoaded] = useState(false);
-  const [usage, setUsage] = useState<{ used: number; total: number } | null>(null);
+  const [usage, setUsage] = useState<{ used: number; total: number; isPaid: boolean } | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const nextId = useRef(0);
 
@@ -148,7 +148,7 @@ function AssistantPanel({ onClose }: { onClose: () => void }) {
     let cancelled = false;
     fetch("/api/ai/assistant")
       .then((res) => (res.ok ? res.json() : { messages: [] }))
-      .then((data: { messages?: { role: "user" | "assistant"; content: string }[]; usage?: { used: number; total: number } }) => {
+      .then((data: { messages?: { role: "user" | "assistant"; content: string }[]; usage?: { used: number; total: number; isPaid: boolean } }) => {
         if (cancelled) return;
         setMessages(
           (data.messages ?? []).map((m) => ({ id: `h_${nextId.current++}`, role: m.role, text: m.content }))
@@ -256,7 +256,7 @@ function AssistantPanel({ onClose }: { onClose: () => void }) {
               />
             </div>
             <span className="text-[11px] text-ink-3">
-              {usage.used}/{usage.total} actions this cycle
+              {usage.used}/{usage.total} {usage.isPaid ? "actions this cycle" : "free trial actions"}
             </span>
           </div>
         ) : null}

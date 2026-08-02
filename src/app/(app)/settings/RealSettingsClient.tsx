@@ -527,14 +527,23 @@ function UsageCard({ aiUsage, storageUsage }: { aiUsage: AiUsageStatus; storageU
     <Card className="p-5">
       <p className="text-[14px] font-semibold text-ink-1">AI &amp; storage usage</p>
       <p className="mt-1 text-[12.5px] text-ink-3">
-        Real AI is included on every plan — this cycle's allowance, and what more costs if you need it.
+        {aiUsage.isPaid
+          ? "Real AI is included on your plan — this cycle's allowance, and what more costs if you need it."
+          : "A free trial taste of the real assistant — upgrade to a paid plan for the full monthly allowance."}
       </p>
       <div className="mt-4 flex flex-col gap-4">
-        <UsageMeter label="AI actions this cycle" used={aiUsage.used} total={aiUsage.total} unit="actions" />
+        <UsageMeter
+          label={aiUsage.isPaid ? "AI actions this cycle" : "AI actions (free trial)"}
+          used={aiUsage.used}
+          total={aiUsage.total}
+          unit="actions"
+        />
         <UsageMeter label="Storage" used={Math.round(storageUsedGb * 10) / 10} total={storageTotalGb} unit="GB" />
       </div>
       <div className="mt-4 flex flex-wrap gap-2">
-        <BuyPackButton packKey="ai_overage" label={`+${AI_OVERAGE_PACK_ACTIONS} AI actions — $${(AI_OVERAGE_PACK_PRICE_CENTS / 100).toFixed(0)}`} />
+        {aiUsage.isPaid ? (
+          <BuyPackButton packKey="ai_overage" label={`+${AI_OVERAGE_PACK_ACTIONS} AI actions — $${(AI_OVERAGE_PACK_PRICE_CENTS / 100).toFixed(0)}`} />
+        ) : null}
         <BuyPackButton packKey="storage_overage" label={`+${STORAGE_OVERAGE_PACK_GB}GB storage — $${(STORAGE_OVERAGE_PACK_PRICE_CENTS / 100).toFixed(0)}`} />
       </div>
     </Card>
