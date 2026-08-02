@@ -194,6 +194,7 @@ export async function disconnectMicrosoft(workspaceId: string): Promise<void> {
 }
 
 export interface UpcomingOutlookEvent {
+  id: string;
   summary: string;
   start: string;
 }
@@ -205,6 +206,7 @@ export async function getUpcomingOutlookEvents(workspaceId: string, limit = 5): 
     endDateTime: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
     $top: String(limit),
     $orderby: "start/dateTime",
+    $select: "id,subject,start",
   });
   const res = await fetch(`https://graph.microsoft.com/v1.0/me/calendarView?${params.toString()}`, {
     headers: { Authorization: `Bearer ${accessToken}`, Prefer: 'outlook.timezone="UTC"' },
@@ -215,10 +217,26 @@ export async function getUpcomingOutlookEvents(workspaceId: string, limit = 5): 
   }
   const data = await res.json();
   const items = Array.isArray(data.value) ? data.value : [];
-  return items.slice(0, limit).map((item: { subject?: string; start?: { dateTime?: string } }) => ({
+  return items.slice(0, limit).map((item: { id?: string; subject?: string; start?: { dateTime?: string } }) => ({
+    id: item.id ?? "",
     summary: item.subject ?? "(no title)",
     start: item.start?.dateTime ?? "",
   }));
+}
+
+// Calendars.ReadWrite is already part of MICROSOFT_SCOPES (Mail features
+// need write too), so deleting a synced event is a real, in-scope Graph
+// call - unlike Google, currently locked to calendar.readonly.
+export async function deleteOutlookEvent(workspaceId: string, eventId: string): Promise<void> {
+  const accessToken = await getValidMicrosoftAccessToken(workspaceId);
+  const res = await fetch(`https://graph.microsoft.com/v1.0/me/events/${encodeURIComponent(eventId)}`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  if (!res.ok && res.status !== 404) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`Microsoft couldn't delete that event: ${res.status} ${body}`);
+  }
 }
 
 export interface OutlookMessage {

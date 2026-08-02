@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { getSession } from "@/lib/session";
 import { getActiveWorkspaceIdForUser } from "@/server/services/onboardingService";
 import { requireActiveMember } from "@/server/services/teamService";
-import { createCalendarEvent, deleteCalendarEvent } from "@/server/services/calendarService";
+import { createCalendarEvent, deleteCalendarEvent, deleteSyncedCalendarEvent } from "@/server/services/calendarService";
 
 export interface ActionState {
   error?: string;
@@ -43,6 +43,18 @@ export async function deleteCalendarEventAction(_prev: ActionState, formData: Fo
     const { userId, workspaceId } = await currentWorkspaceId();
     await requireActiveMember(userId, workspaceId);
     await deleteCalendarEvent(workspaceId, String(formData.get("eventId") ?? ""), userId);
+    revalidatePath("/calendar");
+    return { success: "Event deleted." };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Something went wrong." };
+  }
+}
+
+export async function deleteSyncedCalendarEventAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  try {
+    const { userId, workspaceId } = await currentWorkspaceId();
+    await requireActiveMember(userId, workspaceId);
+    await deleteSyncedCalendarEvent(workspaceId, String(formData.get("eventId") ?? ""));
     revalidatePath("/calendar");
     return { success: "Event deleted." };
   } catch (e) {

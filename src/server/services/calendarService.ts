@@ -1,7 +1,7 @@
 import { db } from "@/server/db";
 import { logActivity } from "@/server/services/activityService";
 import { getUpcomingGoogleCalendarEvents } from "@/server/services/googleIntegrationService";
-import { getUpcomingOutlookEvents } from "@/server/services/microsoftIntegrationService";
+import { getUpcomingOutlookEvents, deleteOutlookEvent } from "@/server/services/microsoftIntegrationService";
 
 export interface CalendarEventRow {
   id: string;
@@ -56,12 +56,26 @@ export async function listSyncedCalendarEvents(workspaceId: string): Promise<Cal
     if (!date) return;
     rows.push({ id: `google-${i}-${e.start}`, title: e.summary, date, time, allDay, source: "google" });
   });
-  microsoftEvents.forEach((e, i) => {
+  microsoftEvents.forEach((e) => {
     const { date, time, allDay } = splitIsoStart(e.start);
-    if (!date) return;
-    rows.push({ id: `outlook-${i}-${e.start}`, title: e.summary, date, time, allDay, source: "outlook" });
+    if (!date || !e.id) return;
+    // The real Graph event id (prefixed, not synthetic like Google's below)
+    // - Calendars.ReadWrite is already granted, so this id is enough to
+    // actually delete the event later via deleteSyncedCalendarEvent.
+    rows.push({ id: `outlook:${e.id}`, title: e.summary, date, time, allDay, source: "outlook" });
   });
   return rows;
+}
+
+// Only Outlook is deletable today - Google is intentionally locked to
+// calendar.readonly (see googleIntegrationService.ts) after the Google
+// verification block, so there is no write scope to delete through yet.
+export async function deleteSyncedCalendarEvent(workspaceId: string, rowId: string): Promise<void> {
+  if (rowId.startsWith("outlook:")) {
+    await deleteOutlookEvent(workspaceId, rowId.slice("outlook:".length));
+    return;
+  }
+  throw new Error("This event lives in Google Calendar - delete it there for now.");
 }
 
 // What the Calendar module page actually renders — this workspace's own

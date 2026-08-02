@@ -21,7 +21,7 @@ import { cn } from "@/lib/utils";
 import { buildIcsCalendar, googleCalendarAddUrl } from "@/lib/ics";
 import { downloadTextFile } from "@/lib/download";
 import { useToast } from "@/lib/toast";
-import { createCalendarEventAction, deleteCalendarEventAction } from "@/app/(app)/calendar/actions";
+import { createCalendarEventAction, deleteCalendarEventAction, deleteSyncedCalendarEventAction } from "@/app/(app)/calendar/actions";
 import type { CalendarEventRow } from "@/server/services/calendarService";
 import { useRef } from "react";
 
@@ -84,10 +84,13 @@ function EventRow({ event, onDelete, disabled }: { event: CalendarEventRow; onDe
   useOnClickOutside(ref, () => setMenuOpen(false));
   useEscapeKey(menuOpen, () => setMenuOpen(false));
   const badge = dayBadge(event.date);
-  // Synced events are a live read from the provider each page load — there
-  // is no local row to edit or delete, and re-adding it to Google from here
-  // would just duplicate what's already there.
   const isSynced = event.source === "google" || event.source === "outlook";
+  // Outlook is granted Calendars.ReadWrite, so deleting it here really
+  // deletes it in Outlook too. Google is intentionally still
+  // calendar.readonly (see googleIntegrationService.ts) - there is no
+  // write scope to delete through yet, so a Google-sourced event stays
+  // view-only until that changes.
+  const canDelete = event.source !== "google";
 
   return (
     <Card className="group flex items-center gap-3.5 p-3.5">
@@ -102,49 +105,54 @@ function EventRow({ event, onDelete, disabled }: { event: CalendarEventRow; onDe
           {isSynced ? ` · Synced from ${SOURCE_LABEL[event.source as "google" | "outlook"]}` : ""}
         </p>
       </div>
-      {isSynced ? null : (
-        <div className="relative flex flex-shrink-0 items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100" ref={ref}>
-          <button
-            onClick={() => setMenuOpen((v) => !v)}
-            aria-label="Export this event"
-            className="flex h-8 w-8 items-center justify-center rounded-[8px] text-ink-3 hover:bg-surface-raised hover:text-ink-1"
-          >
-            <MoreHorizontal size={15} />
-          </button>
-          {menuOpen ? (
-            <div className="absolute right-0 top-[calc(100%+4px)] z-20 w-52 rounded-[10px] border border-line bg-surface p-1 shadow-[var(--shadow)]">
-              <a
-                href={googleCalendarAddUrl(event)}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={() => setMenuOpen(false)}
-                className="flex items-center gap-2 rounded-[7px] px-2.5 py-2 text-left text-[12.5px] text-ink-2 hover:bg-surface-raised hover:text-ink-1"
-              >
-                <ExternalLink size={14} />
-                Add to Google Calendar
-              </a>
-              <button
-                onClick={() => {
-                  downloadTextFile(`${event.title.replace(/[^\w-]+/g, "_")}.ics`, buildIcsCalendar([event], event.title), "text/calendar");
-                  setMenuOpen(false);
-                }}
-                className="flex w-full items-center gap-2 rounded-[7px] px-2.5 py-2 text-left text-[12.5px] text-ink-2 hover:bg-surface-raised hover:text-ink-1"
-              >
-                <Download size={14} />
-                Download .ics (Apple/Outlook)
-              </button>
-            </div>
-          ) : null}
+      <div className="relative flex flex-shrink-0 items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100" ref={ref}>
+        {isSynced ? null : (
+          <>
+            <button
+              onClick={() => setMenuOpen((v) => !v)}
+              aria-label="Export this event"
+              className="flex h-8 w-8 items-center justify-center rounded-[8px] text-ink-3 hover:bg-surface-raised hover:text-ink-1"
+            >
+              <MoreHorizontal size={15} />
+            </button>
+            {menuOpen ? (
+              <div className="absolute right-0 top-[calc(100%+4px)] z-20 w-52 rounded-[10px] border border-line bg-surface p-1 shadow-[var(--shadow)]">
+                <a
+                  href={googleCalendarAddUrl(event)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => setMenuOpen(false)}
+                  className="flex items-center gap-2 rounded-[7px] px-2.5 py-2 text-left text-[12.5px] text-ink-2 hover:bg-surface-raised hover:text-ink-1"
+                >
+                  <ExternalLink size={14} />
+                  Add to Google Calendar
+                </a>
+                <button
+                  onClick={() => {
+                    downloadTextFile(`${event.title.replace(/[^\w-]+/g, "_")}.ics`, buildIcsCalendar([event], event.title), "text/calendar");
+                    setMenuOpen(false);
+                  }}
+                  className="flex w-full items-center gap-2 rounded-[7px] px-2.5 py-2 text-left text-[12.5px] text-ink-2 hover:bg-surface-raised hover:text-ink-1"
+                >
+                  <Download size={14} />
+                  Download .ics (Apple/Outlook)
+                </button>
+              </div>
+            ) : null}
+          </>
+        )}
+        {canDelete ? (
           <button
             onClick={() => onDelete(event.id)}
             disabled={disabled}
-            aria-label="Delete event"
+            aria-label={isSynced ? "Delete this event in Outlook" : "Delete event"}
+            title={isSynced ? "Deletes it in Outlook too" : undefined}
             className="flex h-8 w-8 items-center justify-center rounded-[8px] text-ink-3 hover:bg-critical-wash hover:text-critical"
           >
             <Trash2 size={15} />
           </button>
-        </div>
-      )}
+        ) : null}
+      </div>
     </Card>
   );
 }
@@ -188,7 +196,12 @@ export function RealCalendarClient({ initialEvents }: { initialEvents: CalendarE
     startTransition(async () => {
       const fd = new FormData();
       fd.set("eventId", id);
-      const result = await deleteCalendarEventAction({}, fd);
+      // Outlook-sourced rows carry a real Graph event id (prefixed
+      // "outlook:") and delete through Microsoft's API instead of the
+      // local CalendarEvent table.
+      const result = id.startsWith("outlook:")
+        ? await deleteSyncedCalendarEventAction({}, fd)
+        : await deleteCalendarEventAction({}, fd);
       if (result.error) return showToast({ title: "Couldn't delete event", description: result.error });
       setEvents((prev) => prev.filter((ev) => ev.id !== id));
     });
