@@ -9,7 +9,7 @@ export interface ProblemReportState {
   success?: string;
 }
 
-const PRODUCT_AREAS = new Set(["3Stone One", "Workspace", "Student", "3Stone AI website", "3Stone Picks", "3Stone Counsel", "Other"]);
+const PRODUCT_AREAS = new Set(["3Stone One", "Workspace", "Student", "3Stone Admin", "3Stone AI website", "3Stone Picks", "3Stone Counsel", "Other"]);
 
 function clean(value: FormDataEntryValue | null, max: number): string {
   return String(value ?? "").trim().slice(0, max);

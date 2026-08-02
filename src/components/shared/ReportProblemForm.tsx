@@ -4,7 +4,7 @@ import { useActionState } from "react";
 import { submitProblemReport, type ProblemReportState } from "./reportProblemActions";
 
 const initialState: ProblemReportState = {};
-const PRODUCT_AREAS = ["3Stone One", "Workspace", "Student", "3Stone AI website", "3Stone Picks", "3Stone Counsel", "Other"];
+const PRODUCT_AREAS = ["3Stone One", "Workspace", "Student", "3Stone Admin", "3Stone AI website", "3Stone Picks", "3Stone Counsel", "Other"];
 
 export function ReportProblemForm({ sourceUrl = "", productArea = "3Stone One", compact = false }: { sourceUrl?: string; productArea?: string; compact?: boolean }) {
   const [state, action, pending] = useActionState(submitProblemReport, initialState);
