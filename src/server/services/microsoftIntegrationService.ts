@@ -3,7 +3,7 @@ import { encryptToken, decryptToken } from "@/lib/tokenEncryption";
 
 // Request only scopes backed by live product features: calendar plus Outlook
 // mailbox reading and sending. Files and Teams remain out until implemented.
-const MICROSOFT_SCOPES = [
+const FULL_MICROSOFT_SCOPES = [
   "Calendars.ReadWrite",
   "Mail.ReadWrite",
   "Mail.Send",
@@ -19,6 +19,10 @@ const MICROSOFT_SCOPES = [
   "openid",
   "email",
 ].join(" ");
+function microsoftScopesForEdition(editionKey: string): string {
+  if (editionKey === "student") return ["Files.Read", "User.Read", "offline_access", "openid", "email"].join(" ");
+  return FULL_MICROSOFT_SCOPES;
+}
 const AUTHORITY = "https://login.microsoftonline.com/common/oauth2/v2.0";
 
 function isConfigured(): boolean {
@@ -43,13 +47,13 @@ export async function createMicrosoftAuthState(workspaceId: string, userId: stri
   return state.id;
 }
 
-export function buildMicrosoftAuthUrl(state: string, redirectUri: string): string {
+export function buildMicrosoftAuthUrl(state: string, redirectUri: string, editionKey = "business"): string {
   const { clientId } = requireConfig();
   const params = new URLSearchParams({
     client_id: clientId,
     redirect_uri: redirectUri,
     response_type: "code",
-    scope: MICROSOFT_SCOPES,
+    scope: microsoftScopesForEdition(editionKey),
     response_mode: "query",
     state,
   });
@@ -75,7 +79,6 @@ async function exchangeCodeForTokens(code: string, redirectUri: string): Promise
       client_secret: clientSecret,
       redirect_uri: redirectUri,
       grant_type: "authorization_code",
-      scope: MICROSOFT_SCOPES,
     }),
   });
   if (!res.ok) {
@@ -136,7 +139,6 @@ async function refreshAccessToken(refreshTokenPlain: string): Promise<{ accessTo
       client_secret: clientSecret,
       refresh_token: refreshTokenPlain,
       grant_type: "refresh_token",
-      scope: MICROSOFT_SCOPES,
     }),
   });
   if (!res.ok) {

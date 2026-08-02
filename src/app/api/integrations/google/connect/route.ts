@@ -20,7 +20,7 @@ export async function GET(req: Request) {
 
   const membership = await db.workspaceMember.findFirst({
     where: { userId: session.userId, status: "active" },
-    select: { workspaceId: true },
+    select: { workspaceId: true, workspace: { select: { editionKey: true } } },
     orderBy: { joinedAt: "asc" },
   });
   if (!membership) {
@@ -38,6 +38,6 @@ export async function GET(req: Request) {
   }
 
   const state = await createGoogleAuthState(membership.workspaceId, session.userId);
-  const authUrl = buildGoogleAuthUrl(state, redirectUri(req));
+  const authUrl = buildGoogleAuthUrl(state, redirectUri(req), membership.workspace.editionKey);
   return NextResponse.redirect(authUrl);
 }

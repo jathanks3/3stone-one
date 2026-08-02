@@ -44,6 +44,8 @@ export function RealJobTrackerClient({ initialApplications }: { initialApplicati
       fd.set("company", company.trim());
       fd.set("role", role.trim());
       fd.set("notes", notes.trim());
+      fd.set("source", source);
+      fd.set("sourceUrl", sourceUrl.trim());
       const result = await createJobApplicationAction({}, fd);
       if (result.error || !result.id) return showToast({ title: "Couldn't add application", description: result.error ?? "Something went wrong." });
       setApplications((prev) => [...prev, { id: result.id!, company: company.trim(), role: role.trim(), status: "saved", appliedDate: null, notes: notes.trim() || null, source, sourceUrl: sourceUrl.trim() || null }]);
@@ -124,6 +126,7 @@ export function RealJobTrackerClient({ initialApplications }: { initialApplicati
                 <option value="manual">Manual</option>
                 <option value="linkedin">LinkedIn</option>
                 <option value="handshake">Handshake</option>
+                <option value="12twenty">12twenty (law careers)</option>
                 <option value="company_site">Company site</option>
                 <option value="other">Other</option>
               </select>

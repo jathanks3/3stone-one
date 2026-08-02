@@ -9,15 +9,24 @@ import { encryptToken, decryptToken } from "@/lib/tokenEncryption";
 // Every requested scope below is backed by a real destination in the
 // product: Calendar, Gmail in Communications, Drive in Documents, and
 // Sheets exports from Analytics. Gmail/Drive scopes require Google review.
-const GOOGLE_SCOPES = [
-  "https://www.googleapis.com/auth/calendar.readonly",
-  "https://www.googleapis.com/auth/gmail.readonly",
-  "https://www.googleapis.com/auth/gmail.send",
-  "https://www.googleapis.com/auth/drive.readonly",
-  "https://www.googleapis.com/auth/spreadsheets",
-  "openid",
-  "email",
-].join(" ");
+function googleScopesForEdition(editionKey: string): string {
+  const identity = ["openid", "email"];
+  if (editionKey === "student") return ["https://www.googleapis.com/auth/drive.readonly", ...identity].join(" ");
+  if (editionKey === "workspace") return [
+    "https://www.googleapis.com/auth/calendar.readonly",
+    "https://www.googleapis.com/auth/gmail.readonly",
+    "https://www.googleapis.com/auth/gmail.send",
+    ...identity,
+  ].join(" ");
+  return [
+    "https://www.googleapis.com/auth/calendar.readonly",
+    "https://www.googleapis.com/auth/gmail.readonly",
+    "https://www.googleapis.com/auth/gmail.send",
+    "https://www.googleapis.com/auth/drive.readonly",
+    "https://www.googleapis.com/auth/spreadsheets",
+    ...identity,
+  ].join(" ");
+}
 
 function isConfigured(): boolean {
   return Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
@@ -45,13 +54,13 @@ export async function createGoogleAuthState(workspaceId: string, userId: string)
   return state.id;
 }
 
-export function buildGoogleAuthUrl(state: string, redirectUri: string): string {
+export function buildGoogleAuthUrl(state: string, redirectUri: string, editionKey = "business"): string {
   const { clientId } = requireConfig();
   const params = new URLSearchParams({
     client_id: clientId,
     redirect_uri: redirectUri,
     response_type: "code",
-    scope: GOOGLE_SCOPES,
+    scope: googleScopesForEdition(editionKey),
     access_type: "offline",
     prompt: "consent",
     state,

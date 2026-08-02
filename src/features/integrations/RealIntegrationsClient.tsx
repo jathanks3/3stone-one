@@ -170,25 +170,25 @@ export function RealIntegrationsClient({
 
       <div className="mt-6 flex flex-col gap-4">
         <IntegrationCard
-          name="Google Calendar"
-          blurb="Real Google Calendar access — more Google Workspace features are coming."
+          name={editionKey === "student" ? "Google Drive" : "Google Workspace"}
+          blurb={editionKey === "student" ? "Student connection requests Drive read access only." : "Gmail and Calendar populate Communications and Calendar; Business also enables Drive and Sheets."}
           status={googleStatus}
           connectedAt={googleConnectedAt}
           configured={googleConfigured}
           connectHref="/api/integrations/google/connect"
           disconnectAction={disconnectGoogleAction}
-          events={googleEvents}
+          events={editionKey === "student" ? null : googleEvents}
           eventsLabel="Next on your Google Calendar"
         />
         <IntegrationCard
-          name="Microsoft Outlook"
-          blurb="Outlook Mail and Calendar are live. Reconnect once for OneDrive files and Teams meeting links."
+          name={editionKey === "student" ? "Microsoft OneDrive" : "Microsoft 365"}
+          blurb={editionKey === "student" ? "Student connection requests OneDrive file access only." : "Outlook Mail, Calendar, OneDrive and Teams populate their Workplace destinations."}
           status={microsoftStatus}
           connectedAt={microsoftConnectedAt}
           configured={microsoftConfigured}
           connectHref="/api/integrations/microsoft/connect"
           disconnectAction={disconnectMicrosoftAction}
-          events={microsoftEvents}
+          events={editionKey === "student" ? null : microsoftEvents}
           eventsLabel="Next on your Outlook Calendar"
         />
         {catalog.some((item) => item.key === "slack") ? (
