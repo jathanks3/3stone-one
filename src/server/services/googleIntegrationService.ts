@@ -1,20 +1,21 @@
 import { db } from "@/server/db";
 import { encryptToken, decryptToken } from "@/lib/tokenEncryption";
 
-// Real Google OAuth (Calendar, Gmail, Drive, Sheets) - the first real
-// third-party integration after Integration/ApiKey sat schema-only for a
-// long time. One Google Cloud OAuth client covers every 3Stone One
-// edition (they're all the same app/domain) - see the founder's own
-// setup notes.
-const GOOGLE_SCOPES = [
-  "https://www.googleapis.com/auth/calendar",
-  "https://www.googleapis.com/auth/gmail.readonly",
-  "https://www.googleapis.com/auth/gmail.send",
-  "https://www.googleapis.com/auth/drive.readonly",
-  "https://www.googleapis.com/auth/spreadsheets",
-  "openid",
-  "email",
-].join(" ");
+// Real Google OAuth - the first real third-party integration after
+// Integration/ApiKey sat schema-only for a long time. One Google Cloud
+// OAuth client covers every 3Stone One edition (they're all the same
+// app/domain) - see the founder's own setup notes.
+//
+// Scope list deliberately requests ONLY Calendar right now, even though
+// the Google Cloud project has Gmail/Drive/Sheets APIs enabled too.
+// Google requires verification (including a demo video) per *restricted*
+// scope (Gmail, broad Drive access) proving it's actually used - we'd
+// have been requesting access this app doesn't do anything with yet,
+// which Google correctly blocked ("hasn't completed verification").
+// Real, honest order: build the Gmail/Drive/Sheets feature first, THEN
+// add its scope here and go through verification with a true demo of
+// that feature - never request a scope before the feature exists.
+const GOOGLE_SCOPES = ["https://www.googleapis.com/auth/calendar", "openid", "email"].join(" ");
 
 function isConfigured(): boolean {
   return Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
