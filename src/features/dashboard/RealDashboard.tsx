@@ -1,4 +1,5 @@
 import { Card } from "@/ui/Card";
+import { getAllowedModuleKeys } from "@/lib/editionModules";
 import type { RealDashboardData } from "@/server/services/dashboardService";
 
 // A genuine Server Component, not "use client" — nothing here is
@@ -12,6 +13,15 @@ export function RealDashboard({ data }: { data: RealDashboardData }) {
   const hasAnyActivity =
     data.openProjectCount > 0 || data.unpaidInvoiceCount > 0 || data.recentActivity.length > 0;
 
+  // Real bug: every edition saw "Team members" and "Unpaid invoices"
+  // regardless of whether People or Finance are even part of that
+  // edition (Student has neither; Workspace has no Finance - see
+  // editionModules.ts). Only show a KPI card for a concept that
+  // edition's module list actually includes.
+  const allowedModules = getAllowedModuleKeys(data.editionKey);
+  const showTeamMembers = !allowedModules || allowedModules.has("people");
+  const showInvoices = !allowedModules || allowedModules.has("finance");
+
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-5 px-4 py-6 sm:px-6 sm:py-8">
       <div>
@@ -19,15 +29,17 @@ export function RealDashboard({ data }: { data: RealDashboardData }) {
         <p className="text-[14px] text-ink-2">
           {hasAnyActivity
             ? "Here's what's happening in your workspace."
-            : "Your workspace is ready. Nothing here yet — invite your team, or add your first project or invoice to get started."}
+            : `Your workspace is ready. Nothing here yet — ${showTeamMembers ? "invite your team, or " : ""}add your first project${showInvoices ? " or invoice" : ""} to get started.`}
         </p>
       </div>
 
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
-        <Card className="p-4">
-          <p className="text-[11.5px] text-ink-3">Team members</p>
-          <p className="mt-1 text-[22px] font-bold text-ink-1">{data.memberCount}</p>
-        </Card>
+        {showTeamMembers ? (
+          <Card className="p-4">
+            <p className="text-[11.5px] text-ink-3">Team members</p>
+            <p className="mt-1 text-[22px] font-bold text-ink-1">{data.memberCount}</p>
+          </Card>
+        ) : null}
         <Card className="p-4">
           <p className="text-[11.5px] text-ink-3">Open projects</p>
           <p className="mt-1 text-[22px] font-bold text-ink-1">{data.openProjectCount}</p>
@@ -35,10 +47,12 @@ export function RealDashboard({ data }: { data: RealDashboardData }) {
             <p className="mt-1 text-[12px] text-critical">{data.overdueProjectCount} overdue</p>
           ) : null}
         </Card>
-        <Card className="p-4">
-          <p className="text-[11.5px] text-ink-3">Unpaid invoices</p>
-          <p className="mt-1 text-[22px] font-bold text-ink-1">{data.unpaidInvoiceCount}</p>
-        </Card>
+        {showInvoices ? (
+          <Card className="p-4">
+            <p className="text-[11.5px] text-ink-3">Unpaid invoices</p>
+            <p className="mt-1 text-[22px] font-bold text-ink-1">{data.unpaidInvoiceCount}</p>
+          </Card>
+        ) : null}
       </div>
 
       <Card className="p-5">

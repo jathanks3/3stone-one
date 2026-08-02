@@ -2,6 +2,7 @@ import { db } from "@/server/db";
 
 export interface RealDashboardData {
   workspaceName: string;
+  editionKey: string;
   memberCount: number;
   openProjectCount: number;
   overdueProjectCount: number;
@@ -15,10 +16,16 @@ export interface RealDashboardData {
 // every count here is genuinely zero — that's not a bug to work around,
 // it's the truthful empty state docs/15/the founder's charter both
 // require instead of fabricated numbers.
+//
+// editionKey is returned alongside these so RealDashboard can decide
+// which counts even make sense to show - real bug found here: every
+// edition saw "Team members" and "Unpaid invoices" regardless of
+// whether People or Finance are even in that edition's module list (see
+// editionModules.ts - Student has neither, Workspace has no Finance).
 export async function getDashboardData(workspaceId: string): Promise<RealDashboardData> {
   const [workspace, memberCount, openProjectCount, overdueProjectCount, unpaidInvoiceCount, recentActivity] =
     await Promise.all([
-      db.workspace.findUniqueOrThrow({ where: { id: workspaceId }, select: { name: true } }),
+      db.workspace.findUniqueOrThrow({ where: { id: workspaceId }, select: { name: true, editionKey: true } }),
       db.workspaceMember.count({ where: { workspaceId, status: "active" } }),
       db.project.count({ where: { workspaceId, statusKey: { not: "done" } } }),
       db.project.count({ where: { workspaceId, statusKey: { not: "done" }, dueDate: { lt: new Date() } } }),
@@ -33,6 +40,7 @@ export async function getDashboardData(workspaceId: string): Promise<RealDashboa
 
   return {
     workspaceName: workspace.name,
+    editionKey: workspace.editionKey,
     memberCount,
     openProjectCount,
     overdueProjectCount,
