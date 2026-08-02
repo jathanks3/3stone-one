@@ -9,10 +9,11 @@ import { DetailPanel } from "@/ui/DetailPanel";
 import { EmptyState } from "@/ui/EmptyState";
 import { cn, initialsFromName } from "@/lib/utils";
 import { useToast } from "@/lib/toast";
-import { createCallNoteAction, createChannelAction, sendMessageAction, sendOutlookMailAction } from "@/app/(app)/communications/actions";
+import { createCallNoteAction, createChannelAction, sendMessageAction, sendOutlookMailAction, sendSlackMessageAction } from "@/app/(app)/communications/actions";
 import type { CallNoteRow, ChatChannelRow, ChatMessageRow } from "@/server/services/communicationsService";
 import type { PersonRow } from "@/server/services/crmService";
 import type { OutlookMessage } from "@/server/services/microsoftIntegrationService";
+import type { SlackChannel, SlackMessage } from "@/server/services/slackIntegrationService";
 
 export function RealCommunicationsClient({
   initialChannels,
@@ -21,6 +22,9 @@ export function RealCommunicationsClient({
   people,
   outlookConnected,
   outlookMessages,
+  slackConnected,
+  slackChannels,
+  slackMessages,
 }: {
   initialChannels: ChatChannelRow[];
   initialMessages: ChatMessageRow[];
@@ -28,6 +32,9 @@ export function RealCommunicationsClient({
   people: PersonRow[];
   outlookConnected: boolean;
   outlookMessages: OutlookMessage[] | null;
+  slackConnected: boolean;
+  slackChannels: SlackChannel[] | null;
+  slackMessages: SlackMessage[] | null;
 }) {
   return (
     <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-8">
@@ -39,9 +46,46 @@ export function RealCommunicationsClient({
           tabs={[
             { key: "chat", label: "Chat", content: <ChatTab initialChannels={initialChannels} initialMessages={initialMessages} /> },
             { key: "email", label: "Outlook Mail", content: <OutlookMailTab connected={outlookConnected} initialMessages={outlookMessages} /> },
+            { key: "slack", label: "Slack", content: <SlackTab connected={slackConnected} channels={slackChannels} messages={slackMessages} /> },
             { key: "calls", label: "Call Notes", content: <CallNotesTab initial={initialCallNotes} people={people} /> },
           ]}
         />
+      </div>
+    </div>
+  );
+}
+
+function SlackTab({ connected, channels, messages }: { connected: boolean; channels: SlackChannel[] | null; messages: SlackMessage[] | null }) {
+  const [activeChannel, setActiveChannel] = useState(channels?.[0]?.id ?? "");
+  const [draft, setDraft] = useState("");
+  const [isPending, startTransition] = useTransition();
+  const { showToast } = useToast();
+  if (!connected) return <EmptyState icon={Hash} title="Connect Slack to see channels" description="Install the 3Stone One Slack app from Integrations." />;
+  if (!channels || !messages) return <EmptyState icon={Hash} title="Slack needs attention" description="Reconnect Slack or invite the 3Stone One bot to a public channel." />;
+  const activeMessages = messages.filter((message) => message.channelId === activeChannel);
+  function send() {
+    if (!activeChannel || !draft.trim()) return;
+    const body = draft.trim();
+    startTransition(async () => {
+      const fd = new FormData();
+      fd.set("channelId", activeChannel);
+      fd.set("body", body);
+      const result = await sendSlackMessageAction({}, fd);
+      if (result.error) return showToast({ title: "Couldn't send to Slack", description: result.error });
+      setDraft("");
+      showToast({ title: "Slack message sent" });
+    });
+  }
+  return (
+    <div className="grid grid-cols-1 gap-4 md:grid-cols-[220px_1fr]">
+      <div className="rounded-2xl border border-line bg-surface p-1.5">
+        {channels.map((channel) => <button key={channel.id} onClick={() => setActiveChannel(channel.id)} className={cn("flex w-full items-center gap-2 rounded-[10px] px-3 py-2 text-left text-[13px] font-medium", activeChannel === channel.id ? "bg-accent-wash text-accent" : "text-ink-2 hover:bg-surface-raised")}><Hash size={14} />{channel.name}</button>)}
+      </div>
+      <div className="flex min-h-[420px] flex-col rounded-2xl border border-line bg-surface">
+        <div className="flex-1 space-y-3 overflow-y-auto p-5">
+          {activeMessages.length === 0 ? <p className="text-[13px] text-ink-3">No visible messages in this channel.</p> : activeMessages.map((message) => <div key={message.id}><div className="flex items-baseline gap-2"><span className="text-[12.5px] font-semibold text-ink-1">{message.author}</span><span className="text-[10.5px] text-ink-3">{message.sentAt ? new Date(message.sentAt).toLocaleString() : ""}</span></div><p className="text-[13.5px] text-ink-2">{message.body}</p></div>)}
+        </div>
+        <div className="flex gap-2 border-t border-line p-3"><input value={draft} onChange={(e) => setDraft(e.target.value)} onKeyDown={(e) => e.key === "Enter" && send()} placeholder="Message Slack…" className="h-10 flex-1 rounded-[9px] border border-line bg-bg px-3.5 text-[13.5px] outline-none focus:border-accent" /><button onClick={send} disabled={isPending} className="flex h-10 w-10 items-center justify-center rounded-[9px] bg-accent text-on-accent"><Send size={15} /></button></div>
       </div>
     </div>
   );

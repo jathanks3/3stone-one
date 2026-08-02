@@ -6,6 +6,7 @@ import { getActiveWorkspaceIdForUser } from "@/server/services/onboardingService
 import { requireActiveMember } from "@/server/services/teamService";
 import { createCallNote, createChannel, sendMessage } from "@/server/services/communicationsService";
 import { sendOutlookMail } from "@/server/services/microsoftIntegrationService";
+import { sendSlackMessage } from "@/server/services/slackIntegrationService";
 
 export interface ActionState {
   error?: string;
@@ -68,6 +69,18 @@ export async function sendOutlookMailAction(_prev: ActionState, formData: FormDa
     });
     revalidatePath("/communications");
     return { success: "Email sent." };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Something went wrong." };
+  }
+}
+
+export async function sendSlackMessageAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  try {
+    const { userId, workspaceId } = await currentWorkspaceId();
+    await requireActiveMember(userId, workspaceId);
+    await sendSlackMessage(workspaceId, String(formData.get("channelId") ?? ""), String(formData.get("body") ?? ""));
+    revalidatePath("/communications");
+    return { success: "Slack message sent." };
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Something went wrong." };
   }

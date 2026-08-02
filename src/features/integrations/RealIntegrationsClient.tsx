@@ -7,7 +7,7 @@ import { Card } from "@/ui/Card";
 import { Badge } from "@/ui/Badge";
 import { Button } from "@/ui/Button";
 import { useToast } from "@/lib/toast";
-import { disconnectGoogleAction, disconnectMicrosoftAction, type ActionState } from "@/app/(app)/integrations/actions";
+import { disconnectGoogleAction, disconnectMicrosoftAction, disconnectSlackAction, type ActionState } from "@/app/(app)/integrations/actions";
 import { integrationsForEdition, type IntegrationReadiness } from "@/lib/integrationCatalog";
 
 const emptyState: ActionState = {};
@@ -119,6 +119,9 @@ export function RealIntegrationsClient({
   microsoftConnectedAt,
   microsoftEvents,
   editionKey,
+  slackConfigured,
+  slackStatus,
+  slackConnectedAt,
 }: {
   googleConfigured: boolean;
   googleStatus: Status;
@@ -129,6 +132,9 @@ export function RealIntegrationsClient({
   microsoftConnectedAt: string | null;
   microsoftEvents: CalendarEvent[] | null;
   editionKey: string;
+  slackConfigured: boolean;
+  slackStatus: Status;
+  slackConnectedAt: string | null;
 }) {
   const searchParams = useSearchParams();
   const { showToast } = useToast();
@@ -143,6 +149,8 @@ export function RealIntegrationsClient({
       showToast({ title: "Google connected", description: "Your Google Calendar is now linked." });
     } else if (connected === "microsoft") {
       showToast({ title: "Microsoft connected", description: "Your Outlook Calendar and Mail are now linked." });
+    } else if (connected === "slack") {
+      showToast({ title: "Slack connected", description: "Your Slack workspace is now linked." });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -177,6 +185,19 @@ export function RealIntegrationsClient({
           events={microsoftEvents}
           eventsLabel="Next on your Outlook Calendar"
         />
+        {catalog.some((item) => item.key === "slack") ? (
+          <IntegrationCard
+            name="Slack"
+            blurb="Real Slack channels and messages populate Communications."
+            status={slackStatus}
+            connectedAt={slackConnectedAt}
+            configured={slackConfigured}
+            connectHref="/api/integrations/slack/connect"
+            disconnectAction={disconnectSlackAction}
+            events={null}
+            eventsLabel=""
+          />
+        ) : null}
       </div>
 
       <p className="mt-8 mb-2 text-[12px] font-semibold uppercase tracking-wide text-ink-3">Available for this edition</p>

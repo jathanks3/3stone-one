@@ -6,6 +6,7 @@ import { getActiveWorkspaceIdForUser } from "@/server/services/onboardingService
 import { db } from "@/server/db";
 import { isGoogleIntegrationConfigured, getUpcomingGoogleCalendarEvents } from "@/server/services/googleIntegrationService";
 import { isMicrosoftIntegrationConfigured, getUpcomingOutlookEvents } from "@/server/services/microsoftIntegrationService";
+import { isSlackIntegrationConfigured } from "@/server/services/slackIntegrationService";
 
 export const metadata: Metadata = { title: "Integrations — 3Stone One" };
 
@@ -20,9 +21,10 @@ export default async function IntegrationsPage() {
     return <IntegrationsClient />;
   }
 
-  const [google, microsoft] = await Promise.all([
+  const [google, microsoft, slack] = await Promise.all([
     db.integration.findUnique({ where: { workspaceId_provider: { workspaceId, provider: "google" } } }),
     db.integration.findUnique({ where: { workspaceId_provider: { workspaceId, provider: "microsoft" } } }),
+    db.integration.findUnique({ where: { workspaceId_provider: { workspaceId, provider: "slack" } } }),
   ]);
   const workspace = await db.workspace.findUnique({ where: { id: workspaceId }, select: { editionKey: true } });
   const [googleEvents, microsoftEvents] = await Promise.all([
@@ -41,6 +43,9 @@ export default async function IntegrationsPage() {
       microsoftConnectedAt={microsoft?.connectedAt?.toISOString() ?? null}
       microsoftEvents={microsoftEvents}
       editionKey={workspace?.editionKey ?? "business"}
+      slackConfigured={isSlackIntegrationConfigured()}
+      slackStatus={slack?.status ?? "not_connected"}
+      slackConnectedAt={slack?.connectedAt?.toISOString() ?? null}
     />
   );
 }

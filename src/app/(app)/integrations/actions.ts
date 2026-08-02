@@ -6,6 +6,7 @@ import { getActiveWorkspaceIdForUser } from "@/server/services/onboardingService
 import { requireTeamManager } from "@/server/services/teamService";
 import { disconnectGoogle } from "@/server/services/googleIntegrationService";
 import { disconnectMicrosoft } from "@/server/services/microsoftIntegrationService";
+import { disconnectSlack } from "@/server/services/slackIntegrationService";
 
 export interface ActionState {
   error?: string;
@@ -39,6 +40,18 @@ export async function disconnectMicrosoftAction(_prev: ActionState, _formData: F
     await disconnectMicrosoft(workspaceId);
     revalidatePath("/integrations");
     return { success: "Microsoft disconnected." };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Something went wrong." };
+  }
+}
+
+export async function disconnectSlackAction(_prev: ActionState, _formData: FormData): Promise<ActionState> {
+  try {
+    const { userId, workspaceId } = await currentWorkspaceId();
+    await requireTeamManager(userId, workspaceId);
+    await disconnectSlack(workspaceId);
+    revalidatePath("/integrations");
+    return { success: "Slack disconnected." };
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Something went wrong." };
   }
