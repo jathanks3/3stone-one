@@ -5,6 +5,7 @@ import { hashPassword } from "@/lib/password";
 import { createNotification } from "@/server/services/notificationService";
 import { sendEmail } from "@/server/services/emailService";
 import { renderEmailHtml } from "@/server/services/emailTemplates";
+import { getPlanTier } from "@/config/pricing";
 
 async function currentOrigin(): Promise<string> {
   const headerList = await headers();
@@ -128,6 +129,20 @@ export async function inviteMember(
   invitedByUserId: string
 ): Promise<{ invitationId: string; inviteToken: string; delivered: boolean }> {
   const normalizedEmail = email.trim().toLowerCase();
+
+  const [workspace, activeMembers, pendingInvitations] = await Promise.all([
+    db.workspace.findUniqueOrThrow({ where: { id: workspaceId }, select: { plan: true } }),
+    db.workspaceMember.count({ where: { workspaceId, status: "active" } }),
+    db.invitation.count({ where: { workspaceId, status: "pending", expiresAt: { gt: new Date() } } }),
+  ]);
+  const seatLimit = getPlanTier(workspace.plan)?.maxEmployees ?? 1;
+  if (activeMembers + pendingInvitations >= seatLimit) {
+    throw new Error(
+      workspace.plan === "free"
+        ? "Free workspaces include one seat. Upgrade in Settings → Billing to invite a team."
+        : `Your ${seatLimit}-seat plan is full. Revoke a pending invitation or change plans in Settings → Billing.`
+    );
+  }
 
   const existingMember = await db.workspaceMember.findFirst({
     where: { workspaceId, user: { email: normalizedEmail }, status: { in: ["active", "invited"] } },

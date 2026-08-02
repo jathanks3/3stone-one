@@ -97,7 +97,8 @@ async function ensurePriceForPlan(tier: PlanTier): Promise<string> {
 export async function createCheckoutSession(
   workspaceId: string,
   planKey: Exclude<WorkspacePlan, "free" | "enterprise">,
-  urls: { successUrl: string; cancelUrl: string }
+  urls: { successUrl: string; cancelUrl: string },
+  options?: { trialDays?: number }
 ): Promise<{ url: string }> {
   const tier = getPlanTier(planKey);
   if (!tier) throw new Error(`Unknown plan "${planKey}".`);
@@ -105,6 +106,9 @@ export async function createCheckoutSession(
   const stripe = getStripeClient();
   const customerId = await ensureCustomer(workspaceId);
   const subscription = await db.subscription.findUnique({ where: { workspaceId } });
+  if (subscription?.stripeSubscriptionId && ["active", "trialing"].includes(subscription.status)) {
+    throw new Error("This workspace already has a subscription. Use Manage billing to change it.");
+  }
 
   // Founder pricing override (Subscription.isFounderPricing +
   // priceOverrideCents — real fields, no admin UI to set them yet, so
@@ -132,7 +136,10 @@ export async function createCheckoutSession(
     success_url: urls.successUrl,
     cancel_url: urls.cancelUrl,
     metadata: { workspaceId, planKey },
-    subscription_data: { metadata: { workspaceId, planKey } },
+    subscription_data: {
+      metadata: { workspaceId, planKey },
+      ...(options?.trialDays ? { trial_period_days: options.trialDays } : {}),
+    },
   });
 
   if (!session.url) throw new Error("Stripe did not return a checkout URL.");
@@ -278,7 +285,6 @@ export async function handleWebhookEvent(event: Stripe.Event): Promise<void> {
         where: { workspaceId },
         data: {
           plan: planKey,
-          status: "active",
           stripeSubscriptionId: typeof session.subscription === "string" ? session.subscription : undefined,
         },
       });

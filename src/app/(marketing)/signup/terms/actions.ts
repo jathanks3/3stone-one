@@ -2,8 +2,13 @@
 
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
+import { cookies } from "next/headers";
 import { getSession } from "@/lib/session";
 import { getActiveWorkspaceIdForUser, acceptTerms, completeSetup } from "@/server/services/onboardingService";
+import { db } from "@/server/db";
+import { createCheckoutSession, isStripeConfigured } from "@/server/services/stripeService";
+import type { WorkspacePlan } from "@/types";
+import { getPlanTiersForEdition } from "@/config/pricing";
 
 export interface TermsFormState {
   error?: string;
@@ -27,5 +32,29 @@ export async function acceptTermsAction(_prevState: TermsFormState, formData: Fo
 
   await acceptTerms(workspaceId, session.userId, ipAddress);
   await completeSetup(workspaceId);
+  const workspace = await db.workspace.findUniqueOrThrow({ where: { id: workspaceId }, select: { editionKey: true } });
+  const cookieStore = await cookies();
+  const selectedPlan = (cookieStore.get("signup_plan")?.value ?? "free") as WorkspacePlan;
+  const allowedPlans = new Set<WorkspacePlan>([
+    "free",
+    ...getPlanTiersForEdition(workspace.editionKey).map((tier) => tier.key),
+  ]);
+  if (!allowedPlans.has(selectedPlan)) return { error: "Choose a valid plan before continuing." };
+
+  if (selectedPlan !== "free" && selectedPlan !== "enterprise") {
+    if (!isStripeConfigured()) return { error: "Paid checkout is temporarily unavailable. Choose Free or try again shortly." };
+    const headerListForOrigin = await headers();
+    const host = headerListForOrigin.get("host");
+    const protocol = host?.startsWith("localhost") ? "http" : "https";
+    const origin = `${protocol}://${host}`;
+    const { url } = await createCheckoutSession(
+      workspaceId,
+      selectedPlan as Exclude<WorkspacePlan, "free" | "enterprise">,
+      { successUrl: `${origin}/dashboard?billing=success`, cancelUrl: `${origin}/signup/plan?checkout=cancelled` },
+      { trialDays: 14 }
+    );
+    redirect(url);
+  }
+  cookieStore.delete("signup_plan");
   redirect("/dashboard");
 }

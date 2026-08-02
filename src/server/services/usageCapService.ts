@@ -33,7 +33,12 @@ export interface AiUsageStatus {
 
 export async function getAiUsageStatus(workspaceId: string): Promise<AiUsageStatus> {
   const subscription = await db.subscription.findUnique({ where: { workspaceId } });
-  const isPaid = subscription?.status === "active";
+  // A card-backed Stripe trial is part of a paid subscription lifecycle
+  // and receives the plan allowance. A locally-created onboarding trial
+  // has no Stripe subscription id and stays on the 20-action preview.
+  const isPaid =
+    subscription?.status === "active" ||
+    (subscription?.status === "trialing" && Boolean(subscription.stripeSubscriptionId));
 
   // Not an active paying subscription: a one-time, non-cycling total
   // (trialing, past_due, canceled, paused, or no subscription row at

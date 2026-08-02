@@ -1,14 +1,17 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
 import { getSession } from "@/lib/session";
-import { getActiveWorkspaceIdForUser, selectPlan } from "@/server/services/onboardingService";
+import { getActiveWorkspaceEditionForUser, getActiveWorkspaceIdForUser, selectPlan } from "@/server/services/onboardingService";
+import { getPlanTiersForEdition } from "@/config/pricing";
+import type { WorkspacePlan } from "@/types";
 
 export interface PlanFormState {
   error?: string;
 }
 
-export async function selectPlanAction(_prevState: PlanFormState, _formData: FormData): Promise<PlanFormState> {
+export async function selectPlanAction(_prevState: PlanFormState, formData: FormData): Promise<PlanFormState> {
   const session = await getSession();
   if (!session || session.isDemo) {
     return { error: "Your session has expired — start over from /signup." };
@@ -18,12 +21,21 @@ export async function selectPlanAction(_prevState: PlanFormState, _formData: For
     return { error: "Create a workspace first." };
   }
 
-  // Free is the only real, immediately-available plan — there's no
-  // Stripe integration yet, so Pro/Enterprise aren't offered as a
-  // working choice here (see the page itself). Enabling paid Stripe
-  // products is an explicit approval boundary in its own right, not
-  // something to route around with a plan selector that can't actually
-  // charge anyone.
+  const editionKey = (await getActiveWorkspaceEditionForUser(session.userId)) ?? "business";
+  const requested = String(formData.get("plan") ?? "free") as WorkspacePlan;
+  const allowed = new Set<WorkspacePlan>(["free", ...getPlanTiersForEdition(editionKey).map((tier) => tier.key)]);
+  if (!allowed.has(requested)) return { error: "Choose a valid plan for this edition." };
+  // Keep the persisted entitlement on Free until Stripe confirms checkout.
+  // The short-lived, httpOnly cookie only carries the customer's selection
+  // between the two signup screens; the terms action validates it again.
   await selectPlan(workspaceId, "free");
+  const cookieStore = await cookies();
+  cookieStore.set("signup_plan", requested, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    maxAge: 60 * 30,
+    path: "/signup",
+  });
   redirect("/signup/terms");
 }

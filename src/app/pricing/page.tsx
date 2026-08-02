@@ -61,7 +61,7 @@ const EDITIONS: {
   {
     id: "student",
     name: "3Stone One Student",
-    tagline: "Documents, projects, a calendar, notes, a GPA calculator, and a job tracker for coursework. AI is available as a paid add-on.",
+    tagline: "Documents, projects, a calendar, notes, a GPA calculator, and a job tracker for coursework. AI is included on every paid tier.",
     tiers: STUDENT_PLAN_TIERS,
     showEnterprise: false,
     learnMoreHref: "/student",
