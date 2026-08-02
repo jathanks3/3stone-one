@@ -26,6 +26,32 @@ const SUGGESTIONS = [
   "Which projects are at risk?",
 ];
 
+// The demo runs a keyword-matching mock engine (src/server/ai/assistant.ts),
+// not the real model - these have to be things that engine can actually
+// answer for that edition's mock dataset, not the open-ended prompts the
+// real assistant handles (see STUDENT_SUGGESTIONS etc. below, which are
+// real-session-only). Student/Workspace have no Finance/Inventory (see
+// editionModules.ts), so their demo suggestions never reference those.
+const STUDENT_DEMO_SUGGESTIONS = [
+  "Summarize today",
+  "What's due tomorrow?",
+  "Compare this month to last month",
+  "Which assignments are at risk?",
+];
+
+const WORKSPACE_DEMO_SUGGESTIONS = [
+  "Summarize today",
+  "What's coming up?",
+  "Compare this month to last month",
+  "Which projects are at risk?",
+];
+
+function demoSuggestions(editionKey: string): string[] {
+  if (editionKey === "student") return STUDENT_DEMO_SUGGESTIONS;
+  if (editionKey === "workspace") return WORKSPACE_DEMO_SUGGESTIONS;
+  return SUGGESTIONS;
+}
+
 const EXECUTIVE_SUGGESTIONS = [
   "Which business needs attention?",
   "Compare businesses",
@@ -243,10 +269,16 @@ function AssistantPanel({ onClose }: { onClose: () => void }) {
               <p className="text-[13px] leading-relaxed text-ink-2">
                 {!isDemo
                   ? "Ask me to help outline something, plan out work, or improve something you've written. Try one:"
-                  : "I can answer questions across every module — customers, projects, finance, your team, and more. Try one:"}
+                  : isExecutive
+                    ? "I can answer questions across every business you run. Try one:"
+                    : editionKey === "student"
+                      ? "I can answer questions about your assignments and group work. Try one:"
+                      : editionKey === "workspace"
+                        ? "I can answer questions across your projects and team. Try one:"
+                        : "I can answer questions across every module — customers, projects, finance, your team, and more. Try one:"}
               </p>
               <div className="flex flex-col gap-1.5">
-                {(!isDemo ? realSessionSuggestions(editionKey) : isExecutive ? EXECUTIVE_SUGGESTIONS : SUGGESTIONS).map((s) => (
+                {(!isDemo ? realSessionSuggestions(editionKey) : isExecutive ? EXECUTIVE_SUGGESTIONS : demoSuggestions(editionKey)).map((s) => (
                   <button
                     key={s}
                     onClick={() => ask(s)}

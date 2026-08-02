@@ -97,19 +97,28 @@ function answerPrepareUpcoming(ctx: AssistantContext): string {
   return `Next up is "${upcoming.name}" for ${upcoming.client}${daysOut <= 1 ? " — coming up very soon" : ` in about ${daysOut} days`}. ${upcoming.description}`;
 }
 
+// Finance and Attendance aren't in every edition (see editionModules.ts) -
+// STUDENT_DATASET/WORKPLACE_DATASET populate invoices/employees purely for
+// IndustryDataset's type completeness (see those files' own comments),
+// never anything a real workspace on that edition actually tracks. This
+// keeps the summary honest per edition rather than citing filler data.
 function answerSummarizeToday(ctx: AssistantContext, terms: IndustryTerms): string {
   const overdueJobs = ctx.dataset.jobs.filter((j) => j.overdue);
-  const unpaidInvoices = ctx.dataset.invoices.filter((i) => i.status !== "paid");
   const todayNotifications = ctx.dataset.notifications.filter((n) =>
     ["today", "this morning"].includes(n.timestamp.toLowerCase())
   );
-  const away = ctx.dataset.employees.filter((e) => e.status === "away");
   const parts = [
     `${todayNotifications.length} update${todayNotifications.length === 1 ? "" : "s"} logged today`,
     `${overdueJobs.length} ${(overdueJobs.length === 1 ? terms.project : terms.projects).toLowerCase()} behind schedule`,
-    `${unpaidInvoices.length} unpaid invoice${unpaidInvoices.length === 1 ? "" : "s"}`,
   ];
-  if (away.length > 0) parts.push(`${away.map((e) => e.name).join(", ")} out today`);
+  if (ctx.dataset.profileKey !== "student" && ctx.dataset.profileKey !== "workplace") {
+    const unpaidInvoices = ctx.dataset.invoices.filter((i) => i.status !== "paid");
+    parts.push(`${unpaidInvoices.length} unpaid invoice${unpaidInvoices.length === 1 ? "" : "s"}`);
+  }
+  if (ctx.dataset.profileKey !== "student") {
+    const away = ctx.dataset.employees.filter((e) => e.status === "away");
+    if (away.length > 0) parts.push(`${away.map((e) => e.name).join(", ")} out today`);
+  }
   return `Today at a glance: ${parts.join(", ")}.`;
 }
 
@@ -145,7 +154,34 @@ function answerAtRisk(ctx: AssistantContext): string {
   return `Nothing overdue yet, but keep an eye on ${soonest.map((j) => `"${j.name}"`).join(" and ")} — still unconfirmed with dates coming up.`;
 }
 
+// Student/Workspace editions don't have Finance, Inventory, or vendor
+// concepts at all (see editionModules.ts) - a demo answering those
+// questions with filler data would look like it's the wrong edition's
+// assistant. This is what a genuine 3Stone One customer on that edition
+// gets today: those modules simply aren't there for them either.
+function outOfScopeForEdition(ctx: AssistantContext): string | null {
+  if (ctx.dataset.profileKey === "student") {
+    return `That's not something the Student edition tracks. Try asking about assignments, deadlines, or group projects instead.`;
+  }
+  if (ctx.dataset.profileKey === "workplace") {
+    return `That's not something the Workspace edition tracks — no Finance or Inventory here. Try asking about projects, your team, or what's coming up instead.`;
+  }
+  return null;
+}
+
 function fallbackHelp(ctx: AssistantContext, terms: IndustryTerms): string {
+  if (ctx.dataset.profileKey === "student") {
+    return [
+      `I can help with questions about ${ctx.dataset.orgName} — try things like:`,
+      `"Summarize today" · "What's due tomorrow?" · "Compare this month to last month" · "Which ${terms.projects.toLowerCase()} are at risk?"`,
+    ].join(" ");
+  }
+  if (ctx.dataset.profileKey === "workplace") {
+    return [
+      `I can help with questions about ${ctx.dataset.orgName} — try things like:`,
+      `"Summarize today" · "What's coming up?" · "Compare this month to last month" · "Which ${terms.projects.toLowerCase()} are at risk?"`,
+    ].join(" ");
+  }
   return [
     `I can help with questions about ${ctx.dataset.orgName} — try things like:`,
     `"Who still owes deposits?" · "How much profit did we make this month?" · "Summarize today's operations" · "Show ${terms.employees.toLowerCase()} approaching overtime" · "Compare this month to last month" · "Which ${terms.projects.toLowerCase()} are at risk?" · "Recommend ways to reduce costs" · "Draft an email to all vendors"`,
@@ -156,25 +192,38 @@ export function answerQuestion(query: string, ctx: AssistantContext): string {
   const q = query.trim().toLowerCase();
   if (!q) return fallbackHelp(ctx, ctx.terms);
 
-  const inventory = getInventoryDataset(ctx.dataset.profileKey);
-  if (/inventory value|value.*inventory/.test(q)) return `Total ${inventory.label.toLowerCase()} value is ${formatCurrency(inventoryValue(inventory.products))} across ${inventory.products.length} ${inventory.noun.toLowerCase()} records.`;
-  if (/reorder|run out|low.stock|before the weekend|spoilage/.test(q)) { const items=inventory.products.filter(p=>["Low Stock","Out of Stock"].includes(productStatus(p))); const context=ctx.dataset.profileKey==="restaurant"?"before the next vendor delivery":ctx.dataset.profileKey==="salon"?"before the weekend appointment book":ctx.dataset.profileKey==="construction"?"before crews load their trucks":ctx.dataset.profileKey==="event_center"?"before the next confirmed events":"against current demand"; return items.length?`Reorder ${items.map(p=>`${p.name} (${p.suggestedReorder} ${p.unit})`).join(", ")} ${context}. ${items.filter(p=>productStatus(p)==="Out of Stock").length} ${inventory.noun.toLowerCase()} record(s) are already out of stock.`:`Nothing needs reordering today; every tracked ${inventory.noun.toLowerCase()} is above its reorder point.`; }
-  if (/black.*medium.*hoodie|how many.*available/.test(q)) { const p=inventory.products.find(p=>q.includes(p.name.toLowerCase())||q.includes(p.variant.toLowerCase())); return p?`${p.name} (${p.variant}) has ${availableQuantity(p)} ${p.unit} available — ${p.onHand} on hand and ${p.reserved} reserved.`:`I couldn't match that item in ${ctx.dataset.orgName}'s current catalog.`; }
-  if (/not moved|slow.moving|60 days/.test(q)) { const items=inventory.products.filter(p=>p.lastMovedDays>=60); return items.length?`${items.map(p=>`${p.name} (${p.lastMovedDays} days)`).join(", ")} have not moved in at least 60 days.`:"No products have been idle for 60 days."; }
-  if (/supplier.*longest|longest lead/.test(q)) { const s=[...inventory.suppliers].sort((a,b)=>b.leadTimeDays-a.leadTimeDays)[0]; return `${s.name} has the longest average lead time at ${s.leadTimeDays} days, with ${s.reliability}% delivery reliability.`; }
-  if (/reserved.*(job|project)|what inventory is reserved/.test(q)) { const items=inventory.products.filter(p=>p.reserved>0); return `${items.map(p=>`${p.name}: ${p.reserved}`).join(", ")} are reserved for upcoming work (${items.reduce((s,p)=>s+p.reserved,0)} units total).`; }
-  if (/highest margin/.test(q)) { const items=inventory.products.filter(p=>p.sellingPrice>0).sort((a,b)=>estimatedMargin(b)-estimatedMargin(a)).slice(0,3); return `Highest estimated margins: ${items.map(p=>`${p.name} ${estimatedMargin(p).toFixed(0)}%`).join(", ")}.`; }
-  if (/damaged|adjusted inventory/.test(q)) { const ms=inventory.movements.filter(m=>m.type==="Damaged"||m.type==="Manual adjustment"); return ms.length?`${ms.map(m=>`${inventory.products.find(p=>p.id===m.productId)?.name}: ${m.quantity} (${m.reference})`).join(", ")}.`:"No damaged or adjusted inventory is recorded this month."; }
+  const isNicheEdition = ctx.dataset.profileKey === "student" || ctx.dataset.profileKey === "workplace";
 
-  if (/clock(ed)?\s*in|clocked out|attendance/.test(q)) return answerAttendance(q, ctx);
-  if (/overtime/.test(q)) return answerOvertime(ctx);
-  if (/deposit/.test(q)) return answerDeposits(ctx);
-  if (/profit|how much.*(make|earn)/.test(q)) return answerProfit(ctx);
+  if (!isNicheEdition) {
+    const inventory = getInventoryDataset(ctx.dataset.profileKey);
+    if (/inventory value|value.*inventory/.test(q)) return `Total ${inventory.label.toLowerCase()} value is ${formatCurrency(inventoryValue(inventory.products))} across ${inventory.products.length} ${inventory.noun.toLowerCase()} records.`;
+    if (/reorder|run out|low.stock|before the weekend|spoilage/.test(q)) { const items=inventory.products.filter(p=>["Low Stock","Out of Stock"].includes(productStatus(p))); const context=ctx.dataset.profileKey==="restaurant"?"before the next vendor delivery":ctx.dataset.profileKey==="salon"?"before the weekend appointment book":ctx.dataset.profileKey==="construction"?"before crews load their trucks":ctx.dataset.profileKey==="event_center"?"before the next confirmed events":"against current demand"; return items.length?`Reorder ${items.map(p=>`${p.name} (${p.suggestedReorder} ${p.unit})`).join(", ")} ${context}. ${items.filter(p=>productStatus(p)==="Out of Stock").length} ${inventory.noun.toLowerCase()} record(s) are already out of stock.`:`Nothing needs reordering today; every tracked ${inventory.noun.toLowerCase()} is above its reorder point.`; }
+    if (/black.*medium.*hoodie|how many.*available/.test(q)) { const p=inventory.products.find(p=>q.includes(p.name.toLowerCase())||q.includes(p.variant.toLowerCase())); return p?`${p.name} (${p.variant}) has ${availableQuantity(p)} ${p.unit} available — ${p.onHand} on hand and ${p.reserved} reserved.`:`I couldn't match that item in ${ctx.dataset.orgName}'s current catalog.`; }
+    if (/not moved|slow.moving|60 days/.test(q)) { const items=inventory.products.filter(p=>p.lastMovedDays>=60); return items.length?`${items.map(p=>`${p.name} (${p.lastMovedDays} days)`).join(", ")} have not moved in at least 60 days.`:"No products have been idle for 60 days."; }
+    if (/supplier.*longest|longest lead/.test(q)) { const s=[...inventory.suppliers].sort((a,b)=>b.leadTimeDays-a.leadTimeDays)[0]; return `${s.name} has the longest average lead time at ${s.leadTimeDays} days, with ${s.reliability}% delivery reliability.`; }
+    if (/reserved.*(job|project)|what inventory is reserved/.test(q)) { const items=inventory.products.filter(p=>p.reserved>0); return `${items.map(p=>`${p.name}: ${p.reserved}`).join(", ")} are reserved for upcoming work (${items.reduce((s,p)=>s+p.reserved,0)} units total).`; }
+    if (/highest margin/.test(q)) { const items=inventory.products.filter(p=>p.sellingPrice>0).sort((a,b)=>estimatedMargin(b)-estimatedMargin(a)).slice(0,3); return `Highest estimated margins: ${items.map(p=>`${p.name} ${estimatedMargin(p).toFixed(0)}%`).join(", ")}.`; }
+    if (/damaged|adjusted inventory/.test(q)) { const ms=inventory.movements.filter(m=>m.type==="Damaged"||m.type==="Manual adjustment"); return ms.length?`${ms.map(m=>`${inventory.products.find(p=>p.id===m.productId)?.name}: ${m.quantity} (${m.reference})`).join(", ")}.`:"No damaged or adjusted inventory is recorded this month."; }
+
+    if (/clock(ed)?\s*in|clocked out|attendance/.test(q)) return answerAttendance(q, ctx);
+    if (/overtime/.test(q)) return answerOvertime(ctx);
+    if (/deposit/.test(q)) return answerDeposits(ctx);
+    if (/profit|how much.*(make|earn)/.test(q)) return answerProfit(ctx);
+    if (/draft.*(email|message).*vendor|vendor.*(email|message)/.test(q)) return answerDraftVendorEmail(ctx);
+    if (/reduce cost|cut cost|save money|lower cost/.test(q)) return answerCostReduction(ctx);
+  } else {
+    const declineMessage = outOfScopeForEdition(ctx);
+    if (
+      declineMessage &&
+      /inventory|reorder|stock|spoilage|clock(ed)?\s*in|clocked out|attendance|overtime|deposit|profit|how much.*(make|earn)|vendor|reduce cost|cut cost|save money|lower cost|invoice/.test(q)
+    ) {
+      return declineMessage;
+    }
+  }
+
   if (/compare.*month|month.*(over|vs\.?|versus).*month/.test(q)) return answerCompareMonths(ctx);
   if (/tomorrow|prepare/.test(q)) return answerPrepareUpcoming(ctx);
   if (/summar.*(today|operation)|today.*summar/.test(q)) return answerSummarizeToday(ctx, ctx.terms);
-  if (/draft.*(email|message).*vendor|vendor.*(email|message)/.test(q)) return answerDraftVendorEmail(ctx);
-  if (/reduce cost|cut cost|save money|lower cost/.test(q)) return answerCostReduction(ctx);
   if (/at risk|which.*risk|risky/.test(q)) return answerAtRisk(ctx);
 
   return fallbackHelp(ctx, ctx.terms);
