@@ -10,6 +10,7 @@ import { DemoBanner } from "./DemoBanner";
 import { AiAssistant } from "@/components/assistant/AiAssistant";
 import { EDITION_BRAND } from "./EditionMark";
 import { useIndustry } from "@/lib/industry";
+import { useAccentColor } from "@/lib/accentColor";
 import { cn } from "@/lib/utils";
 import type { SessionUser } from "@/types";
 
@@ -22,6 +23,17 @@ const EDITION_CLASS: Record<string, string | undefined> = {
   student: "edition-student",
 };
 
+// User-chosen accent override (Settings -> Appearance) - reuses the
+// exact same palette already designed for each edition above, just
+// applied at the same DOM node so whichever class is present wins
+// outright instead of fighting CSS specificity against the edition
+// class it replaces.
+const ACCENT_CLASS: Record<string, string> = {
+  blue: "accent-blue",
+  green: "accent-green",
+  purple: "accent-purple",
+};
+
 export function AppShell({
   user,
   children,
@@ -32,11 +44,13 @@ export function AppShell({
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const { editionKey } = useIndustry();
+  const { accentColor } = useAccentColor();
   const brand = EDITION_BRAND[editionKey];
   const Mark = brand?.Mark;
+  const accentClass = accentColor === "default" ? EDITION_CLASS[editionKey] : ACCENT_CLASS[accentColor];
 
   return (
-    <div className={cn("flex h-screen flex-col", EDITION_CLASS[editionKey])}>
+    <div className={cn("flex h-screen flex-col", accentClass)}>
       <DemoBanner />
       <TopBar
         user={user}

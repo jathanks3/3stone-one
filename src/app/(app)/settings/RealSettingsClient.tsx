@@ -14,6 +14,7 @@ import { useIndustry } from "@/lib/industry";
 import { useTheme, type ThemeMode } from "@/lib/theme";
 import { useFontSize, type FontSizeMode } from "@/lib/fontSize";
 import { useReducedMotion } from "@/lib/reducedMotion";
+import { useAccentColor, type AccentColor } from "@/lib/accentColor";
 import { cn } from "@/lib/utils";
 import type { WorkspaceSettings } from "@/server/services/workspaceSettingsService";
 import type { TeamMemberRow, PendingInvitationRow, AssignableRoleName } from "@/server/services/teamService";
@@ -128,8 +129,16 @@ function SegmentedControl<T extends string>({
   );
 }
 
+const ACCENT_COLOR_OPTIONS: { key: AccentColor; label: string; swatch: string }[] = [
+  { key: "default", label: "Default", swatch: "" },
+  { key: "blue", label: "Blue", swatch: "#3f63a8" },
+  { key: "green", label: "Green", swatch: "#2f7d5c" },
+  { key: "purple", label: "Purple", swatch: "#6f57d6" },
+];
+
 function AppearanceTab() {
   const { theme, setTheme } = useTheme();
+  const { accentColor, setAccentColor } = useAccentColor();
   const { fontSize, setFontSize } = useFontSize();
   const { reducedMotion, setReducedMotion } = useReducedMotion();
 
@@ -140,6 +149,33 @@ function AppearanceTab() {
         <p className="mt-1 text-[12.5px] text-ink-3">Applies everywhere you use 3Stone One on this device.</p>
         <div className="mt-3">
           <SegmentedControl options={THEME_OPTIONS} value={theme} onChange={setTheme} />
+        </div>
+      </Card>
+
+      <Card className="p-5">
+        <p className="text-[14px] font-semibold text-ink-1">Accent color</p>
+        <p className="mt-1 text-[12.5px] text-ink-3">Default matches your edition's own color - pick one to override it.</p>
+        <div className="mt-3 flex gap-3">
+          {ACCENT_COLOR_OPTIONS.map((opt) => (
+            <button
+              key={opt.key}
+              type="button"
+              onClick={() => setAccentColor(opt.key)}
+              title={opt.label}
+              aria-label={opt.label}
+              aria-pressed={accentColor === opt.key}
+              className={cn(
+                "flex h-9 w-9 items-center justify-center rounded-full border-2 transition-transform",
+                accentColor === opt.key ? "border-accent scale-110" : "border-transparent hover:scale-105"
+              )}
+            >
+              {opt.key === "default" ? (
+                <span className="h-6 w-6 rounded-full border border-line bg-accent" />
+              ) : (
+                <span className="h-6 w-6 rounded-full" style={{ backgroundColor: opt.swatch }} />
+              )}
+            </button>
+          ))}
         </div>
       </Card>
 

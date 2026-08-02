@@ -3,6 +3,7 @@ import { Inter, IBM_Plex_Mono } from "next/font/google";
 import { ThemeProvider, THEME_NO_FLASH_SCRIPT } from "@/lib/theme";
 import { FontSizeProvider, FONT_SIZE_NO_FLASH_SCRIPT } from "@/lib/fontSize";
 import { ReducedMotionProvider, REDUCED_MOTION_NO_FLASH_SCRIPT } from "@/lib/reducedMotion";
+import { AccentColorProvider } from "@/lib/accentColor";
 import { ToastProvider } from "@/lib/toast";
 import { PageTracker } from "@/components/shared/PageTracker";
 import "./globals.css";
@@ -52,10 +53,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <ThemeProvider>
           <FontSizeProvider>
             <ReducedMotionProvider>
-              <ToastProvider>
-                <PageTracker />
-                {children}
-              </ToastProvider>
+              <AccentColorProvider>
+                <ToastProvider>
+                  <PageTracker />
+                  {children}
+                </ToastProvider>
+              </AccentColorProvider>
             </ReducedMotionProvider>
           </FontSizeProvider>
         </ThemeProvider>

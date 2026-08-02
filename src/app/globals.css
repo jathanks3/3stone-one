@@ -198,6 +198,98 @@
   --on-accent: #ffffff;
 }
 
+/* User-chosen accent override (Settings -> Appearance, src/lib/accentColor.tsx) -
+   same three palettes as the edition defaults above, just applied by
+   explicit choice instead of by edition. Applied at the same DOM node
+   (see AppShell.tsx) so there's never a specificity fight with the
+   edition classes - only one of the two is ever present at a time. */
+.accent-blue {
+  --accent: #3f63a8;
+  --accent-strong: #2f4d87;
+  --accent-wash: rgba(63, 99, 168, 0.08);
+  --accent-wash-strong: rgba(63, 99, 168, 0.14);
+  --on-accent: #ffffff;
+}
+.accent-green {
+  --accent: #2f7d5c;
+  --accent-strong: #1f5f45;
+  --accent-wash: rgba(47, 125, 92, 0.08);
+  --accent-wash-strong: rgba(47, 125, 92, 0.14);
+  --on-accent: #ffffff;
+}
+.accent-purple {
+  --accent: #6f57d6;
+  --accent-strong: #5642ad;
+  --accent-wash: rgba(111, 87, 214, 0.08);
+  --accent-wash-strong: rgba(111, 87, 214, 0.14);
+  --on-accent: #ffffff;
+}
+@media (prefers-color-scheme: dark) {
+  .accent-blue {
+    --accent: #6e93d6;
+    --accent-strong: #8aabe3;
+    --accent-wash: rgba(110, 147, 214, 0.1);
+    --accent-wash-strong: rgba(110, 147, 214, 0.16);
+    --on-accent: #050505;
+  }
+  .accent-green {
+    --accent: #5cbf99;
+    --accent-strong: #7ad1b0;
+    --accent-wash: rgba(92, 191, 153, 0.1);
+    --accent-wash-strong: rgba(92, 191, 153, 0.16);
+    --on-accent: #050505;
+  }
+  .accent-purple {
+    --accent: #a594f5;
+    --accent-strong: #b9adf7;
+    --accent-wash: rgba(165, 148, 245, 0.1);
+    --accent-wash-strong: rgba(165, 148, 245, 0.16);
+    --on-accent: #050505;
+  }
+}
+[data-theme="dark"] .accent-blue {
+  --accent: #6e93d6;
+  --accent-strong: #8aabe3;
+  --accent-wash: rgba(110, 147, 214, 0.1);
+  --accent-wash-strong: rgba(110, 147, 214, 0.16);
+  --on-accent: #050505;
+}
+[data-theme="dark"] .accent-green {
+  --accent: #5cbf99;
+  --accent-strong: #7ad1b0;
+  --accent-wash: rgba(92, 191, 153, 0.1);
+  --accent-wash-strong: rgba(92, 191, 153, 0.16);
+  --on-accent: #050505;
+}
+[data-theme="dark"] .accent-purple {
+  --accent: #a594f5;
+  --accent-strong: #b9adf7;
+  --accent-wash: rgba(165, 148, 245, 0.1);
+  --accent-wash-strong: rgba(165, 148, 245, 0.16);
+  --on-accent: #050505;
+}
+[data-theme="light"] .accent-blue {
+  --accent: #3f63a8;
+  --accent-strong: #2f4d87;
+  --accent-wash: rgba(63, 99, 168, 0.08);
+  --accent-wash-strong: rgba(63, 99, 168, 0.14);
+  --on-accent: #ffffff;
+}
+[data-theme="light"] .accent-green {
+  --accent: #2f7d5c;
+  --accent-strong: #1f5f45;
+  --accent-wash: rgba(47, 125, 92, 0.08);
+  --accent-wash-strong: rgba(47, 125, 92, 0.14);
+  --on-accent: #ffffff;
+}
+[data-theme="light"] .accent-purple {
+  --accent: #6f57d6;
+  --accent-strong: #5642ad;
+  --accent-wash: rgba(111, 87, 214, 0.08);
+  --accent-wash-strong: rgba(111, 87, 214, 0.14);
+  --on-accent: #ffffff;
+}
+
 @theme inline {
   --color-bg: var(--bg);
   --color-surface: var(--surface);
