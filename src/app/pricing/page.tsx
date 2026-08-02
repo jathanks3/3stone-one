@@ -87,8 +87,11 @@ export default function PricingPage() {
           <Image src="/branding/monogram.svg" alt="" width={28} height={21} priority />
           <span className="text-[15px] font-bold text-ink-1">3Stone One</span>
         </Link>
-        <nav className="flex items-center gap-5 text-[13.5px] text-ink-2">
-          <Link href="/login" className="hover:text-ink-1">
+        <nav className="flex items-center gap-3 text-[13.5px] text-ink-2">
+          <Link
+            href="/login"
+            className="inline-flex h-9 items-center rounded-[10px] border border-line-strong px-4 font-semibold text-ink-1 hover:bg-surface-raised"
+          >
             Log in
           </Link>
           <Link
