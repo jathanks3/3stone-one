@@ -15,7 +15,7 @@ import { encryptToken, decryptToken } from "@/lib/tokenEncryption";
 // Real, honest order: build the Gmail/Drive/Sheets feature first, THEN
 // add its scope here and go through verification with a true demo of
 // that feature - never request a scope before the feature exists.
-const GOOGLE_SCOPES = ["https://www.googleapis.com/auth/calendar", "openid", "email"].join(" ");
+const GOOGLE_SCOPES = ["https://www.googleapis.com/auth/calendar.readonly", "openid", "email"].join(" ");
 
 function isConfigured(): boolean {
   return Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
