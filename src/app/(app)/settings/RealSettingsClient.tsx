@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, Sun, Moon, Monitor, Type } from "lucide-react";
 import { Tabs } from "@/ui/Tabs";
 import { Card } from "@/ui/Card";
 import { Button } from "@/ui/Button";
@@ -11,6 +11,10 @@ import { FileUploadField } from "@/components/shared/FileUploadField";
 import { industryProfileList } from "@/config/industry-profiles";
 import { getPlanTiersForEdition, type PlanTier } from "@/config/pricing";
 import { useIndustry } from "@/lib/industry";
+import { useTheme, type ThemeMode } from "@/lib/theme";
+import { useFontSize, type FontSizeMode } from "@/lib/fontSize";
+import { useReducedMotion } from "@/lib/reducedMotion";
+import { cn } from "@/lib/utils";
 import type { WorkspaceSettings } from "@/server/services/workspaceSettingsService";
 import type { TeamMemberRow, PendingInvitationRow, AssignableRoleName } from "@/server/services/teamService";
 import type { BillingSummary } from "@/server/services/billingService";
@@ -80,6 +84,103 @@ function Field({
         className="h-10 rounded-[9px] border border-line bg-surface px-3 text-[13.5px] text-ink-1 outline-none focus:border-accent"
       />
     </label>
+  );
+}
+
+const THEME_OPTIONS: { key: ThemeMode; icon: typeof Sun; label: string }[] = [
+  { key: "light", icon: Sun, label: "Light" },
+  { key: "dark", icon: Moon, label: "Dark" },
+  { key: "system", icon: Monitor, label: "System" },
+];
+
+const FONT_SIZE_OPTIONS: { key: FontSizeMode; label: string }[] = [
+  { key: "small", label: "Small" },
+  { key: "medium", label: "Medium" },
+  { key: "large", label: "Large" },
+];
+
+function SegmentedControl<T extends string>({
+  options,
+  value,
+  onChange,
+}: {
+  options: { key: T; label: string; icon?: typeof Sun }[];
+  value: T;
+  onChange: (key: T) => void;
+}) {
+  return (
+    <div className="flex gap-1 rounded-[10px] border border-line bg-surface-raised p-1">
+      {options.map(({ key, label, icon: Icon }) => (
+        <button
+          key={key}
+          type="button"
+          onClick={() => onChange(key)}
+          className={cn(
+            "flex flex-1 items-center justify-center gap-1.5 rounded-[7px] py-1.5 text-[12.5px] font-medium transition-colors",
+            value === key ? "bg-surface text-accent shadow-[var(--shadow)]" : "text-ink-3 hover:text-ink-1"
+          )}
+        >
+          {Icon ? <Icon size={14} /> : null}
+          {label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function AppearanceTab() {
+  const { theme, setTheme } = useTheme();
+  const { fontSize, setFontSize } = useFontSize();
+  const { reducedMotion, setReducedMotion } = useReducedMotion();
+
+  return (
+    <div className="flex flex-col gap-4">
+      <Card className="p-5">
+        <p className="text-[14px] font-semibold text-ink-1">Theme</p>
+        <p className="mt-1 text-[12.5px] text-ink-3">Applies everywhere you use 3Stone One on this device.</p>
+        <div className="mt-3">
+          <SegmentedControl options={THEME_OPTIONS} value={theme} onChange={setTheme} />
+        </div>
+      </Card>
+
+      <Card className="p-5">
+        <p className="text-[14px] font-semibold text-ink-1">Font size</p>
+        <p className="mt-1 text-[12.5px] text-ink-3">Scales the whole app up or down for readability.</p>
+        <div className="mt-3">
+          <SegmentedControl
+            options={FONT_SIZE_OPTIONS.map((o) => ({ ...o, icon: Type }))}
+            value={fontSize}
+            onChange={setFontSize}
+          />
+        </div>
+      </Card>
+
+      <Card className="p-5">
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <p className="text-[14px] font-semibold text-ink-1">Reduce motion</p>
+            <p className="mt-1 text-[12.5px] text-ink-3">Turns off animations and transitions throughout the app.</p>
+          </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={reducedMotion}
+            onClick={() => setReducedMotion(!reducedMotion)}
+            className={cn(
+              "relative h-6 w-11 flex-shrink-0 rounded-full transition-colors",
+              reducedMotion ? "bg-accent" : "bg-surface-raised border border-line"
+            )}
+          >
+            <span
+              className={cn(
+                "absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform",
+                reducedMotion ? "translate-x-[22px]" : "translate-x-0.5"
+              )}
+            />
+          </button>
+        </div>
+      </Card>
+    </div>
   );
 }
 
@@ -565,6 +666,7 @@ export function RealSettingsClient({
               label: "Billing",
               content: <BillingTab billing={billing} stripeConfigured={stripeConfigured} aiUsage={aiUsage} storageUsage={storageUsage} />,
             },
+            { key: "appearance", label: "Appearance", content: <AppearanceTab /> },
           ]}
         />
       </div>

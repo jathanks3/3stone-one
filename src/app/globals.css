@@ -251,6 +251,42 @@ body {
   border-radius: var(--radius-sm);
 }
 
+/* Appearance: font size (Settings' Appearance tab, src/lib/fontSize.tsx).
+   zoom scales the whole rendered page uniformly regardless of whether a
+   given component sizes its text in rem or an arbitrary px value (this
+   codebase uses both) - the only approach that reliably scales
+   everything, not just what happens to be rem-based. */
+html[data-font-size="small"] {
+  zoom: 0.9;
+}
+html[data-font-size="large"] {
+  zoom: 1.15;
+}
+
+/* Appearance: reduced motion (src/lib/reducedMotion.tsx) - an explicit,
+   persisted override a user can set regardless of their OS-level
+   preference, layered on top of (never replacing) the standard
+   prefers-reduced-motion media query below. */
+html[data-reduced-motion="true"] *,
+html[data-reduced-motion="true"] *::before,
+html[data-reduced-motion="true"] *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+  scroll-behavior: auto !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 .sr-only {
   position: absolute;
   width: 1px;

@@ -101,6 +101,7 @@ model Workspace {
   invitations        Invitation[]
   uploadedFiles      UploadedFile[]
   aiUsageEvents      AiUsageEvent[]
+  aiConversationMessages AiConversationMessage[]
   roles              Role[]
   sites              Site[]
   organizations      Organization[]
@@ -1406,6 +1407,25 @@ model AiUsageEvent {
 
   @@index([workspaceId, createdAt])
   @@map("ai_usage_events")
+}
+
+// The AI assistant's actual conversation - saved so a user never loses
+// their thread on reload, same reason every other real module persists
+// its data. One thread per user per workspace (not shared team-wide -
+// this is a personal assistant, not a channel). Neon/Postgres, same as
+// everything else here - never Supabase, which this app only ever uses
+// for file storage (see storageService.ts).
+model AiConversationMessage {
+  id          String   @id @default(cuid())
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id])
+  userId      String
+  role        String
+  content     String   @db.Text
+  createdAt   DateTime @default(now())
+
+  @@index([workspaceId, userId, createdAt])
+  @@map("ai_conversation_messages")
 }
 
 // 3Stone AI -> workspace billing — distinct from the workspace's own Invoice

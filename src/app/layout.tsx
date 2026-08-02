@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Inter, IBM_Plex_Mono } from "next/font/google";
 import { ThemeProvider, THEME_NO_FLASH_SCRIPT } from "@/lib/theme";
+import { FontSizeProvider, FONT_SIZE_NO_FLASH_SCRIPT } from "@/lib/fontSize";
+import { ReducedMotionProvider, REDUCED_MOTION_NO_FLASH_SCRIPT } from "@/lib/reducedMotion";
 import { ToastProvider } from "@/lib/toast";
 import { PageTracker } from "@/components/shared/PageTracker";
 import "./globals.css";
@@ -33,13 +35,19 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     >
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_NO_FLASH_SCRIPT }} />
+        <script dangerouslySetInnerHTML={{ __html: FONT_SIZE_NO_FLASH_SCRIPT }} />
+        <script dangerouslySetInnerHTML={{ __html: REDUCED_MOTION_NO_FLASH_SCRIPT }} />
       </head>
       <body className="min-h-screen antialiased">
         <ThemeProvider>
-          <ToastProvider>
-            <PageTracker />
-            {children}
-          </ToastProvider>
+          <FontSizeProvider>
+            <ReducedMotionProvider>
+              <ToastProvider>
+                <PageTracker />
+                {children}
+              </ToastProvider>
+            </ReducedMotionProvider>
+          </FontSizeProvider>
         </ThemeProvider>
       </body>
     </html>

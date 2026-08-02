@@ -101,6 +101,8 @@ function AssistantPanel({ onClose }: { onClose: () => void }) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [historyLoaded, setHistoryLoaded] = useState(false);
+  const [usage, setUsage] = useState<{ used: number; total: number } | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const nextId = useRef(0);
 
@@ -112,6 +114,31 @@ function AssistantPanel({ onClose }: { onClose: () => void }) {
     return () => document.removeEventListener("keydown", onKey);
   }, [onClose]);
 
+  // Real sessions persist their conversation (api/ai/assistant/route.ts) -
+  // load it once when the panel opens so a reload never loses it. Demo
+  // never has a real thread to load.
+  useEffect(() => {
+    if (isDemo) return;
+    let cancelled = false;
+    fetch("/api/ai/assistant")
+      .then((res) => (res.ok ? res.json() : { messages: [] }))
+      .then((data: { messages?: { role: "user" | "assistant"; content: string }[]; usage?: { used: number; total: number } }) => {
+        if (cancelled) return;
+        setMessages(
+          (data.messages ?? []).map((m) => ({ id: `h_${nextId.current++}`, role: m.role, text: m.content }))
+        );
+        if (data.usage) setUsage(data.usage);
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setHistoryLoaded(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isDemo]);
+
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages, loading]);
@@ -120,8 +147,7 @@ function AssistantPanel({ onClose }: { onClose: () => void }) {
     const trimmed = question.trim();
     if (!trimmed || loading) return;
     const userMsg: ChatMessage = { id: `u_${nextId.current++}`, role: "user", text: trimmed };
-    const history = [...messages, userMsg];
-    setMessages(history);
+    setMessages((m) => [...m, userMsg]);
     setInput("");
     setLoading(true);
 
@@ -149,19 +175,18 @@ function AssistantPanel({ onClose }: { onClose: () => void }) {
       return;
     }
 
-    // Real session: hit the real model, gated server-side to
-    // Student-edition workspaces with the AI add-on enabled (see
-    // src/app/api/ai/assistant/route.ts). No mock data involved.
+    // Real session: hit the real model. The server already has this
+    // user's prior conversation persisted - only the newest message goes
+    // over the wire, not the whole thread every time.
     fetch("/api/ai/assistant", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        messages: history.map((m) => ({ role: m.role, content: m.text })),
-      }),
+      body: JSON.stringify({ message: trimmed }),
     })
       .then(async (res) => {
         const data = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(data.error || "Something went wrong.");
+        if (data.usage) setUsage(data.usage);
         return data.text as string;
       })
       .then((text) => {
@@ -196,8 +221,24 @@ function AssistantPanel({ onClose }: { onClose: () => void }) {
           </button>
         </div>
 
+        {!isDemo && usage ? (
+          <div className="flex flex-shrink-0 items-center gap-2 border-b border-line px-4 py-2">
+            <div className="h-1 flex-1 overflow-hidden rounded-full bg-surface-raised">
+              <div
+                className={cn("h-full rounded-full", usage.used >= usage.total ? "bg-critical" : "bg-accent")}
+                style={{ width: `${Math.min(100, (usage.used / usage.total) * 100)}%` }}
+              />
+            </div>
+            <span className="text-[11px] text-ink-3">
+              {usage.used}/{usage.total} actions this cycle
+            </span>
+          </div>
+        ) : null}
+
         <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4">
-          {messages.length === 0 ? (
+          {!isDemo && !historyLoaded ? (
+            <p className="text-[13px] text-ink-3">Loading your conversation…</p>
+          ) : messages.length === 0 ? (
             <div className="flex flex-col gap-3">
               <p className="text-[13px] leading-relaxed text-ink-2">
                 {!isDemo
