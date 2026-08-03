@@ -1,11 +1,25 @@
 import { AlertTriangle, Sparkles } from "lucide-react";
 import { Card } from "@/ui/Card";
 import { HealthMeter } from "@/ui/HealthMeter";
+import { KpiTile } from "@/ui/KpiTile";
 import { getAllowedModuleKeys } from "@/lib/editionModules";
 import { humanizeAction, relativeTime } from "@/lib/utils";
 import { DailyDebriefCard } from "@/features/dashboard/DailyDebriefCard";
 import { describeHealth } from "@/server/services/debriefService";
 import type { RealDashboardData } from "@/server/services/dashboardService";
+
+// Same per-edition copy as the demo's greetingSubtitle (see
+// src/server/mock-data/industries/student.ts / workplace.ts) - this is
+// what a real Student/Workspace session should read at the very top,
+// instead of the generic "your workspace" line that only really fits
+// Business. Business keeps the generic line: there's no one static
+// sentence that fits every industry the way there is for
+// Student/Workspace, and the demo itself only picks a fixed sentence
+// once a specific industry is chosen.
+const EDITION_GREETING_SUBTITLE: Record<string, string> = {
+  student: "Here's what's due across your assignments and group work today.",
+  workspace: "Here's what your team is working on today.",
+};
 
 // A genuine Server Component, not "use client" — nothing here is
 // interactive, and it's already fed server-resolved data, so there's no
@@ -44,7 +58,7 @@ export function RealDashboard({ data }: { data: RealDashboardData }) {
         <h1 className="text-[22px] font-bold text-ink-1">Good morning, {firstName}</h1>
         <p className="text-[14px] text-ink-2">
           {hasAnyActivity
-            ? "Here's what's happening in your workspace."
+            ? EDITION_GREETING_SUBTITLE[data.editionKey] ?? "Here's what's happening in your workspace."
             : `Your workspace is ready. Nothing here yet — ${showTeamMembers ? "invite your team, or " : ""}add your first project${showInvoices ? " or invoice" : ""} to get started.`}
         </p>
       </div>
@@ -113,23 +127,21 @@ export function RealDashboard({ data }: { data: RealDashboardData }) {
 
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
         {showTeamMembers ? (
-          <Card className="p-4">
-            <p className="text-[11.5px] text-ink-3">Team members</p>
-            <p className="mt-1 text-[22px] font-bold text-ink-1">{data.memberCount}</p>
-          </Card>
+          <KpiTile label="Team members" value={String(data.memberCount)} />
         ) : null}
-        <Card className="p-4">
-          <p className="text-[11.5px] text-ink-3">Open projects</p>
-          <p className="mt-1 text-[22px] font-bold text-ink-1">{data.openProjectCount}</p>
-          {data.overdueProjectCount > 0 ? (
-            <p className="mt-1 text-[12px] text-critical">{data.overdueProjectCount} overdue</p>
-          ) : null}
-        </Card>
+        <KpiTile
+          label="Open projects"
+          value={String(data.openProjectCount)}
+          deltaLabel={data.overdueProjectCount > 0 ? `${data.overdueProjectCount} overdue` : "On track"}
+          tone={data.overdueProjectCount > 0 ? "negative" : "positive"}
+        />
         {showInvoices ? (
-          <Card className="p-4">
-            <p className="text-[11.5px] text-ink-3">Unpaid invoices</p>
-            <p className="mt-1 text-[22px] font-bold text-ink-1">{data.unpaidInvoiceCount}</p>
-          </Card>
+          <KpiTile
+            label="Unpaid invoices"
+            value={String(data.unpaidInvoiceCount)}
+            deltaLabel={data.unpaidInvoiceCount > 0 ? "Needs follow-up" : "All current"}
+            tone={data.unpaidInvoiceCount > 0 ? "negative" : "positive"}
+          />
         ) : null}
       </div>
     </div>

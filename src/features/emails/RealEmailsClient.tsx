@@ -52,7 +52,7 @@ export function RealEmailsClient({
 }) {
   return (
     <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-8">
-      <h1 className="text-[22px] font-bold text-ink-1">Emails</h1>
+      <h1 className="text-[22px] font-bold text-ink-1">📧 Emails</h1>
       <p className="mt-1 text-[14px] text-ink-2">Your connected inbox, read live from Gmail and Outlook - nothing here is copied or stored unless you save an attachment.</p>
 
       <div className="mt-6">
