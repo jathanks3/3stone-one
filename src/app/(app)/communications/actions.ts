@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { getSession } from "@/lib/session";
 import { getActiveWorkspaceIdForUser } from "@/server/services/onboardingService";
 import { requireActiveMember } from "@/server/services/teamService";
-import { createCallNote, createChannel, sendMessage } from "@/server/services/communicationsService";
+import { createCallNote } from "@/server/services/communicationsService";
 import { sendOutlookMail } from "@/server/services/microsoftIntegrationService";
 import { sendSlackMessage } from "@/server/services/slackIntegrationService";
 import { sendGmail } from "@/server/services/googleIntegrationService";
@@ -21,30 +21,6 @@ async function currentWorkspaceId(): Promise<{ userId: string; workspaceId: stri
   const workspaceId = await getActiveWorkspaceIdForUser(session.userId);
   if (!workspaceId) throw new Error("No workspace.");
   return { userId: session.userId, workspaceId };
-}
-
-export async function createChannelAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
-  try {
-    const { userId, workspaceId } = await currentWorkspaceId();
-    await requireActiveMember(userId, workspaceId);
-    const channel = await createChannel(workspaceId, userId, String(formData.get("name") ?? ""));
-    revalidatePath("/communications");
-    return { success: "Channel created.", id: channel.id };
-  } catch (e) {
-    return { error: e instanceof Error ? e.message : "Something went wrong." };
-  }
-}
-
-export async function sendMessageAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
-  try {
-    const { userId, workspaceId } = await currentWorkspaceId();
-    await requireActiveMember(userId, workspaceId);
-    const message = await sendMessage(workspaceId, String(formData.get("channelId") ?? ""), userId, String(formData.get("body") ?? ""));
-    revalidatePath("/communications");
-    return { success: "Sent.", id: message.id };
-  } catch (e) {
-    return { error: e instanceof Error ? e.message : "Something went wrong." };
-  }
 }
 
 export async function createCallNoteAction(_prev: ActionState, formData: FormData): Promise<ActionState> {

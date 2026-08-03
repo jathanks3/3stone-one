@@ -1,4 +1,4 @@
-import type { CallNote, ChatChannel, ChatMessage, EmailThread } from "@/types";
+import type { CallNote, EmailThread } from "@/types";
 
 export const DEMO_EMAIL_THREADS: EmailThread[] = [
   {
@@ -69,26 +69,6 @@ export const DEMO_EMAIL_THREADS: EmailThread[] = [
   },
 ];
 
-export const DEMO_CHAT_CHANNELS: ChatChannel[] = [
-  { id: "chan_general", name: "general", isClientChannel: false },
-  { id: "chan_sales", name: "sales", isClientChannel: false },
-  { id: "chan_field", name: "field-ops", isClientChannel: false },
-  { id: "chan_riverside", name: "Riverside Properties", isClientChannel: true },
-];
-
-export const DEMO_CHAT_MESSAGES: ChatMessage[] = [
-  { id: "cm1", channelId: "chan_general", author: "Sam Okafor", authorInitials: "SO", body: "Reminder: safety check-in process changes go live Monday.", at: "9:02 AM" },
-  { id: "cm2", channelId: "chan_general", author: "Jane Dorsey", authorInitials: "JD", body: "Riverside client confirmed the walkthrough for Tuesday.", at: "9:14 AM" },
-  { id: "cm3", channelId: "chan_general", author: "Morgan Lee", authorInitials: "ML", body: "Q2 revenue numbers are posted in Finance — nice work everyone.", at: "10:30 AM" },
-  { id: "cm4", channelId: "chan_sales", author: "Priya Shah", authorInitials: "PS", body: "Bayview Construction Partners looks promising — sending over a rough estimate Friday.", at: "8:45 AM" },
-  { id: "cm5", channelId: "chan_sales", author: "Jane Dorsey", authorInitials: "JD", body: "Nice. Northgate Holdings proposal is due next week too.", at: "9:05 AM" },
-  { id: "cm6", channelId: "chan_field", author: "Marcus Webb", authorInitials: "MW", body: "Sending the updated estimate for Smith Co. today.", at: "7:50 AM" },
-  { id: "cm7", channelId: "chan_field", author: "Diego Ramirez", authorInitials: "DR", body: "Fitting room partitions are in for Fifth Ave — starting install tomorrow.", at: "8:20 AM" },
-  { id: "cm8", channelId: "chan_field", author: "Casey Nguyen", authorInitials: "CN", body: "Rooftop framing at Downtown Lofts starts Thursday, weather permitting.", at: "11:00 AM" },
-  { id: "cm9", channelId: "chan_riverside", author: "Sarah Chen", authorInitials: "SC", body: "Really happy with progress so far — the kitchen looks great!", at: "Yesterday" },
-  { id: "cm10", channelId: "chan_riverside", author: "Jane Dorsey", authorInitials: "JD", body: "Thank you! We're on track for the final inspection in a couple weeks.", at: "Yesterday" },
-];
-
 export const DEMO_CALL_NOTES: CallNote[] = [
   { id: "call_1", contactName: "Sarah Chen", organizationId: "org_riverside", authorId: "emp_jane", summary: "Discussed kickoff logistics and crew access to the clubhouse. Sarah will provide gate codes by Monday.", at: "2 days ago" },
   { id: "call_2", contactName: "Robert Kim", organizationId: "org_smith", authorId: "emp_jane", summary: "Explained signage vendor delay. Robert was understanding, asked for a written timeline update.", at: "2 days ago" },
@@ -147,22 +127,6 @@ export const WORKSPACE_EMAIL_THREADS: EmailThread[] = [
       { id: "wm9", from: "Alicia Ford", body: "Got them, reviewing now — will have a proposal back to you by Friday.", at: "Yesterday" },
     ],
   },
-];
-
-export const WORKSPACE_CHAT_CHANNELS: ChatChannel[] = [
-  { id: "wchan_general", name: "general", isClientChannel: false },
-  { id: "wchan_consulting", name: "consulting", isClientChannel: false },
-  { id: "wchan_northstar", name: "Northstar Retail Co.", isClientChannel: true },
-];
-
-export const WORKSPACE_CHAT_MESSAGES: ChatMessage[] = [
-  { id: "wcm1", channelId: "wchan_general", author: "Maya Patel", authorInitials: "MP", body: "Reminder: updated client engagement checklist is live in the Knowledge Center.", at: "9:02 AM" },
-  { id: "wcm2", channelId: "wchan_general", author: "Jordan Ellis", authorInitials: "JE", body: "Northstar confirmed the kickoff call for Tuesday.", at: "9:14 AM" },
-  { id: "wcm3", channelId: "wchan_general", author: "Priya Nair", authorInitials: "PN", body: "Q2 client satisfaction scores are posted — nice work everyone.", at: "10:30 AM" },
-  { id: "wcm4", channelId: "wchan_consulting", author: "Alicia Ford", authorInitials: "AF", body: "Summit Outdoor Gear looks promising — sending a proposal Friday.", at: "8:45 AM" },
-  { id: "wcm5", channelId: "wchan_consulting", author: "Devon Carter", authorInitials: "DC", body: "Nice. Lumen renewal conversation is coming up next month too.", at: "9:05 AM" },
-  { id: "wcm6", channelId: "wchan_northstar", author: "Natalie Cho", authorInitials: "NC", body: "Really happy with the direction so far — the brand deck looks great!", at: "Yesterday" },
-  { id: "wcm7", channelId: "wchan_northstar", author: "Jordan Ellis", authorInitials: "JE", body: "Thank you! We're on track for final delivery in a couple weeks.", at: "Yesterday" },
 ];
 
 export const WORKSPACE_CALL_NOTES: CallNote[] = [

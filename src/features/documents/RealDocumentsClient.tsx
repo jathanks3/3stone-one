@@ -11,7 +11,7 @@ import { Badge } from "@/ui/Badge";
 import { Button } from "@/ui/Button";
 import { Card } from "@/ui/Card";
 import { useToast } from "@/lib/toast";
-import { createDocumentAction, deleteDocumentAction, setDocumentVisibilityAction } from "@/app/(app)/documents/actions";
+import { createDocumentAction, deleteDocumentAction, setDocumentVisibilityAction, getOneDrivePreviewUrlAction } from "@/app/(app)/documents/actions";
 import type { DocumentRow } from "@/server/services/documentService";
 import type { OneDriveFile } from "@/server/services/microsoftIntegrationService";
 import type { GoogleDriveFile } from "@/server/services/googleIntegrationService";
@@ -54,6 +54,39 @@ export function RealDocumentsClient({
   // of edition.
   const sharedLabel = `Shared with ${profile.terms.customer}`;
   const shareActionLabel = `Share with ${profile.terms.customer}`;
+
+  // In-app preview for read-only integration files (OneDrive/Drive/Canvas)
+  // - these were previously only ever a plain "opens a new tab" link.
+  // Google's /preview URL pattern and Canvas's own file URL are both
+  // embeddable directly; OneDrive has no equivalent public URL scheme, so
+  // that one goes through getOneDrivePreviewUrlAction first (see below).
+  const [previewFile, setPreviewFile] = useState<{ name: string; src: string; externalUrl: string } | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+
+  function previewGoogleDriveFile(file: GoogleDriveFile) {
+    setPreviewFile({ name: file.name, src: `https://drive.google.com/file/d/${file.id}/preview`, externalUrl: file.webViewLink });
+  }
+
+  function previewCanvasFile(file: CanvasCourseMaterial) {
+    setPreviewFile({ name: file.displayName, src: file.url, externalUrl: file.url });
+  }
+
+  function previewOneDriveFile(file: OneDriveFile) {
+    setPreviewLoading(true);
+    setPreviewFile({ name: file.name, src: "", externalUrl: file.webUrl });
+    startTransition(async () => {
+      const form = new FormData();
+      form.set("itemId", file.id);
+      const result = await getOneDrivePreviewUrlAction({}, form);
+      setPreviewLoading(false);
+      if (result.error || !result.url) {
+        showToast({ title: "Couldn't preview this file", description: result.error });
+        setPreviewFile(null);
+        return;
+      }
+      setPreviewFile({ name: file.name, src: result.url, externalUrl: file.webUrl });
+    });
+  }
 
   const filtered = useMemo(() => docs.filter((d) => d.name.toLowerCase().includes(query.toLowerCase())), [docs, query]);
 
@@ -222,10 +255,10 @@ export function RealDocumentsClient({
           ) : (
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
               {oneDriveFiles.map((file) => (
-                <a key={file.id} href={file.webUrl} target="_blank" rel="noreferrer" className="rounded-xl border border-line bg-surface p-3 hover:bg-surface-raised">
+                <button key={file.id} onClick={() => previewOneDriveFile(file)} className="rounded-xl border border-line bg-surface p-3 text-left hover:bg-surface-raised">
                   <p className="truncate text-[13.5px] font-semibold text-ink-1">{file.name}</p>
                   <p className="mt-1 text-[11.5px] text-ink-3">{formatSize(file.sizeBytes)}{file.modifiedAt ? ` · Updated ${new Date(file.modifiedAt).toLocaleDateString()}` : ""}</p>
-                </a>
+                </button>
               ))}
             </div>
           )}
@@ -235,7 +268,7 @@ export function RealDocumentsClient({
       {googleDriveConnected ? (
         <div className="mt-8">
           <div className="mb-3"><h2 className="text-[16px] font-semibold text-ink-1">Google Drive</h2><p className="mt-0.5 text-[12.5px] text-ink-3">Files stay in Drive and open there; 3Stone One does not duplicate their contents.</p></div>
-          {googleDriveFiles === null ? <Card className="p-4 text-[13px] text-ink-2">Reconnect Google in Integrations to approve Drive access.</Card> : googleDriveFiles.length === 0 ? <Card className="p-4 text-[13px] text-ink-3">No accessible Google Drive files found.</Card> : <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">{googleDriveFiles.map((file) => <a key={file.id} href={file.webViewLink} target="_blank" rel="noreferrer" className="rounded-xl border border-line bg-surface p-3 hover:bg-surface-raised"><p className="truncate text-[13.5px] font-semibold text-ink-1">{file.name}</p><p className="mt-1 text-[11.5px] text-ink-3">{file.sizeBytes ? formatSize(file.sizeBytes) : file.mimeType}{file.modifiedAt ? ` · Updated ${new Date(file.modifiedAt).toLocaleDateString()}` : ""}</p></a>)}</div>}
+          {googleDriveFiles === null ? <Card className="p-4 text-[13px] text-ink-2">Reconnect Google in Integrations to approve Drive access.</Card> : googleDriveFiles.length === 0 ? <Card className="p-4 text-[13px] text-ink-3">No accessible Google Drive files found.</Card> : <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">{googleDriveFiles.map((file) => <button key={file.id} onClick={() => previewGoogleDriveFile(file)} className="rounded-xl border border-line bg-surface p-3 text-left hover:bg-surface-raised"><p className="truncate text-[13.5px] font-semibold text-ink-1">{file.name}</p><p className="mt-1 text-[11.5px] text-ink-3">{file.sizeBytes ? formatSize(file.sizeBytes) : file.mimeType}{file.modifiedAt ? ` · Updated ${new Date(file.modifiedAt).toLocaleDateString()}` : ""}</p></button>)}</div>}
         </div>
       ) : null}
 
@@ -254,10 +287,10 @@ export function RealDocumentsClient({
                   <p className="mb-2 text-[12.5px] font-semibold text-ink-2">{courseName}</p>
                   <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                     {files.map((file) => (
-                      <a key={file.fileId} href={file.url} target="_blank" rel="noreferrer" className="rounded-xl border border-line bg-surface p-3 hover:bg-surface-raised">
+                      <button key={file.fileId} onClick={() => previewCanvasFile(file)} className="rounded-xl border border-line bg-surface p-3 text-left hover:bg-surface-raised">
                         <p className="truncate text-[13.5px] font-semibold text-ink-1">{file.displayName}</p>
                         <p className="mt-1 text-[11.5px] text-ink-3">{formatSize(file.sizeBytes)} · Updated {new Date(file.updatedAt).toLocaleDateString()}</p>
-                      </a>
+                      </button>
                     ))}
                   </div>
                 </div>
@@ -299,6 +332,19 @@ export function RealDocumentsClient({
                 Delete
               </Button>
             </div>
+          </div>
+        ) : null}
+      </DetailPanel>
+
+      <DetailPanel open={!!previewFile} onClose={() => setPreviewFile(null)} title={previewFile?.name ?? ""}>
+        {previewLoading ? (
+          <p className="text-[13.5px] text-ink-3">Loading preview…</p>
+        ) : previewFile?.src ? (
+          <div className="flex flex-col gap-3">
+            <iframe src={previewFile.src} title={previewFile.name} className="h-[70vh] w-full rounded-[10px] border border-line" />
+            <a href={previewFile.externalUrl} target="_blank" rel="noreferrer" className="w-fit text-[12.5px] font-medium text-accent hover:underline">
+              Open in the original app instead
+            </a>
           </div>
         ) : null}
       </DetailPanel>

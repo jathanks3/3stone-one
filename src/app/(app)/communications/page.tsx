@@ -3,7 +3,7 @@ import { CommunicationsClient } from "@/features/communications/CommunicationsCl
 import { RealCommunicationsClient } from "@/features/communications/RealCommunicationsClient";
 import { getSession } from "@/lib/session";
 import { getActiveWorkspaceIdForUser } from "@/server/services/onboardingService";
-import { listCallNotes, listChannels, listMessages } from "@/server/services/communicationsService";
+import { listCallNotes } from "@/server/services/communicationsService";
 import { listPeople } from "@/server/services/crmService";
 import { getRecentOutlookMessages } from "@/server/services/microsoftIntegrationService";
 import { getRecentGmailMessages } from "@/server/services/googleIntegrationService";
@@ -17,9 +17,7 @@ export default async function CommunicationsPage() {
   const session = await getSession();
   if (session && !session.isDemo) {
     const workspaceId = await getActiveWorkspaceIdForUser(session.userId);
-    if (!workspaceId) return <RealCommunicationsClient initialChannels={[]} initialMessages={[]} initialCallNotes={[]} people={[]} outlookConnected={false} outlookMessages={[]} gmailConnected={false} gmailMessages={[]} slackConnected={false} slackChannels={[]} slackMessages={[]} />;
-    const channels = await listChannels(workspaceId);
-    const messagesByChannel = await Promise.all(channels.map((c) => listMessages(workspaceId, c.id)));
+    if (!workspaceId) return <RealCommunicationsClient initialCallNotes={[]} people={[]} outlookConnected={false} outlookMessages={[]} gmailConnected={false} gmailMessages={[]} slackConnected={false} slackChannels={[]} slackMessages={[]} />;
     const microsoft = await db.integration.findUnique({ where: { workspaceId_provider: { workspaceId, provider: "microsoft" } } });
     const google = await db.integration.findUnique({ where: { workspaceId_provider: { workspaceId, provider: "google" } } });
     const slack = await db.integration.findUnique({ where: { workspaceId_provider: { workspaceId, provider: "slack" } } });
@@ -36,8 +34,6 @@ export default async function CommunicationsPage() {
     const slackMessages = slackChannels ? (await Promise.all(slackChannels.slice(0, 20).map((channel) => listSlackMessages(workspaceId, channel.id).catch(() => [])))).flat() : null;
     return (
       <RealCommunicationsClient
-        initialChannels={channels}
-        initialMessages={messagesByChannel.flat()}
         initialCallNotes={callNotes}
         people={people}
         outlookConnected={outlookConnected}

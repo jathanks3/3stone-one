@@ -456,6 +456,25 @@ export async function getRecentOneDriveFiles(workspaceId: string, limit = 50): P
     .filter((item: OneDriveFile) => item.id && item.webUrl);
 }
 
+/** Graph's embeddable-preview action (POST /drive/items/{id}/preview) -
+ * returns a short-lived iframe-able URL so a OneDrive file can be viewed
+ * inside 3Stone One itself instead of only ever opening a new tab. Unlike
+ * Google Drive's plain `/preview` URL pattern, this genuinely requires a
+ * server-side call with our access token - there's no equivalent public
+ * URL scheme to build client-side. */
+export async function getOneDrivePreviewUrl(workspaceId: string, itemId: string): Promise<string> {
+  const accessToken = await getValidMicrosoftAccessToken(workspaceId);
+  const res = await fetch(`https://graph.microsoft.com/v1.0/me/drive/items/${encodeURIComponent(itemId)}/preview`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
+    body: JSON.stringify({}),
+  });
+  if (!res.ok) throw new Error(`Microsoft couldn't generate a preview: ${res.status} ${await res.text().catch(() => "")}`);
+  const data = await res.json();
+  if (!data.getUrl) throw new Error("Microsoft didn't return a preview URL for this file.");
+  return String(data.getUrl);
+}
+
 export interface TeamsMeetingResult {
   id: string;
   joinUrl: string;

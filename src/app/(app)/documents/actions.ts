@@ -5,12 +5,17 @@ import { getSession } from "@/lib/session";
 import { getActiveWorkspaceIdForUser } from "@/server/services/onboardingService";
 import { requireActiveMember } from "@/server/services/teamService";
 import { createDocument, deleteDocument, setDocumentVisibility, type CreateDocumentInput } from "@/server/services/documentService";
+import { getOneDrivePreviewUrl } from "@/server/services/microsoftIntegrationService";
 import type { DocumentVisibility } from "../../../../generated/prisma/client";
 
 export interface ActionState {
   error?: string;
   success?: string;
   id?: string;
+}
+
+export interface PreviewUrlState extends ActionState {
+  url?: string;
 }
 
 async function currentWorkspaceId(): Promise<{ userId: string; workspaceId: string }> {
@@ -64,5 +69,18 @@ export async function deleteDocumentAction(_prev: ActionState, formData: FormDat
     return { success: "Document deleted." };
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Something went wrong." };
+  }
+}
+
+export async function getOneDrivePreviewUrlAction(_prev: PreviewUrlState, formData: FormData): Promise<PreviewUrlState> {
+  try {
+    const { userId, workspaceId } = await currentWorkspaceId();
+    await requireActiveMember(userId, workspaceId);
+    const itemId = String(formData.get("itemId") ?? "");
+    if (!itemId) return { error: "No file selected." };
+    const url = await getOneDrivePreviewUrl(workspaceId, itemId);
+    return { success: "Loaded.", url };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Couldn't load a preview for this file." };
   }
 }

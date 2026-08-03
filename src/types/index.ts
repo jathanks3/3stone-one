@@ -330,21 +330,6 @@ export interface EmailThread {
   messages: EmailMessage[];
 }
 
-export interface ChatChannel {
-  id: string;
-  name: string;
-  isClientChannel: boolean;
-}
-
-export interface ChatMessage {
-  id: string;
-  channelId: string;
-  author: string;
-  authorInitials: string;
-  body: string;
-  at: string;
-}
-
 export interface CallNote {
   id: string;
   contactName: string;

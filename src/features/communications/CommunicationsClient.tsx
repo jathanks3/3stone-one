@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Hash, Send, Users } from "lucide-react";
+import { Send } from "lucide-react";
 import { Tabs } from "@/ui/Tabs";
 import { Avatar } from "@/ui/Avatar";
 import { DataTable, type Column } from "@/ui/DataTable";
@@ -9,17 +9,13 @@ import { cn, initialsFromName } from "@/lib/utils";
 import { useIndustry } from "@/lib/industry";
 import {
   DEMO_CALL_NOTES,
-  DEMO_CHAT_CHANNELS,
-  DEMO_CHAT_MESSAGES,
   DEMO_EMAIL_THREADS,
   WORKSPACE_CALL_NOTES,
-  WORKSPACE_CHAT_CHANNELS,
-  WORKSPACE_CHAT_MESSAGES,
   WORKSPACE_EMAIL_THREADS,
   WORKSPACE_EMPLOYEES,
   getEmployeeName,
 } from "@/server/mock-data";
-import type { CallNote, ChatChannel, ChatMessage, EmailThread } from "@/types";
+import type { CallNote, EmailThread } from "@/types";
 
 function callAuthorName(id: string): string {
   return WORKSPACE_EMPLOYEES.find((e) => e.id === id)?.name ?? getEmployeeName(id);
@@ -32,22 +28,12 @@ export function CommunicationsClient() {
   return (
     <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-8">
       <h1 className="text-[22px] font-bold text-ink-1">Communications</h1>
-      <p className="mt-1 text-[14px] text-ink-2">Email, internal chat, and call notes — one searchable hub.</p>
+      <p className="mt-1 text-[14px] text-ink-2">Email and call notes — one searchable hub.</p>
 
       <div className="mt-6">
         <Tabs
           tabs={[
             { key: "inbox", label: "Inbox", content: <InboxTab seed={isWorkspace ? WORKSPACE_EMAIL_THREADS : DEMO_EMAIL_THREADS} /> },
-            {
-              key: "chat",
-              label: "Chat",
-              content: (
-                <ChatTab
-                  channels={isWorkspace ? WORKSPACE_CHAT_CHANNELS : DEMO_CHAT_CHANNELS}
-                  seed={isWorkspace ? WORKSPACE_CHAT_MESSAGES : DEMO_CHAT_MESSAGES}
-                />
-              ),
-            },
             { key: "calls", label: "Call Notes", content: <CallNotesTab rows={isWorkspace ? WORKSPACE_CALL_NOTES : DEMO_CALL_NOTES} /> },
           ]}
         />
@@ -140,81 +126,6 @@ function InboxTab({ seed }: { seed: EmailThread[] }) {
             </div>
           </>
         ) : null}
-      </div>
-    </div>
-  );
-}
-
-function ChatTab({ channels, seed }: { channels: ChatChannel[]; seed: ChatMessage[] }) {
-  const [messages, setMessages] = useState<ChatMessage[]>(seed);
-  const [activeChannel, setActiveChannel] = useState(channels[0].id);
-  const [draft, setDraft] = useState("");
-  const channel = channels.find((c) => c.id === activeChannel)!;
-  const channelMessages = messages.filter((m) => m.channelId === activeChannel);
-
-  function send() {
-    if (!draft.trim()) return;
-    setMessages((prev) => [
-      ...prev,
-      { id: `cm_${Date.now()}`, channelId: activeChannel, author: "You", authorInitials: "AR", body: draft, at: "Just now" },
-    ]);
-    setDraft("");
-  }
-
-  return (
-    <div className="grid grid-cols-1 gap-4 md:grid-cols-[220px_1fr]">
-      <div className="flex flex-col gap-1 rounded-2xl border border-line bg-surface p-1.5">
-        {channels.map((c) => (
-          <button
-            key={c.id}
-            onClick={() => setActiveChannel(c.id)}
-            className={cn(
-              "flex items-center gap-2 rounded-[10px] px-3 py-2 text-left text-[13px] font-medium transition-colors",
-              activeChannel === c.id ? "bg-accent-wash text-accent" : "text-ink-2 hover:bg-surface-raised"
-            )}
-          >
-            {c.isClientChannel ? <Users size={14} /> : <Hash size={14} />}
-            <span className="truncate">{c.name}</span>
-          </button>
-        ))}
-      </div>
-
-      <div className="flex min-h-[420px] flex-col rounded-2xl border border-line bg-surface">
-        <div className="border-b border-line px-5 py-4">
-          <p className="text-[15px] font-semibold text-ink-1">
-            {channel.isClientChannel ? channel.name : `#${channel.name}`}
-          </p>
-        </div>
-        <div className="flex-1 space-y-3 overflow-y-auto p-5">
-          {channelMessages.map((m) => (
-            <div key={m.id} className="flex items-start gap-2.5">
-              <Avatar initials={m.authorInitials} size={28} />
-              <div>
-                <div className="flex items-baseline gap-2">
-                  <span className="text-[13px] font-semibold text-ink-1">{m.author}</span>
-                  <span className="text-[11px] text-ink-3">{m.at}</span>
-                </div>
-                <p className="text-[13.5px] text-ink-2">{m.body}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-        <div className="flex items-center gap-2 border-t border-line p-3">
-          <input
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && send()}
-            placeholder={`Message ${channel.isClientChannel ? channel.name : "#" + channel.name}…`}
-            className="h-10 flex-1 rounded-[9px] border border-line bg-bg px-3.5 text-[13.5px] text-ink-1 outline-none placeholder:text-ink-3 focus:border-accent"
-          />
-          <button
-            onClick={send}
-            className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-[9px] bg-accent text-on-accent hover:opacity-90"
-            aria-label="Send"
-          >
-            <Send size={15} />
-          </button>
-        </div>
       </div>
     </div>
   );

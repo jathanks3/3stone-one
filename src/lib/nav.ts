@@ -48,7 +48,7 @@ export function getNavSections(profile: IndustryProfile, allowedModuleKeys: Set<
           href: "/communications",
           label: "Communications",
           icon: "MessagesSquare",
-          description: "Email, internal chat, and call notes — one searchable hub.",
+          description: "Email, Slack, and call notes — one searchable hub.",
         },
         {
           key: "meetings",

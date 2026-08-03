@@ -14,12 +14,41 @@ import { JobStatusChartLazy } from "@/components/dashboard/JobStatusChart.lazy";
 import { Card } from "@/ui/Card";
 import { getInventoryDataset, inventoryValue, productStatus } from "@/server/mock-data/inventory";
 import { formatCurrency } from "@/lib/utils";
+import { DailyDebriefCard } from "@/features/dashboard/DailyDebriefCard";
+import type { DailyDebrief, DebriefStatus } from "@/server/services/debriefService";
+import type { Job } from "@/types";
+
+function fmtShort(dateIso: string): string {
+  const d = new Date(dateIso);
+  return Number.isNaN(d.getTime()) ? dateIso : d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+
+// Same score formula as the real Dashboard's debriefService.ts, computed
+// from this edition's own mock dataset instead of a live Prisma query -
+// this is what keeps the demo's Daily Debrief card looking and behaving
+// identically to what a real workspace sees, rather than a different,
+// unrelated widget just because the data source differs.
+function buildMockDebrief(overdueJobs: Job[], unpaidInvoiceCount: number, allJobs: Job[]): DailyDebrief {
+  const score = Math.max(0, 100 - Math.min(60, overdueJobs.length * 12) - Math.min(30, unpaidInvoiceCount * 15));
+  const status: DebriefStatus = score >= 85 ? "on_track" : score >= 60 ? "needs_attention" : "behind";
+  const attentionItems = overdueJobs.slice(0, 5).map((j) => `${j.name} was due ${fmtShort(j.dueDate)}`);
+  const suggestions =
+    attentionItems.length === 0
+      ? allJobs
+          .filter((j) => !j.overdue)
+          .sort((a, b) => a.dueDate.localeCompare(b.dueDate))
+          .slice(0, 3)
+          .map((j) => `Start prepping for "${j.name}" — due ${fmtShort(j.dueDate)}`)
+      : [];
+  return { score, status, attentionItems, suggestions };
+}
 
 export function DashboardClient() {
   const { profile, editionKey } = useIndustry();
   const dataset = getIndustryDataset(profile.key);
   const overdueJobs = dataset.jobs.filter((j) => j.overdue);
   const unpaidInvoices = dataset.invoices.filter((i) => i.status !== "paid");
+  const debrief = buildMockDebrief(overdueJobs, unpaidInvoices.length, dataset.jobs);
   const inventory = getInventoryDataset(profile.key);
   const lowStock = inventory.products.filter((p) => ["Low Stock", "Out of Stock"].includes(productStatus(p))).length;
   const pendingOrders = inventory.purchaseOrders.filter((po) => !["Received", "Cancelled"].includes(po.status)).length;
@@ -70,6 +99,8 @@ export function DashboardClient() {
         ) : null}
         <ChangedTodayCard activity={dataset.notifications.length ? dataset.notifications : DEMO_ACTIVITY} />
       </div>
+
+      <DailyDebriefCard debrief={debrief} isStudent={editionKey === "student"} />
 
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
         {dataset.kpis.map((kpi) => (

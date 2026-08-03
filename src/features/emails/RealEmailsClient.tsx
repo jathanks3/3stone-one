@@ -1,14 +1,17 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Mail, Paperclip, Plug } from "lucide-react";
-import { DataTable, type Column } from "@/ui/DataTable";
+import { Mail, MessageCircle, Paperclip } from "lucide-react";
+import { Tabs } from "@/ui/Tabs";
 import { DetailPanel } from "@/ui/DetailPanel";
 import { EmptyState } from "@/ui/EmptyState";
 import { Button } from "@/ui/Button";
 import { useToast } from "@/lib/toast";
+import { askAssistant } from "@/lib/assistantBus";
 import { loadMessageDetailAction, saveAttachmentAction } from "@/app/(app)/emails/actions";
-import type { InboxMessageRow, InboxMessageDetail, ConnectedInboxProviders } from "@/server/services/inboxService";
+import type { InboxProvider, InboxMessageDetail } from "@/server/services/inboxService";
+import type { GmailMessage } from "@/server/services/googleIntegrationService";
+import type { OutlookMessage } from "@/server/services/microsoftIntegrationService";
 
 function formatSize(bytes: number) {
   if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
@@ -21,24 +24,37 @@ function fmtDate(iso: string) {
   return Number.isNaN(d.getTime()) ? iso : d.toLocaleString();
 }
 
+interface OpenMessage {
+  provider: InboxProvider;
+  id: string;
+  subject: string;
+  from: string;
+}
+
+// Same per-provider-tab shape as Communications' Gmail/Outlook Mail tabs
+// (RealCommunicationsClient.tsx) - same row list style, same "reconnect
+// for access" empty state - so this reads as the same product, not a
+// bespoke one-off just because it's Student edition.
 export function RealEmailsClient({
-  initialMessages,
-  connected,
+  gmailConnected,
+  gmailMessages,
+  outlookConnected,
+  outlookMessages,
 }: {
-  initialMessages: InboxMessageRow[];
-  connected: ConnectedInboxProviders;
+  gmailConnected: boolean;
+  gmailMessages: GmailMessage[] | null;
+  outlookConnected: boolean;
+  outlookMessages: OutlookMessage[] | null;
 }) {
-  const [selected, setSelected] = useState<InboxMessageRow | null>(null);
+  const [open, setOpen] = useState<OpenMessage | null>(null);
   const [detail, setDetail] = useState<InboxMessageDetail | null>(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [savingAttachmentId, setSavingAttachmentId] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const { showToast } = useToast();
 
-  const isConnected = connected.google || connected.microsoft;
-
-  function openMessage(message: InboxMessageRow) {
-    setSelected(message);
+  function openMessage(message: OpenMessage) {
+    setOpen(message);
     setDetail(null);
     setLoadingDetail(true);
     startTransition(async () => {
@@ -56,12 +72,12 @@ export function RealEmailsClient({
   }
 
   function saveAttachment(a: { id: string; filename: string; mimeType: string }) {
-    if (!selected) return;
+    if (!open) return;
     setSavingAttachmentId(a.id);
     startTransition(async () => {
       const form = new FormData();
-      form.set("provider", selected.provider);
-      form.set("messageId", selected.id);
+      form.set("provider", open.provider);
+      form.set("messageId", open.id);
       form.set("attachmentId", a.id);
       form.set("filename", a.filename);
       form.set("mimeType", a.mimeType);
@@ -75,58 +91,36 @@ export function RealEmailsClient({
     });
   }
 
-  const columns: Column<InboxMessageRow>[] = [
-    {
-      key: "subject",
-      header: "Subject",
-      render: (m) => (
-        <div className="flex items-center gap-2.5">
-          <Mail size={16} className="flex-shrink-0 text-ink-3" />
-          <span className="truncate font-medium text-ink-1">{m.subject}</span>
-        </div>
-      ),
-    },
-    { key: "from", header: "From", render: (m) => m.from },
-    { key: "receivedAt", header: "Received", render: (m) => fmtDate(m.receivedAt) },
-    { key: "provider", header: "Account", render: (m) => (m.provider === "google" ? "Gmail" : "Outlook") },
-  ];
+  function askAiAboutThis() {
+    if (!open) return;
+    askAssistant(`Help me with this email - "${open.subject}" from ${open.from}: ${detail?.bodyText?.slice(0, 500) ?? ""}`);
+  }
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-8">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-[22px] font-bold text-ink-1">Emails</h1>
-          <p className="mt-1 text-[14px] text-ink-2">
-            Your connected inbox, read live from Gmail or Outlook - nothing here is copied or stored unless you save an attachment.
-          </p>
-        </div>
-      </div>
+      <h1 className="text-[22px] font-bold text-ink-1">📧 Emails</h1>
+      <p className="mt-1 text-[14px] text-ink-2">Your connected inbox, read live from Gmail and Outlook - nothing here is copied or stored unless you save an attachment.</p>
 
       <div className="mt-6">
-        {!isConnected ? (
-          <EmptyState
-            icon={Plug}
-            title="No email account connected"
-            description="Connect Google or Microsoft in Integrations to see your inbox here."
-            action={
-              <Button variant="primary" onClick={() => (window.location.href = "/integrations")}>
-                Go to Integrations
-              </Button>
-            }
-          />
-        ) : initialMessages.length === 0 ? (
-          <EmptyState icon={Mail} title="No recent emails" description="Your inbox is empty, or nothing new has come in yet." />
-        ) : (
-          <DataTable columns={columns} rows={initialMessages} rowKey={(m) => `${m.provider}:${m.id}`} onRowClick={openMessage} />
-        )}
+        <Tabs
+          tabs={[
+            { key: "gmail", label: "Gmail", content: <MessageListTab provider="google" connected={gmailConnected} messages={gmailMessages} onOpen={openMessage} /> },
+            { key: "outlook", label: "Outlook Mail", content: <MessageListTab provider="microsoft" connected={outlookConnected} messages={outlookMessages} onOpen={openMessage} /> },
+          ]}
+        />
       </div>
 
-      <DetailPanel open={!!selected} onClose={() => setSelected(null)} title={selected?.subject ?? ""} subtitle={selected?.from ?? ""}>
+      <DetailPanel open={!!open} onClose={() => setOpen(null)} title={open?.subject ?? ""} subtitle={open?.from ?? ""}>
         {loadingDetail ? (
           <p className="text-[13.5px] text-ink-3">Loading…</p>
         ) : detail ? (
           <div className="flex flex-col gap-5">
             <p className="whitespace-pre-wrap text-[13.5px] leading-relaxed text-ink-1">{detail.bodyText || "(no body text)"}</p>
+
+            <Button variant="secondary" onClick={askAiAboutThis} className="w-fit">
+              <MessageCircle size={14} /> Ask AI about this
+            </Button>
+
             {detail.attachments.length > 0 ? (
               <div>
                 <p className="mb-2 text-[12px] font-semibold uppercase tracking-wide text-ink-3">Attachments</p>
@@ -155,6 +149,69 @@ export function RealEmailsClient({
           </div>
         ) : null}
       </DetailPanel>
+    </div>
+  );
+}
+
+function MessageListTab({
+  provider,
+  connected,
+  messages,
+  onOpen,
+}: {
+  provider: InboxProvider;
+  connected: boolean;
+  messages: (GmailMessage | OutlookMessage)[] | null;
+  onOpen: (message: OpenMessage) => void;
+}) {
+  const providerName = provider === "google" ? "Gmail" : "Outlook";
+
+  if (!connected) {
+    return (
+      <EmptyState
+        icon={Mail}
+        title={`Connect ${provider === "google" ? "Google" : "Microsoft"} to use ${providerName}`}
+        description={`Connect ${provider === "google" ? "Google" : "Microsoft"} in Integrations to read your ${providerName} inbox here.`}
+      />
+    );
+  }
+  if (messages === null) {
+    return (
+      <EmptyState
+        icon={Mail}
+        title={`Reconnect ${provider === "google" ? "Google" : "Microsoft"} for ${providerName} access`}
+        description="Your connection predates email access - reconnect once in Integrations to approve it."
+      />
+    );
+  }
+  if (messages.length === 0) {
+    return <EmptyState icon={Mail} title="Inbox is empty" description={`New ${providerName} messages will appear here.`} />;
+  }
+
+  return (
+    <div className="flex flex-col gap-4">
+      <p className="text-[13px] text-ink-2">Your 25 most recent {providerName} inbox messages.</p>
+      <div className="overflow-hidden rounded-2xl border border-line bg-surface">
+        {messages.map((message) => {
+          const from = "from" in message ? message.from : message.senderName;
+          return (
+            <button
+              key={message.id}
+              onClick={() => onOpen({ provider, id: message.id, subject: message.subject, from })}
+              className="block w-full border-b border-line px-4 py-3 text-left last:border-b-0 hover:bg-surface-raised"
+            >
+              <div className="flex items-start justify-between gap-4">
+                <div className="min-w-0">
+                  <p className="truncate text-[13.5px] font-semibold text-ink-1">{message.subject}</p>
+                  <p className="mt-0.5 truncate text-[12px] text-ink-2">{from}</p>
+                  {message.preview ? <p className="mt-1 line-clamp-2 text-[12.5px] text-ink-3">{message.preview}</p> : null}
+                </div>
+                <span className="flex-shrink-0 text-[11px] text-ink-3">{fmtDate(message.receivedAt)}</span>
+              </div>
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }

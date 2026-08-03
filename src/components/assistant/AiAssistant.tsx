@@ -134,17 +134,19 @@ export function AiAssistant() {
           "lg:bottom-6 lg:left-auto lg:right-6 lg:translate-x-0"
         )}
       >
-        {/* A friendly face at rest, not a static icon - permanent smile,
-            periodic blink, and an occasional wink (see the ai-face-*
-            keyframes in globals.css) so the assistant reads as alive and
-            inviting rather than just another button. The halo keys off
-            var(--accent), so it already matches whichever edition/accent
-            color is live with no extra work here. Calmed down to a plain
-            X while the panel is open since the "come chat with me"
-            invitation has been accepted at that point. */}
-        {/* A rounded-square "squircle," not a circle - matches the bot's
-            own body shape (see the SVG's rx below) so the button reads as
-            one consistent character silhouette rather than a generic
+        {/* A friendly little monster, not a robot or a generic icon -
+            permanent smile, periodic blink, and an occasional wink (see
+            the ai-face and ai-bot keyframes in globals.css, unchanged by
+            this redesign - only the SVG shapes wearing those animation
+            classes changed) so it reads as alive and inviting rather than
+            just another button. The halo keys off var(--accent), so it
+            already matches whichever edition/accent color is live with no
+            extra work here. Calmed down to a plain X while the panel is
+            open since the "come chat with me" invitation has been
+            accepted at that point. */}
+        {/* A rounded-square "squircle," not a circle - matches the
+            monster's own round-ish body shape below so the button reads
+            as one consistent character silhouette rather than a generic
             round icon button. */}
         {!open ? (
           <span
@@ -164,29 +166,36 @@ export function AiAssistant() {
             <X size={iconSize} />
           ) : (
             <svg width={faceSize} height={faceSize * 1.15} viewBox="0 0 32 37" fill="none" aria-hidden="true" className="ai-bot-bob">
-              {/* Antenna */}
-              <line x1="16" y1="4" x2="16" y2="0.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-              <circle cx="16" cy="0.5" r="1.3" fill="currentColor" />
-              {/* Body - drawn before limbs so they attach cleanly to its edge */}
-              <rect x="4.5" y="4.5" width="23" height="19.5" rx="9.5" stroke="currentColor" strokeWidth="1.6" fill="currentColor" fillOpacity="0.08" />
+              {/* Two small horns instead of a robot antenna */}
+              <path d="M10 6.5 L7.5 1.5 L12 5.5 Z" fill="currentColor" />
+              <path d="M22 6.5 L24.5 1.5 L20 5.5 Z" fill="currentColor" />
+              {/* Body - a round-ish blob, not a rectangular robot chassis -
+                  drawn before limbs so they attach cleanly to its edge */}
+              <rect x="4" y="6" width="24" height="19" rx="10.5" stroke="currentColor" strokeWidth="1.6" fill="currentColor" fillOpacity="0.08" />
+              {/* Texture spots, a monster touch a plain robot wouldn't have */}
+              <circle cx="8" cy="19.5" r="1" fill="currentColor" fillOpacity="0.35" />
+              <circle cx="24.5" cy="10.5" r="1.2" fill="currentColor" fillOpacity="0.35" />
               {/* Arms - the right one waves at the same moment the right eye winks below */}
-              <path className="ai-bot-arm-left" d="M7 15c-2.5 1-4 2.8-4.5 5.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-              <path className="ai-bot-arm-right" d="M25 15c2.5 1 4 2.8 4.5 5.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-              {/* Legs */}
-              <line x1="11.5" y1="23.5" x2="11.5" y2="29.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-              <line x1="20.5" y1="23.5" x2="20.5" y2="29.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-              <line x1="8.5" y1="30.2" x2="14.5" y2="30.2" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-              <line x1="17.5" y1="30.2" x2="23.5" y2="30.2" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-              <ellipse className="ai-face-eye-left" cx="12" cy="13.2" rx="2.1" ry="2.6" fill="currentColor" />
-              <ellipse className="ai-face-eye-right" cx="20" cy="13.2" rx="2.1" ry="2.6" fill="currentColor" />
+              <path className="ai-bot-arm-left" d="M6.5 16c-2.5 1-4 2.8-4.5 5.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+              <path className="ai-bot-arm-right" d="M25.5 16c2.5 1 4 2.8 4.5 5.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+              {/* Stubby legs/feet */}
+              <line x1="11.5" y1="25" x2="11.5" y2="30.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+              <line x1="20.5" y1="25" x2="20.5" y2="30.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+              <line x1="8.5" y1="31.2" x2="14.5" y2="31.2" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+              <line x1="17.5" y1="31.2" x2="23.5" y2="31.2" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+              <ellipse className="ai-face-eye-left" cx="12" cy="14.7" rx="2.3" ry="2.8" fill="currentColor" />
+              <ellipse className="ai-face-eye-right" cx="20" cy="14.7" rx="2.3" ry="2.8" fill="currentColor" />
               <path
                 className="ai-face-mouth"
-                d="M11.2 18.4c1.7 2 8.9 2 10.6 0"
+                d="M10.8 19.8c1.9 2.2 9.5 2.2 11.4 0"
                 stroke="currentColor"
                 strokeWidth="1.8"
                 strokeLinecap="round"
                 fill="none"
               />
+              {/* Two small fangs, hung off the same mouth line */}
+              <path d="M13 20.6 L13.6 22.4 L14.2 20.6 Z" fill="currentColor" />
+              <path d="M17.8 20.6 L18.4 22.4 L19 20.6 Z" fill="currentColor" />
             </svg>
           )}
         </button>
