@@ -20,7 +20,10 @@ const FULL_MICROSOFT_SCOPES = [
   "email",
 ].join(" ");
 function microsoftScopesForEdition(editionKey: string): string {
-  if (editionKey === "student") return ["Files.Read", "User.Read", "offline_access", "openid", "email"].join(" ");
+  // Mail.Read (not the write/send scopes above) is enough for Student's
+  // read-through Emails module - same reasoning as Gmail's read-only
+  // scope right above in googleIntegrationService.ts.
+  if (editionKey === "student") return ["Files.Read", "Mail.Read", "User.Read", "offline_access", "openid", "email"].join(" ");
   return FULL_MICROSOFT_SCOPES;
 }
 const AUTHORITY = "https://login.microsoftonline.com/common/oauth2/v2.0";
@@ -338,6 +341,81 @@ export async function sendOutlookMail(
     const responseBody = await res.text().catch(() => "");
     throw new Error(`Microsoft couldn't send the email: ${res.status} ${responseBody}`);
   }
+}
+
+export interface OutlookAttachment {
+  id: string;
+  name: string;
+  contentType: string;
+  sizeBytes: number;
+}
+
+export interface OutlookMessageDetail {
+  id: string;
+  subject: string;
+  senderName: string;
+  senderAddress: string;
+  receivedAt: string;
+  bodyText: string;
+  attachments: OutlookAttachment[];
+}
+
+function stripHtml(html: string): string {
+  return html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+}
+
+/** Full detail (body + attachment list) for one message - heavier than
+ * getRecentOutlookMessages above, only ever called for a single message
+ * the user opened. */
+export async function getOutlookMessageDetail(workspaceId: string, messageId: string): Promise<OutlookMessageDetail> {
+  const accessToken = await getValidMicrosoftAccessToken(workspaceId);
+  const params = new URLSearchParams({ $select: "id,subject,from,receivedDateTime,body" });
+  const [messageRes, attachmentsRes] = await Promise.all([
+    fetch(`https://graph.microsoft.com/v1.0/me/messages/${encodeURIComponent(messageId)}?${params.toString()}`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+      cache: "no-store",
+    }),
+    fetch(`https://graph.microsoft.com/v1.0/me/messages/${encodeURIComponent(messageId)}/attachments?$select=id,name,contentType,size`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+      cache: "no-store",
+    }),
+  ]);
+  if (!messageRes.ok) throw new Error(`Microsoft message request failed: ${messageRes.status} ${await messageRes.text().catch(() => "")}`);
+  const data = await messageRes.json();
+  const attachmentsData = attachmentsRes.ok ? await attachmentsRes.json() : { value: [] };
+  const attachments: OutlookAttachment[] = (Array.isArray(attachmentsData.value) ? attachmentsData.value : [])
+    .map((a: { id?: string; name?: string; contentType?: string; size?: number }) => ({
+      id: a.id ?? "",
+      name: a.name ?? "attachment",
+      contentType: a.contentType ?? "application/octet-stream",
+      sizeBytes: a.size ?? 0,
+    }))
+    .filter((a: OutlookAttachment) => a.id);
+
+  const bodyRaw: string = data.body?.content ?? "";
+  const bodyText = data.body?.contentType === "html" ? stripHtml(bodyRaw) : bodyRaw;
+
+  return {
+    id: messageId,
+    subject: data.subject?.trim() || "(no subject)",
+    senderName: data.from?.emailAddress?.name?.trim() || data.from?.emailAddress?.address || "Unknown sender",
+    senderAddress: data.from?.emailAddress?.address ?? "",
+    receivedAt: data.receivedDateTime ?? "",
+    bodyText,
+    attachments,
+  };
+}
+
+export async function getOutlookAttachmentBytes(workspaceId: string, messageId: string, attachmentId: string): Promise<Buffer> {
+  const accessToken = await getValidMicrosoftAccessToken(workspaceId);
+  const res = await fetch(
+    `https://graph.microsoft.com/v1.0/me/messages/${encodeURIComponent(messageId)}/attachments/${encodeURIComponent(attachmentId)}?$select=contentBytes`,
+    { headers: { Authorization: `Bearer ${accessToken}` } }
+  );
+  if (!res.ok) throw new Error(`Microsoft attachment request failed: ${res.status} ${await res.text().catch(() => "")}`);
+  const data = await res.json();
+  if (!data.contentBytes) throw new Error("This attachment can't be downloaded (not a file attachment).");
+  return Buffer.from(data.contentBytes, "base64");
 }
 
 export interface OneDriveFile {

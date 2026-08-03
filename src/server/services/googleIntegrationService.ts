@@ -11,7 +11,15 @@ import { encryptToken, decryptToken } from "@/lib/tokenEncryption";
 // Sheets exports from Analytics. Gmail/Drive scopes require Google review.
 function googleScopesForEdition(editionKey: string): string {
   const identity = ["openid", "email"];
-  if (editionKey === "student") return ["https://www.googleapis.com/auth/drive.readonly", ...identity].join(" ");
+  if (editionKey === "student")
+    return [
+      "https://www.googleapis.com/auth/drive.readonly",
+      // Read-only is enough for the Emails module (read-through inbox +
+      // letting the assistant see/summarize messages) - Student has no
+      // send-as-yourself use case the way Workspace's Communications does.
+      "https://www.googleapis.com/auth/gmail.readonly",
+      ...identity,
+    ].join(" ");
   if (editionKey === "workspace") return [
     "https://www.googleapis.com/auth/calendar.readonly",
     "https://www.googleapis.com/auth/gmail.readonly",
@@ -307,6 +315,90 @@ export async function getRecentGoogleDriveFiles(workspaceId: string, limit = 50)
   if (!res.ok) throw new Error(`Google Drive request failed: ${res.status} ${await res.text().catch(() => "")}`);
   const data = await res.json();
   return (Array.isArray(data.files) ? data.files : []).map((file: { id?: string; name?: string; mimeType?: string; modifiedTime?: string; webViewLink?: string; size?: string }) => ({ id: file.id ?? "", name: file.name ?? "Untitled", mimeType: file.mimeType ?? "application/octet-stream", modifiedAt: file.modifiedTime ?? "", webViewLink: file.webViewLink ?? "", sizeBytes: Number(file.size ?? 0) })).filter((file: GoogleDriveFile) => file.id && file.webViewLink);
+}
+
+export interface GmailAttachment {
+  attachmentId: string;
+  filename: string;
+  mimeType: string;
+  sizeBytes: number;
+}
+
+export interface GmailMessageDetail {
+  id: string;
+  subject: string;
+  from: string;
+  receivedAt: string;
+  bodyText: string;
+  attachments: GmailAttachment[];
+}
+
+interface GmailPart {
+  mimeType?: string;
+  filename?: string;
+  body?: { data?: string; attachmentId?: string; size?: number };
+  parts?: GmailPart[];
+}
+
+function extractPlainTextBody(part: GmailPart): string {
+  if (part.mimeType === "text/plain" && part.body?.data) {
+    return Buffer.from(part.body.data, "base64url").toString("utf-8");
+  }
+  for (const child of part.parts ?? []) {
+    if (child.mimeType === "text/plain" && child.body?.data) {
+      return Buffer.from(child.body.data, "base64url").toString("utf-8");
+    }
+  }
+  for (const child of part.parts ?? []) {
+    const nested = extractPlainTextBody(child);
+    if (nested) return nested;
+  }
+  return "";
+}
+
+function extractAttachments(part: GmailPart): GmailAttachment[] {
+  const found: GmailAttachment[] = [];
+  if (part.filename && part.body?.attachmentId) {
+    found.push({ attachmentId: part.body.attachmentId, filename: part.filename, mimeType: part.mimeType ?? "application/octet-stream", sizeBytes: part.body.size ?? 0 });
+  }
+  for (const child of part.parts ?? []) found.push(...extractAttachments(child));
+  return found;
+}
+
+/** Full detail (body + attachment list) for one message - a heavier call
+ * than getRecentGmailMessages above, so this is only ever called for a
+ * single message the user opened, never for a whole inbox listing. */
+export async function getGmailMessageDetail(workspaceId: string, messageId: string): Promise<GmailMessageDetail> {
+  const accessToken = await getValidGoogleAccessToken(workspaceId);
+  const res = await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/messages/${encodeURIComponent(messageId)}?format=full`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+    cache: "no-store",
+  });
+  if (!res.ok) throw new Error(`Gmail message request failed: ${res.status} ${await res.text().catch(() => "")}`);
+  const data = await res.json();
+  const payload: GmailPart = data.payload ?? {};
+  const headers = Array.isArray(data.payload?.headers) ? data.payload.headers : [];
+  const header = (name: string) => decodeHeader(headers.find((h: { name?: string }) => h.name?.toLowerCase() === name.toLowerCase())?.value);
+  return {
+    id: messageId,
+    subject: header("Subject") || "(no subject)",
+    from: header("From") || "Unknown sender",
+    receivedAt: header("Date"),
+    bodyText: extractPlainTextBody(payload) || data.snippet || "",
+    attachments: extractAttachments(payload),
+  };
+}
+
+export async function getGmailAttachmentBytes(workspaceId: string, messageId: string, attachmentId: string): Promise<Buffer> {
+  const accessToken = await getValidGoogleAccessToken(workspaceId);
+  const res = await fetch(
+    `https://gmail.googleapis.com/gmail/v1/users/me/messages/${encodeURIComponent(messageId)}/attachments/${encodeURIComponent(attachmentId)}`,
+    { headers: { Authorization: `Bearer ${accessToken}` } }
+  );
+  if (!res.ok) throw new Error(`Gmail attachment request failed: ${res.status} ${await res.text().catch(() => "")}`);
+  const data = await res.json();
+  if (!data.data) throw new Error("Gmail didn't return attachment data.");
+  return Buffer.from(data.data, "base64url");
 }
 
 export async function createGoogleSpreadsheet(workspaceId: string, title: string, values: (string | number | boolean)[][]): Promise<string> {

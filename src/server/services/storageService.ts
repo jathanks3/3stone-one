@@ -134,6 +134,39 @@ export async function recordUpload(input: {
   return { id: file.id, publicUrl };
 }
 
+// The server-side counterpart to createSignedUploadUrl/recordUpload above:
+// those two exist to let a browser PUT bytes directly to Supabase without
+// routing a file body through this app's own compute. This one is for
+// bytes this server already has in memory (an email attachment fetched
+// from Gmail/Outlook, not a browser upload) - one call that both puts the
+// bytes in Supabase and writes the same UploadedFile row recordUpload
+// would, so the rest of the app (createDocument, etc.) never has to know
+// which path a given upload came from.
+export async function uploadBufferAndRecord(input: {
+  workspaceId: string;
+  uploadedByUserId: string;
+  kind: UploadedFileKind;
+  filename: string;
+  buffer: Buffer;
+  mimeType: string;
+}): Promise<{ id: string; publicUrl: string | null }> {
+  const bucket = bucketFor(input.kind);
+  await ensureBucket(bucket, bucket === PUBLIC_BUCKET);
+  const supabase = getSupabaseClient();
+  const storagePath = buildStoragePath(input.workspaceId, input.kind, input.filename);
+  const { error } = await supabase.storage.from(bucket).upload(storagePath, input.buffer, { contentType: input.mimeType, upsert: false });
+  if (error) throw error;
+  return recordUpload({
+    workspaceId: input.workspaceId,
+    uploadedByUserId: input.uploadedByUserId,
+    kind: input.kind,
+    storagePath,
+    originalFilename: input.filename,
+    mimeType: input.mimeType,
+    sizeBytes: input.buffer.byteLength,
+  });
+}
+
 // Tenant isolation enforced here, not in Supabase: the file row must
 // belong to the workspaceId the caller is authorized for, or this
 // throws before ever asking Supabase for a signed URL.

@@ -11,6 +11,7 @@ import { listJobApplications } from "@/server/services/jobApplicationService";
 import { listKnowledgeArticles } from "@/server/services/knowledgeService";
 import { listAllGrades } from "@/server/services/gradesService";
 import { listCanvasCourseMaterials } from "@/server/services/canvasIntegrationService";
+import { listInboxMessages } from "@/server/services/inboxService";
 
 // Real, current data from this workspace, assembled fresh on every
 // message so the assistant can actually answer "what's on my calendar"
@@ -117,6 +118,21 @@ export async function buildWorkspaceContext(workspaceId: string, editionKey: str
         }
         if (!lines.length) return;
         sections.push(`Documents and course materials on file (names only):\n${lines.join("\n")}`);
+      })
+    );
+  }
+
+  if (allowed(modules, "emails")) {
+    tasks.push(
+      listInboxMessages(workspaceId, 8).then((messages) => {
+        if (!messages.length) return;
+        // Preview text only (same cost profile as Notes/Documents above) -
+        // enough for "add that meeting to my calendar" or "save this as a
+        // note" to work directly from what's already here. Full body and
+        // attachments are one click away on the Emails page itself rather
+        // than fetched for every chat message.
+        const lines = messages.map((m) => `- "${m.subject}" from ${m.from} (${m.receivedAt}): ${m.preview.slice(0, 140).replace(/\s+/g, " ")}`);
+        sections.push(`Recent emails (subject/sender/preview only):\n${lines.join("\n")}`);
       })
     );
   }

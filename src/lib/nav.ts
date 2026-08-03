@@ -79,6 +79,13 @@ export function getNavSections(profile: IndustryProfile, allowedModuleKeys: Set<
           description: "Quick notes and drafts, separate from shared documents.",
         },
         {
+          key: "emails",
+          href: "/emails",
+          label: "Emails",
+          icon: "Mail",
+          description: "Your connected inbox, read-through - nothing is copied or stored here.",
+        },
+        {
           key: "grades",
           href: "/grades",
           label: "Grades",
@@ -161,9 +168,9 @@ export function getNavSections(profile: IndustryProfile, allowedModuleKeys: Set<
         {
           key: "client-portal",
           href: "/client-portal",
-          label: "Client Portal",
+          label: `${t.customer} Portal`,
           icon: "Eye",
-          description: "Preview what your clients see when they log in.",
+          description: `Preview what your ${t.customers.toLowerCase()} see when they log in.`,
         },
         {
           key: "activity",
