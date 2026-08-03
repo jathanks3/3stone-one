@@ -1,5 +1,6 @@
 import { Card } from "@/ui/Card";
 import { getAllowedModuleKeys } from "@/lib/editionModules";
+import { DailyDebriefCard } from "@/features/dashboard/DailyDebriefCard";
 import type { RealDashboardData } from "@/server/services/dashboardService";
 
 // A genuine Server Component, not "use client" — nothing here is
@@ -54,6 +55,8 @@ export function RealDashboard({ data }: { data: RealDashboardData }) {
           </Card>
         ) : null}
       </div>
+
+      <DailyDebriefCard debrief={data.debrief} isStudent={data.editionKey === "student"} />
 
       <Card className="p-5">
         <h2 className="text-[15px] font-bold text-ink-1">Recent activity</h2>

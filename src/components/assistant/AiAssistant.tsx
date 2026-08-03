@@ -6,6 +6,7 @@ import { Sparkles, X, ArrowUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useIndustry } from "@/lib/industry";
 import { useAssistantSize } from "@/lib/assistantSize";
+import { onAskAssistant } from "@/lib/assistantBus";
 import { getIndustryDataset } from "@/server/mock-data/industries";
 import { generateAttendanceForEmployees } from "@/server/mock-data/attendance";
 import { DEMO_VENDORS } from "@/server/mock-data";
@@ -98,11 +99,22 @@ const FACE_SIZE: Record<"large" | "compact", number> = { large: 42, compact: 27 
 
 export function AiAssistant() {
   const [open, setOpen] = useState(false);
+  const [pendingPrompt, setPendingPrompt] = useState<string | null>(null);
   const { isDemo } = useIndustry();
   const { assistantSize } = useAssistantSize();
   const buttonSize = BUTTON_SIZE[assistantSize];
   const iconSize = ICON_SIZE[assistantSize];
   const faceSize = FACE_SIZE[assistantSize];
+
+  // Lets a page (e.g. the Dashboard's daily debrief card) open this panel
+  // with a question already queued up, instead of the user having to
+  // retype what they just read on the page.
+  useEffect(() => {
+    return onAskAssistant(({ prompt }) => {
+      setPendingPrompt(prompt);
+      setOpen(true);
+    });
+  }, []);
 
   // Real bug found during an earlier AI audit: this widget used to answer
   // every question from DEMO_VENDORS / getIndustryDataset(profile.key) —
@@ -179,12 +191,26 @@ export function AiAssistant() {
           )}
         </button>
       </div>
-      {open ? <AssistantPanel onClose={() => setOpen(false)} /> : null}
+      {open ? (
+        <AssistantPanel
+          onClose={() => setOpen(false)}
+          initialPrompt={pendingPrompt}
+          onConsumeInitialPrompt={() => setPendingPrompt(null)}
+        />
+      ) : null}
     </>
   );
 }
 
-function AssistantPanel({ onClose }: { onClose: () => void }) {
+function AssistantPanel({
+  onClose,
+  initialPrompt,
+  onConsumeInitialPrompt,
+}: {
+  onClose: () => void;
+  initialPrompt?: string | null;
+  onConsumeInitialPrompt?: () => void;
+}) {
   const { profile, isDemo, editionKey } = useIndustry();
   const pathname = usePathname();
   const isExecutive = isDemo && pathname === "/portfolio";
@@ -232,6 +258,13 @@ function AssistantPanel({ onClose }: { onClose: () => void }) {
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages, loading]);
+
+  useEffect(() => {
+    if (!initialPrompt) return;
+    ask(initialPrompt);
+    onConsumeInitialPrompt?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialPrompt]);
 
   function ask(question: string) {
     const trimmed = question.trim();

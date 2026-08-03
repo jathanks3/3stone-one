@@ -1,4 +1,5 @@
 import { db } from "@/server/db";
+import { getDailyDebrief, type DailyDebrief } from "@/server/services/debriefService";
 
 export interface RealDashboardData {
   workspaceName: string;
@@ -8,6 +9,7 @@ export interface RealDashboardData {
   overdueProjectCount: number;
   unpaidInvoiceCount: number;
   recentActivity: { action: string; createdAt: Date }[];
+  debrief: DailyDebrief;
 }
 
 // Real, workspace-scoped counts — every query below is filtered by
@@ -38,6 +40,8 @@ export async function getDashboardData(workspaceId: string): Promise<RealDashboa
       }),
     ]);
 
+  const debrief = await getDailyDebrief(workspaceId, workspace.editionKey);
+
   return {
     workspaceName: workspace.name,
     editionKey: workspace.editionKey,
@@ -46,5 +50,6 @@ export async function getDashboardData(workspaceId: string): Promise<RealDashboa
     overdueProjectCount,
     unpaidInvoiceCount,
     recentActivity,
+    debrief,
   };
 }
