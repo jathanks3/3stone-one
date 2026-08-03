@@ -348,7 +348,18 @@ export interface OutlookAttachment {
   name: string;
   contentType: string;
   sizeBytes: number;
+  // "link" = a Graph referenceAttachment (a share link to a file living in
+  // OneDrive/SharePoint, common in OneDrive's own digest emails) - there's
+  // no contentBytes to fetch for these at all, only a URL, so the UI opens
+  // it directly instead of offering Preview/Save to Documents.
+  kind: "file" | "link";
+  url: string | null;
 }
+
+// A bare Content-ID GUID (curly braces optional) is what Graph gives an
+// embedded image that never had a real filename - never something to
+// show a person as if it were a file they attached.
+const RAW_ID_NAME_RE = /^\{?[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\}?$/i;
 
 export interface OutlookMessageDetail {
   id: string;
@@ -375,7 +386,13 @@ export async function getOutlookMessageDetail(workspaceId: string, messageId: st
       headers: { Authorization: `Bearer ${accessToken}` },
       cache: "no-store",
     }),
-    fetch(`https://graph.microsoft.com/v1.0/me/messages/${encodeURIComponent(messageId)}/attachments?$select=id,name,contentType,size,isInline`, {
+    // No $select here on purpose: Graph's attachments collection is
+    // polymorphic (fileAttachment / referenceAttachment / itemAttachment)
+    // and the type-specific fields below (@odata.type, sourceUrl) are what
+    // tells a referenceAttachment (a link, no bytes to fetch) apart from a
+    // real file - restricting $select risks Graph dropping exactly the
+    // field this needs.
+    fetch(`https://graph.microsoft.com/v1.0/me/messages/${encodeURIComponent(messageId)}/attachments`, {
       headers: { Authorization: `Bearer ${accessToken}` },
       cache: "no-store",
     }),
@@ -383,22 +400,36 @@ export async function getOutlookMessageDetail(workspaceId: string, messageId: st
   if (!messageRes.ok) throw new Error(`Microsoft message request failed: ${messageRes.status} ${await messageRes.text().catch(() => "")}`);
   const data = await messageRes.json();
   const attachmentsData = attachmentsRes.ok ? await attachmentsRes.json() : { value: [] };
-  // Inline attachments (isInline: true) are the images/logos embedded in
-  // the HTML body itself, referenced by Content-ID - not something a
-  // person ever meant to attach. Graph gives most of these no real
-  // "name" at all, just the raw Content-ID GUID, which is exactly the
-  // unreadable "attachment" a user would otherwise see in the list and
-  // in a broken preview (that GUID isn't a real, downloadable file the
-  // same way a genuine attachment is).
-  const attachments: OutlookAttachment[] = (Array.isArray(attachmentsData.value) ? attachmentsData.value : [])
-    .filter((a: { isInline?: boolean }) => !a.isInline)
-    .map((a: { id?: string; name?: string; contentType?: string; size?: number }) => ({
-      id: a.id ?? "",
-      name: a.name ?? "attachment",
-      contentType: a.contentType ?? "application/octet-stream",
-      sizeBytes: a.size ?? 0,
-    }))
-    .filter((a: OutlookAttachment) => a.id);
+  type RawAttachment = {
+    "@odata.type"?: string;
+    id?: string;
+    name?: string;
+    contentType?: string;
+    size?: number;
+    isInline?: boolean;
+    sourceUrl?: string;
+  };
+  const attachments: OutlookAttachment[] = (Array.isArray(attachmentsData.value) ? (attachmentsData.value as RawAttachment[]) : [])
+    // Inline attachments (isInline: true) are the images/logos embedded in
+    // the HTML body itself, referenced by Content-ID - not something a
+    // person ever meant to attach.
+    .filter((a) => !a.isInline)
+    // Embedded Outlook items (a forwarded email, a contact card) have no
+    // bytes or URL to do anything useful with here.
+    .filter((a) => a["@odata.type"] !== "#microsoft.graph.itemAttachment")
+    .map((a): OutlookAttachment | null => {
+      const isLink = a["@odata.type"] === "#microsoft.graph.referenceAttachment";
+      if (isLink) {
+        if (!a.sourceUrl) return null;
+        return { id: a.id ?? "", name: a.name || "Shared link", contentType: a.contentType ?? "text/uri-list", sizeBytes: a.size ?? 0, kind: "link", url: a.sourceUrl };
+      }
+      // A real file attachment whose only "name" Graph has is a raw
+      // Content-ID GUID isn't a file a person meant to attach either -
+      // show it, or exclude it, never a GUID standing in for a filename.
+      if (!a.name || RAW_ID_NAME_RE.test(a.name)) return null;
+      return { id: a.id ?? "", name: a.name, contentType: a.contentType ?? "application/octet-stream", sizeBytes: a.size ?? 0, kind: "file", url: null };
+    })
+    .filter((a): a is OutlookAttachment => a !== null && !!a.id);
 
   const bodyRaw: string = data.body?.content ?? "";
   const bodyText = data.body?.contentType === "html" ? stripHtml(bodyRaw) : bodyRaw;

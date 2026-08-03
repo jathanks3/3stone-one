@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Mail, MessageCircle, Paperclip, Send } from "lucide-react";
+import { Link as LinkIcon, Mail, MessageCircle, Paperclip, Send } from "lucide-react";
 import { EmptyState } from "@/ui/EmptyState";
 import { Button } from "@/ui/Button";
 import { DetailPanel } from "@/ui/DetailPanel";
@@ -289,31 +289,47 @@ export function MailTab({
                       <div>
                         <p className="mb-2 text-[12px] font-semibold uppercase tracking-wide text-ink-3">Attachments</p>
                         <div className="flex flex-col gap-2">
-                          {detail.attachments.map((a) => (
-                            <div key={a.id} className="flex items-center justify-between gap-3 rounded-[10px] border border-line bg-bg px-3.5 py-2.5">
-                              <div className="flex min-w-0 items-center gap-2">
-                                <Paperclip size={14} className="flex-shrink-0 text-ink-3" />
-                                <div className="min-w-0">
+                          {detail.attachments.map((a) =>
+                            a.kind === "link" ? (
+                              <a
+                                key={a.id}
+                                href={a.url ?? "#"}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="flex items-center justify-between gap-3 rounded-[10px] border border-line bg-bg px-3.5 py-2.5 hover:bg-surface-raised"
+                              >
+                                <div className="flex min-w-0 items-center gap-2">
+                                  <LinkIcon size={14} className="flex-shrink-0 text-ink-3" />
                                   <p className="truncate text-[13px] font-medium text-ink-1">{a.filename}</p>
-                                  <p className="text-[11.5px] text-ink-3">{formatSize(a.sizeBytes)}</p>
+                                </div>
+                                <span className="flex-shrink-0 text-[12.5px] font-semibold text-accent">Open link</span>
+                              </a>
+                            ) : (
+                              <div key={a.id} className="flex items-center justify-between gap-3 rounded-[10px] border border-line bg-bg px-3.5 py-2.5">
+                                <div className="flex min-w-0 items-center gap-2">
+                                  <Paperclip size={14} className="flex-shrink-0 text-ink-3" />
+                                  <div className="min-w-0">
+                                    <p className="truncate text-[13px] font-medium text-ink-1">{a.filename}</p>
+                                    <p className="text-[11.5px] text-ink-3">{formatSize(a.sizeBytes)}</p>
+                                  </div>
+                                </div>
+                                <div className="flex flex-shrink-0 gap-2">
+                                  {previewable(a.mimeType) ? (
+                                    <Button variant="secondary" onClick={() => previewAttachmentFile(a)}>
+                                      Preview
+                                    </Button>
+                                  ) : null}
+                                  <Button
+                                    variant="secondary"
+                                    disabled={isPending && savingAttachmentId === a.id}
+                                    onClick={() => saveAttachment(a)}
+                                  >
+                                    {isPending && savingAttachmentId === a.id ? "Saving…" : "Save to Documents"}
+                                  </Button>
                                 </div>
                               </div>
-                              <div className="flex flex-shrink-0 gap-2">
-                                {previewable(a.mimeType) ? (
-                                  <Button variant="secondary" onClick={() => previewAttachmentFile(a)}>
-                                    Preview
-                                  </Button>
-                                ) : null}
-                                <Button
-                                  variant="secondary"
-                                  disabled={isPending && savingAttachmentId === a.id}
-                                  onClick={() => saveAttachment(a)}
-                                >
-                                  {isPending && savingAttachmentId === a.id ? "Saving…" : "Save to Documents"}
-                                </Button>
-                              </div>
-                            </div>
-                          ))}
+                            )
+                          )}
                         </div>
                       </div>
                     ) : null}

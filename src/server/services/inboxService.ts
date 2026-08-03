@@ -66,6 +66,17 @@ export async function listInboxMessages(workspaceId: string, limit = 25): Promis
     .slice(0, limit);
 }
 
+export interface InboxAttachment {
+  id: string;
+  filename: string;
+  mimeType: string;
+  sizeBytes: number;
+  // "link" (Outlook referenceAttachment only - a share link with no bytes
+  // to fetch) renders as "Open link" in the UI instead of Preview/Save.
+  kind: "file" | "link";
+  url: string | null;
+}
+
 export interface InboxMessageDetail {
   id: string;
   provider: InboxProvider;
@@ -73,7 +84,7 @@ export interface InboxMessageDetail {
   from: string;
   receivedAt: string;
   bodyText: string;
-  attachments: { id: string; filename: string; mimeType: string; sizeBytes: number }[];
+  attachments: InboxAttachment[];
 }
 
 export async function getInboxMessageDetail(workspaceId: string, provider: InboxProvider, messageId: string): Promise<InboxMessageDetail> {
@@ -86,7 +97,7 @@ export async function getInboxMessageDetail(workspaceId: string, provider: Inbox
       from: detail.from,
       receivedAt: detail.receivedAt,
       bodyText: detail.bodyText,
-      attachments: detail.attachments.map((a) => ({ id: a.attachmentId, filename: a.filename, mimeType: a.mimeType, sizeBytes: a.sizeBytes })),
+      attachments: detail.attachments.map((a) => ({ id: a.attachmentId, filename: a.filename, mimeType: a.mimeType, sizeBytes: a.sizeBytes, kind: "file" as const, url: null })),
     };
   }
   const detail = await getOutlookMessageDetail(workspaceId, messageId);
@@ -97,7 +108,7 @@ export async function getInboxMessageDetail(workspaceId: string, provider: Inbox
     from: detail.senderName,
     receivedAt: detail.receivedAt,
     bodyText: detail.bodyText,
-    attachments: detail.attachments.map((a) => ({ id: a.id, filename: a.name, mimeType: a.contentType, sizeBytes: a.sizeBytes })),
+    attachments: detail.attachments.map((a) => ({ id: a.id, filename: a.name, mimeType: a.contentType, sizeBytes: a.sizeBytes, kind: a.kind, url: a.url })),
   };
 }
 

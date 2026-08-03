@@ -354,6 +354,12 @@ function isInlinePart(part: GmailPart): boolean {
   return disposition.toLowerCase().startsWith("inline");
 }
 
+// Same defensive check as Outlook's RAW_ID_NAME_RE (microsoftIntegrationService.ts)
+// - a filename that's nothing but a Content-ID GUID isn't a real
+// filename a person attached, even on a part that (unusually) does carry
+// one and isn't flagged inline by disposition.
+const RAW_ID_NAME_RE = /^\{?[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\}?$/i;
+
 function extractPlainTextBody(part: GmailPart): string {
   if (part.mimeType === "text/plain" && part.body?.data) {
     return Buffer.from(part.body.data, "base64url").toString("utf-8");
@@ -372,7 +378,7 @@ function extractPlainTextBody(part: GmailPart): string {
 
 function extractAttachments(part: GmailPart): GmailAttachment[] {
   const found: GmailAttachment[] = [];
-  if (part.filename && part.body?.attachmentId && !isInlinePart(part)) {
+  if (part.filename && part.body?.attachmentId && !isInlinePart(part) && !RAW_ID_NAME_RE.test(part.filename)) {
     found.push({ attachmentId: part.body.attachmentId, filename: part.filename, mimeType: part.mimeType ?? "application/octet-stream", sizeBytes: part.body.size ?? 0 });
   }
   for (const child of part.parts ?? []) found.push(...extractAttachments(child));
