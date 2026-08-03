@@ -79,6 +79,13 @@ export function getNavSections(profile: IndustryProfile, allowedModuleKeys: Set<
           description: "Quick notes and drafts, separate from shared documents.",
         },
         {
+          key: "grades",
+          href: "/grades",
+          label: "Grades",
+          icon: "GraduationCap",
+          description: "Real grades from Canvas and your other connected school systems.",
+        },
+        {
           key: "gpa",
           href: "/gpa",
           label: "GPA Calculator",

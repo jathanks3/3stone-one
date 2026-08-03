@@ -9,6 +9,8 @@ import { listTimeOffRequests } from "@/server/services/timeOffService";
 import { listGpaCourses } from "@/server/services/gpaService";
 import { listJobApplications } from "@/server/services/jobApplicationService";
 import { listKnowledgeArticles } from "@/server/services/knowledgeService";
+import { listAllGrades } from "@/server/services/gradesService";
+import { listCanvasCourseMaterials } from "@/server/services/canvasIntegrationService";
 
 // Real, current data from this workspace, assembled fresh on every
 // message so the assistant can actually answer "what's on my calendar"
@@ -105,10 +107,26 @@ export async function buildWorkspaceContext(workspaceId: string, editionKey: str
 
   if (allowed(modules, "documents")) {
     tasks.push(
-      listDocuments(workspaceId).then((docs) => {
-        if (!docs.length) return;
-        const lines = docs.slice(0, 20).map((d) => `- ${d.name}`);
-        sections.push(`Documents on file (names only):\n${lines.join("\n")}`);
+      Promise.all([listDocuments(workspaceId), listCanvasCourseMaterials(workspaceId).catch(() => [])]).then(([docs, canvasMaterials]) => {
+        const lines: string[] = [];
+        if (docs.length) lines.push(...docs.slice(0, 20).map((d) => `- ${d.name}`));
+        if (canvasMaterials.length) {
+          lines.push(
+            ...canvasMaterials.slice(0, 20).map((m) => `- ${m.displayName} (${m.courseName}) [from Canvas]`)
+          );
+        }
+        if (!lines.length) return;
+        sections.push(`Documents and course materials on file (names only):\n${lines.join("\n")}`);
+      })
+    );
+  }
+
+  if (allowed(modules, "grades")) {
+    tasks.push(
+      listAllGrades(workspaceId).then((grades) => {
+        if (!grades.length) return;
+        const lines = grades.slice(0, 30).map((g) => `- ${g.courseName}: ${g.currentGrade ?? (g.currentScore !== null ? `${Math.round(g.currentScore)}%` : "not yet computed")}`);
+        sections.push(`Grades (from Canvas):\n${lines.join("\n")}`);
       })
     );
   }

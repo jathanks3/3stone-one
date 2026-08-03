@@ -54,6 +54,7 @@ export const EDITION_MODULES: Record<string, string[] | null> = {
     "calendar",
     "documents",
     "notes",
+    "grades",
     "gpa",
     "job-tracker",
     "knowledge",

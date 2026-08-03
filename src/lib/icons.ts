@@ -21,6 +21,7 @@ import {
   Calculator,
   Briefcase,
   Plane,
+  GraduationCap,
   type LucideIcon,
 } from "lucide-react";
 
@@ -47,4 +48,5 @@ export const NAV_ICONS: Record<string, LucideIcon> = {
   Calculator,
   Briefcase,
   Plane,
+  GraduationCap,
 };

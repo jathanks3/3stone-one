@@ -1,5 +1,6 @@
 import { db } from "@/server/db";
 import { logActivity } from "@/server/services/activityService";
+import { listCanvasGrades } from "@/server/services/canvasIntegrationService";
 import type { LetterGrade as PrismaLetterGrade } from "../../../generated/prisma/client";
 
 // The demo's LetterGrade type (src/types/index.ts) uses the literal
@@ -68,4 +69,62 @@ export async function deleteGpaCourse(workspaceId: string, studentId: string, co
   if (!existing) throw new Error("Course not found.");
   await db.gpaCourse.delete({ where: { id: courseId } });
   await logActivity(workspaceId, studentId, "removed_gpa_course", "GpaCourse", courseId, { name: existing.name });
+}
+
+// Canvas doesn't know academic credit-hours (that's a registrar concept,
+// not something an LMS tracks) - new Canvas-synced courses default to 3
+// (the most common US credit-hour value) and stay fully editable, same
+// as any manually-added course.
+const DEFAULT_SYNCED_CREDITS = 3;
+
+function letterFromCanvasGrade(raw: string): DisplayLetterGrade | null {
+  // Canvas's own configured letter (e.g. "A-", sometimes "A-*" for a
+  // "grade changed since last view" marker) - strip anything but the
+  // grade itself and validate against our own vocabulary rather than
+  // trusting an arbitrary string into the enum.
+  const cleaned = raw.trim().toUpperCase().replace(/[^A-F+-]/g, "") as DisplayLetterGrade;
+  return cleaned in TO_PRISMA_GRADE ? cleaned : null;
+}
+
+function letterFromScore(score: number): DisplayLetterGrade {
+  if (score >= 97) return "A+";
+  if (score >= 93) return "A";
+  if (score >= 90) return "A-";
+  if (score >= 87) return "B+";
+  if (score >= 83) return "B";
+  if (score >= 80) return "B-";
+  if (score >= 77) return "C+";
+  if (score >= 73) return "C";
+  if (score >= 70) return "C-";
+  if (score >= 67) return "D+";
+  if (score >= 63) return "D";
+  if (score >= 60) return "D-";
+  return "F";
+}
+
+// Called whenever the GPA page loads (see (app)/gpa/page.tsx) - same
+// "live read-through" philosophy as calendarService's Google/Outlook/
+// Canvas sync, except this one actually needs to write real GpaCourse
+// rows (GPA math needs stored courses, not a per-request merge). Matches
+// on course name to stay idempotent - a repeat load updates the same
+// row's grade instead of creating a duplicate every time.
+export async function syncCanvasGradesIntoGpa(workspaceId: string, studentId: string): Promise<void> {
+  const grades = await listCanvasGrades(workspaceId).catch((err) => {
+    console.error("[gpaService] Canvas grades sync failed:", err instanceof Error ? err.message : err);
+    return [];
+  });
+  for (const g of grades) {
+    const letter = (g.currentGrade && letterFromCanvasGrade(g.currentGrade)) ?? (g.currentScore !== null ? letterFromScore(g.currentScore) : null);
+    if (!letter) continue; // Nothing computed yet for this course - nothing honest to sync.
+    const existing = await db.gpaCourse.findFirst({ where: { workspaceId, studentId, name: g.courseName } });
+    if (existing) {
+      if (existing.grade !== TO_PRISMA_GRADE[letter]) {
+        await db.gpaCourse.update({ where: { id: existing.id }, data: { grade: TO_PRISMA_GRADE[letter] } });
+      }
+    } else {
+      await db.gpaCourse.create({
+        data: { workspaceId, studentId, name: g.courseName, credits: DEFAULT_SYNCED_CREDITS, grade: TO_PRISMA_GRADE[letter] },
+      });
+    }
+  }
 }
