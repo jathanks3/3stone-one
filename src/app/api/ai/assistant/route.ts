@@ -6,6 +6,8 @@ import { generateChatReply, isAiProviderConfigured, type AiChatMessage } from "@
 import { assertAiCapacity, getAiUsageStatus, recordAiUsage, UsageCapError } from "@/server/services/usageCapService";
 import { buildWorkspaceContext } from "@/server/ai/context";
 import { toolsForEdition, buildToolExecutor } from "@/server/ai/assistantTools";
+import { getIndustryProfile } from "@/config/industry-profiles";
+import type { IndustryProfileKey } from "@/types";
 
 // Real AI, included for every real workspace on every edition - no more
 // Student-only paid toggle. What keeps this safe isn't an edition check,
@@ -146,7 +148,8 @@ export async function POST(req: NextRequest) {
   const messages: AiChatMessage[] = [...history, { role: "user", content: userMessage }];
 
   try {
-    const tools = toolsForEdition(membership.workspace.editionKey);
+    const terms = getIndustryProfile(membership.workspace.industryProfileKey as IndustryProfileKey).terms;
+    const tools = toolsForEdition(membership.workspace.editionKey, terms);
     const executeTool = buildToolExecutor(membership.workspace.id, session.userId);
     const result = await generateChatReply(systemPromptFor(membership.workspace.editionKey, workspaceContext), messages, tools, executeTool);
     // Only a successful, billed call counts against the cap - a failed

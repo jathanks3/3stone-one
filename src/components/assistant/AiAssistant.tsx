@@ -130,10 +130,14 @@ export function AiAssistant() {
             color is live with no extra work here. Calmed down to a plain
             X while the panel is open since the "come chat with me"
             invitation has been accepted at that point. */}
+        {/* A rounded-square "squircle," not a circle - matches the bot's
+            own body shape (see the SVG's rx below) so the button reads as
+            one consistent character silhouette rather than a generic
+            round icon button. */}
         {!open ? (
           <span
             aria-hidden
-            className="ai-orb-glow pointer-events-none absolute rounded-full"
+            className="ai-orb-glow pointer-events-none absolute rounded-[30%]"
             style={{ inset: -Math.round(buttonSize * 0.11) }}
           />
         ) : null}
@@ -141,7 +145,7 @@ export function AiAssistant() {
           type="button"
           onClick={() => setOpen((o) => !o)}
           aria-label={open ? "Close AI assistant" : "Open AI assistant"}
-          className="relative flex items-center justify-center rounded-full bg-accent text-on-accent shadow-[var(--shadow)] transition-transform hover:scale-105 active:scale-95"
+          className="relative flex items-center justify-center rounded-[30%] bg-accent text-on-accent shadow-[var(--shadow)] transition-transform hover:scale-105 active:scale-95"
           style={{ width: buttonSize, height: buttonSize }}
         >
           {open ? (

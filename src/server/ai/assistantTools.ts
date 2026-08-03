@@ -8,7 +8,7 @@ import { createJobApplication } from "@/server/services/jobApplicationService";
 import { createTimeOffRequest } from "@/server/services/timeOffService";
 import { createPerson } from "@/server/services/crmService";
 import { createKnowledgeArticle } from "@/server/services/knowledgeService";
-import type { TimeOffType, PersonType, KnowledgeCategory } from "@/types";
+import type { TimeOffType, PersonType, KnowledgeCategory, IndustryTerms } from "@/types";
 
 // The assistant's real creation tools - each maps to one module's already
 // real create function (see api/ai/assistant/route.ts, which builds the
@@ -152,9 +152,30 @@ const TOOL_DEFINITIONS: { moduleKey: string; tool: AiTool }[] = [
   },
 ];
 
-export function toolsForEdition(editionKey: string): AiTool[] {
+// create_project and create_crm_contact read generic "project"/"customer"
+// in their static descriptions above - swapped here for this workspace's
+// real terms (Student's Assignment/Contact, etc.) so the tool's own
+// description never leaks the wrong word, same rule CLAUDE.md's
+// architecture doc applies to every other piece of UI copy.
+function describeForTerms(tool: AiTool, terms: IndustryTerms): AiTool {
+  if (tool.name === "create_project") {
+    return {
+      ...tool,
+      description: `Create a real ${terms.project.toLowerCase()}. Only call this when the user clearly asks you to create/start/add a new ${terms.project.toLowerCase()}.`,
+    };
+  }
+  if (tool.name === "create_crm_contact") {
+    return {
+      ...tool,
+      description: `Add a real contact to the CRM. Only call this when the user clearly asks you to add or save a new lead, ${terms.customer.toLowerCase()}, or contact.`,
+    };
+  }
+  return tool;
+}
+
+export function toolsForEdition(editionKey: string, terms: IndustryTerms): AiTool[] {
   const modules = getAllowedModuleKeys(editionKey);
-  return TOOL_DEFINITIONS.filter((def) => modules === null || modules.has(def.moduleKey)).map((def) => def.tool);
+  return TOOL_DEFINITIONS.filter((def) => modules === null || modules.has(def.moduleKey)).map((def) => describeForTerms(def.tool, terms));
 }
 
 export function buildToolExecutor(workspaceId: string, userId: string): AiToolExecutor {
