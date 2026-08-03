@@ -109,30 +109,37 @@ export function AiAssistant() {
           "lg:bottom-6 lg:left-auto lg:right-6 lg:translate-x-0"
         )}
       >
-        {/* A living, breathing orb at rest - not a static icon - so the
-            assistant reads as active/available rather than just another
-            button. Both layers key off var(--accent), so they already
-            match whichever edition/accent color is live with no extra
-            work here. Calmed down while the panel is open (X, not
-            Sparkles) since the "come chat with me" invitation has been
-            accepted at that point. */}
-        {!open ? (
-          <>
-            <span aria-hidden className="ai-orb-glow pointer-events-none absolute inset-[-6px] rounded-full" />
-            <span
-              aria-hidden
-              className="ai-orb-ring pointer-events-none absolute inset-[-3px] rounded-full opacity-70"
-              style={{ mask: "radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 3px))" }}
-            />
-          </>
-        ) : null}
+        {/* A friendly face at rest, not a static icon - permanent smile,
+            periodic blink, and an occasional wink (see the ai-face-*
+            keyframes in globals.css) so the assistant reads as alive and
+            inviting rather than just another button. The halo keys off
+            var(--accent), so it already matches whichever edition/accent
+            color is live with no extra work here. Calmed down to a plain
+            X while the panel is open since the "come chat with me"
+            invitation has been accepted at that point. */}
+        {!open ? <span aria-hidden className="ai-orb-glow pointer-events-none absolute inset-[-6px] rounded-full" /> : null}
         <button
           type="button"
           onClick={() => setOpen((o) => !o)}
           aria-label={open ? "Close AI assistant" : "Open AI assistant"}
           className="relative flex h-13 w-13 items-center justify-center rounded-full bg-accent text-on-accent shadow-[var(--shadow)] transition-transform hover:scale-105 active:scale-95"
         >
-          {open ? <X size={22} /> : <Sparkles size={22} />}
+          {open ? (
+            <X size={22} />
+          ) : (
+            <svg width="27" height="27" viewBox="0 0 27 27" fill="none" aria-hidden="true">
+              <ellipse className="ai-face-eye-left" cx="8.7" cy="11.2" rx="2.2" ry="2.7" fill="currentColor" />
+              <ellipse className="ai-face-eye-right" cx="18.3" cy="11.2" rx="2.2" ry="2.7" fill="currentColor" />
+              <path
+                className="ai-face-mouth"
+                d="M7.8 16.8c1.8 2.1 9.6 2.1 11.4 0"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                fill="none"
+              />
+            </svg>
+          )}
         </button>
       </div>
       {open ? <AssistantPanel onClose={() => setOpen(false)} /> : null}
