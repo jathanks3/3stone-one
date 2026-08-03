@@ -34,7 +34,7 @@ export function SettingsClient() {
       <div className="mt-6">
         <Tabs
           tabs={[
-            { key: "company", label: isBusiness ? "Company" : "Profile", content: <CompanyTab /> },
+            { key: "company", label: isBusiness ? "Company" : "Profile", content: <CompanyTab isBusiness={isBusiness} /> },
             ...(isBusiness ? [{ key: "branding", label: "Branding", content: <BrandingTab /> }] : []),
             { key: "users", label: "Users", content: <UsersTab key={profile.key} /> },
             ...(isBusiness ? [{ key: "industry", label: "Industry Profile", content: <IndustryTab /> }] : []),
@@ -59,21 +59,28 @@ function Field({ label, defaultValue }: { label: string; defaultValue: string })
   );
 }
 
-function CompanyTab() {
+function CompanyTab({ isBusiness }: { isBusiness: boolean }) {
   const { showToast } = useToast();
   const { profile } = useIndustry();
   const dataset = getIndustryDataset(profile.key);
   const website = dataset.employees[0]?.email.split("@")[1] ?? COMPANY_PROFILE.website;
+  // Only Business edition is a "company" in any real sense - Workspace and
+  // Student see this same tab as "Profile" above, so the fields and save
+  // toast inside it need to say "your info," not "company," to match.
   return (
     <Card key={profile.key} className="flex flex-col gap-4 p-5">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <Field label="Company name" defaultValue={dataset.orgName} />
-        <Field label="Legal name" defaultValue={`${dataset.orgName} LLC`} />
+        <Field label={isBusiness ? "Company name" : "Organization name"} defaultValue={dataset.orgName} />
+        {isBusiness ? <Field label="Legal name" defaultValue={`${dataset.orgName} LLC`} /> : null}
         <Field label="Phone" defaultValue={COMPANY_PROFILE.phone} />
         <Field label="Website" defaultValue={website} />
       </div>
       <Field label="Address" defaultValue={COMPANY_PROFILE.address} />
-      <Button variant="primary" className="w-fit" onClick={() => showToast({ title: "Company profile saved" })}>
+      <Button
+        variant="primary"
+        className="w-fit"
+        onClick={() => showToast({ title: isBusiness ? "Company profile saved" : "Profile saved" })}
+      >
         Save changes
       </Button>
     </Card>

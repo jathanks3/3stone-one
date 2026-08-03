@@ -52,7 +52,7 @@ export function ProjectsClient() {
             {
               key: "list",
               label: "List",
-              content: <ListTab jobs={jobs} dataset={dataset} onSelect={setSelectedJob} showValueAndClient={showValueAndClient} courseWord={editionKey === "student" ? "Course" : "Client"} />,
+              content: <ListTab jobs={jobs} dataset={dataset} onSelect={setSelectedJob} showValueAndClient={showValueAndClient} courseWord={editionKey === "student" ? "Course" : profile.terms.customer} />,
             },
             {
               key: "calendar",

@@ -2,6 +2,7 @@
 
 import { useMemo, useRef, useState, useTransition } from "react";
 import { FileText, Upload } from "lucide-react";
+import { useIndustry } from "@/lib/industry";
 import { SearchInput } from "@/ui/SearchInput";
 import { DataTable, type Column } from "@/ui/DataTable";
 import { DetailPanel } from "@/ui/DetailPanel";
@@ -45,6 +46,14 @@ export function RealDocumentsClient({
   const [isPending, startTransition] = useTransition();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { showToast } = useToast();
+  const { profile, editionKey } = useIndustry();
+  // Client Portal (the thing "shared_with_client" actually shares to)
+  // isn't a Student-edition module at all - "customer"/profile.terms.customer
+  // is this workspace's own real word ("Customer" for Workplace, "Contact"
+  // for Student), never the hardcoded "client" this used to say regardless
+  // of edition.
+  const sharedLabel = `Shared with ${profile.terms.customer}`;
+  const shareActionLabel = `Share with ${profile.terms.customer}`;
 
   const filtered = useMemo(() => docs.filter((d) => d.name.toLowerCase().includes(query.toLowerCase())), [docs, query]);
 
@@ -169,7 +178,7 @@ export function RealDocumentsClient({
       header: "Visibility",
       render: (d) => (
         <Badge tone={d.visibility === "shared_with_client" ? "accent" : "neutral"}>
-          {d.visibility === "shared_with_client" ? "Shared with client" : "Internal"}
+          {d.visibility === "shared_with_client" ? sharedLabel : "Internal"}
         </Badge>
       ),
     },
@@ -268,7 +277,13 @@ export function RealDocumentsClient({
           <div className="flex flex-col gap-5">
             <div className="flex flex-col gap-1.5 text-[13.5px] text-ink-2">
               <p>Uploaded by {selected.uploadedByName ?? "someone no longer on this workspace"} on {new Date(selected.createdAt).toLocaleDateString()}</p>
-              <p>{selected.visibility === "shared_with_client" ? "Shared with the client via the Client Portal." : "Internal only."}</p>
+              <p>
+                {selected.visibility === "shared_with_client"
+                  ? editionKey === "student"
+                    ? `${sharedLabel} externally.`
+                    : `${sharedLabel} via the Client Portal.`
+                  : "Internal only."}
+              </p>
             </div>
             <div className="flex flex-wrap gap-2">
               <a
@@ -278,7 +293,7 @@ export function RealDocumentsClient({
                 Download
               </a>
               <Button variant="secondary" disabled={isPending} onClick={() => toggleVisibility(selected)}>
-                {selected.visibility === "shared_with_client" ? "Make internal" : "Share with client"}
+                {selected.visibility === "shared_with_client" ? "Make internal" : shareActionLabel}
               </Button>
               <Button variant="secondary" disabled={isPending} onClick={() => handleDelete(selected)}>
                 Delete

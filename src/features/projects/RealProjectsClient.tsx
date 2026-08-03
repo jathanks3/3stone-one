@@ -232,12 +232,13 @@ function KanbanTab({ projects, onMove, onSelect }: { projects: ProjectRow[]; onM
 }
 
 function ListTab({ projects, onSelect }: { projects: ProjectRow[]; onSelect: (p: ProjectRow) => void }) {
+  const { profile } = useIndustry();
   const [query, setQuery] = useState("");
   const filtered = useMemo(() => projects.filter((p) => p.name.toLowerCase().includes(query.toLowerCase())), [projects, query]);
 
   const columns: Column<ProjectRow>[] = [
     { key: "name", header: "Name", render: (p) => <span className="font-medium text-ink-1">{p.name}</span> },
-    { key: "client", header: "Client", render: (p) => p.organizationName ?? "—" },
+    { key: "client", header: profile.terms.customer, render: (p) => p.organizationName ?? "—" },
     {
       key: "status",
       header: "Status",

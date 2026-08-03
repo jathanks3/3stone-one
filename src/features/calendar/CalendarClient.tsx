@@ -141,8 +141,9 @@ function EventRow({
 }
 
 export function CalendarClient() {
-  const { editionKey } = useIndustry();
+  const { editionKey, profile } = useIndustry();
   const seed = editionKey === "student" ? STUDENT_CALENDAR_EVENTS : editionKey === "workspace" ? WORKSPACE_CALENDAR_EVENTS : DEMO_CALENDAR_EVENTS;
+  const titlePlaceholder = editionKey === "student" ? "e.g. Study group" : `e.g. ${profile.terms.customer} check-in`;
   const [events, setEvents] = useState<CalendarEvent[]>(seed);
   const [view, setView] = useState<"month" | "list">("month");
   const [monthCursor, setMonthCursor] = useState<Date>(() => (seed[0] ? parseLocalDate(seed[0].date) : new Date()));
@@ -240,7 +241,7 @@ export function CalendarClient() {
                 autoFocus
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                placeholder="e.g. Client check-in"
+                placeholder={titlePlaceholder}
                 className="mt-1 h-9 w-full rounded-[8px] border border-line-strong bg-bg px-3 text-[13.5px] text-ink-1 outline-none focus:border-accent"
               />
             </label>
