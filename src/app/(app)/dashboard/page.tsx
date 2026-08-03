@@ -48,6 +48,6 @@ export default async function DashboardPage() {
   // load rather than trying to detect "is this really the first one."
   await recordFirstLogin(membership.workspaceId);
 
-  const data = await getDashboardData(membership.workspaceId);
+  const data = await getDashboardData(membership.workspaceId, session.userId);
   return <RealDashboard data={data} />;
 }

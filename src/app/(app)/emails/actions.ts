@@ -5,6 +5,8 @@ import { getSession } from "@/lib/session";
 import { getActiveWorkspaceIdForUser } from "@/server/services/onboardingService";
 import { requireActiveMember } from "@/server/services/teamService";
 import { getInboxMessageDetail, saveInboxAttachmentToDocuments, type InboxProvider } from "@/server/services/inboxService";
+import { sendGmail } from "@/server/services/googleIntegrationService";
+import { sendOutlookMail } from "@/server/services/microsoftIntegrationService";
 
 export interface ActionState {
   error?: string;
@@ -34,6 +36,30 @@ export async function loadMessageDetailAction(_prev: MessageDetailState, formDat
     return { success: "Loaded.", detail };
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Couldn't load that email." };
+  }
+}
+
+// Reply from the message thread pane (RealEmailsClient) - same
+// Gmail/Outlook send functions Communications' Compose already uses
+// (see (app)/communications/actions.ts), just reachable from the Emails
+// module's own reply box instead of a separate compose form.
+export async function sendReplyAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  try {
+    const { userId, workspaceId } = await currentWorkspaceId();
+    await requireActiveMember(userId, workspaceId);
+    const provider = String(formData.get("provider") ?? "") as InboxProvider;
+    const to = String(formData.get("to") ?? "");
+    const subject = String(formData.get("subject") ?? "");
+    const body = String(formData.get("body") ?? "");
+    if (!to || !body) return { error: "Nothing to send." };
+    if (provider === "google") {
+      await sendGmail(workspaceId, { to, subject, body });
+    } else {
+      await sendOutlookMail(workspaceId, { to, subject, body });
+    }
+    return { success: "Reply sent." };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Couldn't send that reply." };
   }
 }
 

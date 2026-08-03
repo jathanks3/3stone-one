@@ -20,6 +20,24 @@ export interface DailyDebrief {
   suggestions: string[];
 }
 
+export type HealthTone = "good" | "warning" | "critical";
+
+export interface HealthMeta {
+  tone: HealthTone;
+  label: string;
+  explanation: string;
+}
+
+// Same score bands and copy as the demo's getBusinessHealthScoreForDataset
+// (src/server/mock-data/index.ts) - this is what keeps the real Dashboard's
+// health ring reading identically to the demo's, just driven by the real
+// score above instead of a mock dataset's overdue-jobs/invoices math.
+export function describeHealth(score: number): HealthMeta {
+  if (score >= 85) return { tone: "good", label: "Strong", explanation: "Steady progress, with nothing urgent slipping through the cracks." };
+  if (score >= 65) return { tone: "warning", label: "Fair", explanation: "A few things need attention before they become bigger problems." };
+  return { tone: "critical", label: "Needs attention", explanation: "Overdue items are piling up and need attention soon." };
+}
+
 function fmtShort(d: Date): string {
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }

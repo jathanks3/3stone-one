@@ -3,6 +3,7 @@ import { getDailyDebrief, type DailyDebrief } from "@/server/services/debriefSer
 
 export interface RealDashboardData {
   workspaceName: string;
+  userName: string;
   editionKey: string;
   memberCount: number;
   openProjectCount: number;
@@ -10,6 +11,7 @@ export interface RealDashboardData {
   unpaidInvoiceCount: number;
   recentActivity: { action: string; createdAt: Date }[];
   debrief: DailyDebrief;
+  briefingSummary: string;
 }
 
 // Real, workspace-scoped counts — every query below is filtered by
@@ -24,10 +26,11 @@ export interface RealDashboardData {
 // edition saw "Team members" and "Unpaid invoices" regardless of
 // whether People or Finance are even in that edition's module list (see
 // editionModules.ts - Student has neither, Workspace has no Finance).
-export async function getDashboardData(workspaceId: string): Promise<RealDashboardData> {
-  const [workspace, memberCount, openProjectCount, overdueProjectCount, unpaidInvoiceCount, recentActivity] =
+export async function getDashboardData(workspaceId: string, userId: string): Promise<RealDashboardData> {
+  const [workspace, user, memberCount, openProjectCount, overdueProjectCount, unpaidInvoiceCount, recentActivity] =
     await Promise.all([
       db.workspace.findUniqueOrThrow({ where: { id: workspaceId }, select: { name: true, editionKey: true } }),
+      db.user.findUnique({ where: { id: userId }, select: { name: true } }),
       db.workspaceMember.count({ where: { workspaceId, status: "active" } }),
       db.project.count({ where: { workspaceId, statusKey: { not: "done" } } }),
       db.project.count({ where: { workspaceId, statusKey: { not: "done" }, dueDate: { lt: new Date() } } }),
@@ -42,8 +45,22 @@ export async function getDashboardData(workspaceId: string): Promise<RealDashboa
 
   const debrief = await getDailyDebrief(workspaceId, workspace.editionKey);
 
+  // Same plain-English framing as the demo's generateMorningBriefing
+  // (src/server/mock-data/index.ts), built from real counts instead of a
+  // mock dataset - deliberately doesn't fabricate a "% up this month"
+  // figure the schema can't back (Task has no completedAt to trend
+  // against), so it leads with what's actually true right now instead.
+  const projectWord = openProjectCount === 1 ? "project" : "projects";
+  const openSentence = `You have ${openProjectCount} open ${projectWord}${overdueProjectCount > 0 ? `, ${overdueProjectCount} overdue` : ""}.`;
+  const attentionSentence =
+    debrief.attentionItems.length > 0
+      ? ` ${debrief.attentionItems.length} item${debrief.attentionItems.length === 1 ? " needs" : "s need"} your attention.`
+      : " Nothing is behind schedule right now.";
+  const briefingSummary = `${openSentence}${attentionSentence}`;
+
   return {
     workspaceName: workspace.name,
+    userName: user?.name ?? workspace.name,
     editionKey: workspace.editionKey,
     memberCount,
     openProjectCount,
@@ -51,5 +68,6 @@ export async function getDashboardData(workspaceId: string): Promise<RealDashboa
     unpaidInvoiceCount,
     recentActivity,
     debrief,
+    briefingSummary,
   };
 }

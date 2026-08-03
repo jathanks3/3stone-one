@@ -1,6 +1,10 @@
+import { AlertTriangle, Sparkles } from "lucide-react";
 import { Card } from "@/ui/Card";
+import { HealthMeter } from "@/ui/HealthMeter";
 import { getAllowedModuleKeys } from "@/lib/editionModules";
+import { humanizeAction, relativeTime } from "@/lib/utils";
 import { DailyDebriefCard } from "@/features/dashboard/DailyDebriefCard";
+import { describeHealth } from "@/server/services/debriefService";
 import type { RealDashboardData } from "@/server/services/dashboardService";
 
 // A genuine Server Component, not "use client" — nothing here is
@@ -10,6 +14,13 @@ import type { RealDashboardData } from "@/server/services/dashboardService";
 // production charter): every number is real, most of them are
 // legitimately zero for a workspace that's just been created, and
 // nothing here is dressed up to look otherwise.
+//
+// Layout deliberately mirrors the demo Dashboard's section order
+// (DashboardClient.tsx: greeting → morning briefing + health ring →
+// "what needs my attention" / "what changed today" → daily debrief →
+// KPI row) so a real session sees the same shape it was shown in the
+// demo, just backed by its own workspace's real numbers instead of mock
+// data.
 export function RealDashboard({ data }: { data: RealDashboardData }) {
   const hasAnyActivity =
     data.openProjectCount > 0 || data.unpaidInvoiceCount > 0 || data.recentActivity.length > 0;
@@ -22,17 +33,83 @@ export function RealDashboard({ data }: { data: RealDashboardData }) {
   const allowedModules = getAllowedModuleKeys(data.editionKey);
   const showTeamMembers = !allowedModules || allowedModules.has("people");
   const showInvoices = !allowedModules || allowedModules.has("finance");
+  const isStudent = data.editionKey === "student";
+
+  const health = describeHealth(data.debrief.score);
+  const firstName = data.userName.split(" ")[0];
 
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-5 px-4 py-6 sm:px-6 sm:py-8">
       <div>
-        <h1 className="text-[22px] font-bold text-ink-1">{data.workspaceName}</h1>
+        <h1 className="text-[22px] font-bold text-ink-1">Good morning, {firstName}</h1>
         <p className="text-[14px] text-ink-2">
           {hasAnyActivity
             ? "Here's what's happening in your workspace."
             : `Your workspace is ready. Nothing here yet — ${showTeamMembers ? "invite your team, or " : ""}add your first project${showInvoices ? " or invoice" : ""} to get started.`}
         </p>
       </div>
+
+      <div className="rounded-2xl border border-accent-wash-strong bg-accent-wash p-5 sm:p-6">
+        <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex-1">
+            <div className="flex items-center gap-2 text-accent">
+              <Sparkles size={16} strokeWidth={2.25} />
+              <p className="text-[12px] font-semibold uppercase tracking-wide">Your morning briefing</p>
+            </div>
+            <p className="mt-3 max-w-[640px] text-[15px] leading-relaxed text-ink-1">{data.briefingSummary}</p>
+            <a
+              href="#attention"
+              className="mt-4 inline-block rounded-[9px] border border-accent-wash-strong bg-surface px-3.5 py-2 text-[13px] font-semibold text-accent hover:bg-accent-wash-strong"
+            >
+              See what needs attention
+            </a>
+          </div>
+
+          <div className="flex flex-shrink-0 items-center gap-4 border-t border-accent-wash-strong pt-5 sm:border-t-0 sm:border-l sm:pl-6 sm:pt-0">
+            <HealthMeter score={data.debrief.score} label={health.label} tone={health.tone} />
+            <div className="max-w-[168px]">
+              <p className="text-[12px] font-semibold uppercase tracking-wide text-ink-3">Overall health</p>
+              <p className="mt-1 text-[13px] leading-snug text-ink-2">{health.explanation}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+        <Card id="attention" className="scroll-mt-6 p-5">
+          <h2 className="text-[13px] font-semibold text-ink-2">What needs my attention</h2>
+          {data.debrief.attentionItems.length > 0 ? (
+            <ul className="mt-3.5 flex flex-col gap-3.5">
+              {data.debrief.attentionItems.map((item) => (
+                <li key={item} className="flex items-center gap-2.5">
+                  <AlertTriangle size={16} className="flex-shrink-0 text-critical" />
+                  <span className="text-[14px] text-ink-1">{item}</span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="mt-3.5 text-[14px] text-ink-3">Nothing needs your attention right now.</p>
+          )}
+        </Card>
+
+        <Card className="p-5">
+          <h2 className="text-[13px] font-semibold text-ink-2">What changed today</h2>
+          {data.recentActivity.length > 0 ? (
+            <ul className="mt-3.5 flex flex-col gap-3.5">
+              {data.recentActivity.map((entry, i) => (
+                <li key={i} className="flex items-start justify-between gap-3">
+                  <span className="text-[14px] text-ink-1">{humanizeAction(entry.action)}</span>
+                  <span className="flex-shrink-0 whitespace-nowrap text-[12px] text-ink-3">{relativeTime(entry.createdAt)}</span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="mt-3.5 text-[14px] text-ink-3">Nothing has changed yet.</p>
+          )}
+        </Card>
+      </div>
+
+      <DailyDebriefCard debrief={data.debrief} isStudent={isStudent} />
 
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
         {showTeamMembers ? (
@@ -55,23 +132,6 @@ export function RealDashboard({ data }: { data: RealDashboardData }) {
           </Card>
         ) : null}
       </div>
-
-      <DailyDebriefCard debrief={data.debrief} isStudent={data.editionKey === "student"} />
-
-      <Card className="p-5">
-        <h2 className="text-[15px] font-bold text-ink-1">Recent activity</h2>
-        {data.recentActivity.length > 0 ? (
-          <div className="mt-3 divide-y divide-line">
-            {data.recentActivity.map((entry, i) => (
-              <div key={i} className="py-2.5 text-[13px] text-ink-2">
-                {entry.action} · {entry.createdAt.toLocaleDateString()}
-              </div>
-            ))}
-          </div>
-        ) : (
-          <p className="mt-2 text-[13px] text-ink-3">No activity yet.</p>
-        )}
-      </Card>
     </div>
   );
 }

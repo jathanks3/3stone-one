@@ -6,12 +6,8 @@ import { SearchInput } from "@/ui/SearchInput";
 import { DataTable, type Column } from "@/ui/DataTable";
 import { EmptyState } from "@/ui/EmptyState";
 import { Badge } from "@/ui/Badge";
-import { cn } from "@/lib/utils";
+import { cn, humanizeAction } from "@/lib/utils";
 import type { ActivityFeedRow } from "@/server/services/activityService";
-
-function humanizeAction(action: string): string {
-  return action.replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase());
-}
 
 export function RealActivityClient({ initialActivity }: { initialActivity: ActivityFeedRow[] }) {
   const [query, setQuery] = useState("");
