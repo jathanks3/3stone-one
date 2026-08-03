@@ -338,6 +338,20 @@ interface GmailPart {
   filename?: string;
   body?: { data?: string; attachmentId?: string; size?: number };
   parts?: GmailPart[];
+  headers?: { name?: string; value?: string }[];
+}
+
+// Same "not a real attachment" case Outlook's isInline filters out
+// (see microsoftIntegrationService.ts's getOutlookMessageDetail) - a
+// part with Content-Disposition: inline is an image/logo embedded in the
+// HTML body itself, referenced by Content-ID, not something a person
+// meant to attach. Gmail already tends to omit these when they have no
+// filename (extractAttachments requires one), but some clients set a
+// filename on an inline image too - this catches those by disposition
+// instead of relying on filename presence alone.
+function isInlinePart(part: GmailPart): boolean {
+  const disposition = part.headers?.find((h) => h.name?.toLowerCase() === "content-disposition")?.value ?? "";
+  return disposition.toLowerCase().startsWith("inline");
 }
 
 function extractPlainTextBody(part: GmailPart): string {
@@ -358,7 +372,7 @@ function extractPlainTextBody(part: GmailPart): string {
 
 function extractAttachments(part: GmailPart): GmailAttachment[] {
   const found: GmailAttachment[] = [];
-  if (part.filename && part.body?.attachmentId) {
+  if (part.filename && part.body?.attachmentId && !isInlinePart(part)) {
     found.push({ attachmentId: part.body.attachmentId, filename: part.filename, mimeType: part.mimeType ?? "application/octet-stream", sizeBytes: part.body.size ?? 0 });
   }
   for (const child of part.parts ?? []) found.push(...extractAttachments(child));

@@ -375,7 +375,7 @@ export async function getOutlookMessageDetail(workspaceId: string, messageId: st
       headers: { Authorization: `Bearer ${accessToken}` },
       cache: "no-store",
     }),
-    fetch(`https://graph.microsoft.com/v1.0/me/messages/${encodeURIComponent(messageId)}/attachments?$select=id,name,contentType,size`, {
+    fetch(`https://graph.microsoft.com/v1.0/me/messages/${encodeURIComponent(messageId)}/attachments?$select=id,name,contentType,size,isInline`, {
       headers: { Authorization: `Bearer ${accessToken}` },
       cache: "no-store",
     }),
@@ -383,7 +383,15 @@ export async function getOutlookMessageDetail(workspaceId: string, messageId: st
   if (!messageRes.ok) throw new Error(`Microsoft message request failed: ${messageRes.status} ${await messageRes.text().catch(() => "")}`);
   const data = await messageRes.json();
   const attachmentsData = attachmentsRes.ok ? await attachmentsRes.json() : { value: [] };
+  // Inline attachments (isInline: true) are the images/logos embedded in
+  // the HTML body itself, referenced by Content-ID - not something a
+  // person ever meant to attach. Graph gives most of these no real
+  // "name" at all, just the raw Content-ID GUID, which is exactly the
+  // unreadable "attachment" a user would otherwise see in the list and
+  // in a broken preview (that GUID isn't a real, downloadable file the
+  // same way a genuine attachment is).
   const attachments: OutlookAttachment[] = (Array.isArray(attachmentsData.value) ? attachmentsData.value : [])
+    .filter((a: { isInline?: boolean }) => !a.isInline)
     .map((a: { id?: string; name?: string; contentType?: string; size?: number }) => ({
       id: a.id ?? "",
       name: a.name ?? "attachment",
