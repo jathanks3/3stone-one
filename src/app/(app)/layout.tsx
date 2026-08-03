@@ -8,6 +8,7 @@ import { IndustryProvider } from "@/lib/industry";
 import { getAllowedModuleKeys } from "@/lib/editionModules";
 import { getAllNavItems } from "@/lib/nav";
 import { getIndustryProfile } from "@/config/industry-profiles";
+import { getDemoProfile } from "@/server/services/demoProfileService";
 import { AppShell } from "@/components/shell/AppShell";
 import type { IndustryProfileKey, SessionUser } from "@/types";
 
@@ -26,9 +27,15 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   let workspace: { id: string; name: string; industryProfileKey: IndustryProfileKey; editionKey: string };
   let user: SessionUser;
+  let demoAccentColor: string | null = null;
 
   if (!session || session.isDemo) {
-    // Unchanged from the mock-only era — demo never touches the database.
+    // Mostly unchanged from the mock-only era - demo still never touches
+    // real customer data. The one real exception: a founder-authored
+    // DemoProfile (see /3stone-ai/demo-profiles), a single cheap lookup
+    // by id, only when a call actually asked for one via ?profile=<id>
+    // (see (marketing)/demo/route.ts) - lets a prospect's demo show their
+    // own org name/wording/color instead of the generic placeholder.
     // Edition comes from the session (set by /demo?edition=... - see
     // src/app/(marketing)/demo/route.ts), defaulting to the full
     // original product when no demo edition was requested. Workspace and
@@ -38,13 +45,25 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     // a prospective Workspace/Student customer should see a demo themed
     // for them, not "Jobs"/"Technicians" wording from an unrelated trade.
     const demoEditionKey = session?.demoEditionKey ?? "business";
-    const demoIndustryProfileKey = demoEditionKey === "workspace" ? "workplace" : demoEditionKey === "student" ? "student" : DEMO_WORKSPACE.industryProfileKey;
+    const demoProfile = session?.demoProfileId ? await getDemoProfile(session.demoProfileId) : null;
+    const demoIndustryProfileKey = demoProfile
+      ? (demoProfile.industryProfileKey as IndustryProfileKey)
+      : demoEditionKey === "workspace"
+        ? "workplace"
+        : demoEditionKey === "student"
+          ? "student"
+          : DEMO_WORKSPACE.industryProfileKey;
     workspace = {
       id: DEMO_WORKSPACE.id,
-      name: demoEditionKey === "business" ? DEMO_WORKSPACE.name : getIndustryDataset(demoIndustryProfileKey).orgName,
+      name: demoProfile
+        ? demoProfile.orgName
+        : demoEditionKey === "business"
+          ? DEMO_WORKSPACE.name
+          : getIndustryDataset(demoIndustryProfileKey).orgName,
       industryProfileKey: demoIndustryProfileKey,
       editionKey: demoEditionKey,
     };
+    demoAccentColor = demoProfile?.accentColor ?? null;
     user = DEMO_USER;
   } else {
     const membership = await db.workspaceMember.findFirst({
@@ -126,6 +145,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       isDemo={!session || session.isDemo}
       workspaceName={workspace.name}
       editionKey={workspace.editionKey}
+      demoAccentColor={demoAccentColor}
     >
       <AppShell user={user}>{children}</AppShell>
     </IndustryProvider>

@@ -1797,3 +1797,23 @@ model PageEvent {
   @@index([occurredAt])
   @@map("page_events")
 }
+
+// Founder-authored presets for the public Workspace/Student demo
+// (/demo?edition=...&profile=...) - lets a prospect on a call see a
+// demo that already looks built for them (their org name, their
+// industry wording, an accent color) instead of the generic "Harper &
+// Voss Consulting" placeholder. No relation to a real Workspace at all -
+// this only ever shapes a *demo* session (isDemo: true), never real
+// customer data. Standalone by design, not a foreign key anywhere.
+model DemoProfile {
+  id                 String   @id @default(cuid())
+  label              String   // Shown in the admin dropdown, e.g. "Far Eastside Community Alliance"
+  editionKey         String   // "workspace" | "student" - the only two editions this applies to
+  orgName            String   // Replaces the demo's placeholder org name
+  industryProfileKey String   // "workplace" | "nonprofit" for Workspace edition; "student" for Student edition
+  accentColor        String?  // "blue" | "green" | "purple" - null means the edition's own default
+  industryLabel      String?  // Free-text descriptor shown in the demo, e.g. "Youth mentorship nonprofit" - display only, doesn't change mock data structure
+  createdAt          DateTime @default(now())
+
+  @@map("demo_profiles")
+}

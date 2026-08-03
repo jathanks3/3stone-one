@@ -20,19 +20,27 @@ export const dynamic = "force-dynamic";
 // whenever the requested edition differs from the current one, since a
 // visitor might try one edition's demo, then come back for another.
 export async function GET(request: Request) {
-  const requestedEdition = new URL(request.url).searchParams.get("edition");
+  const url = new URL(request.url);
+  const requestedEdition = url.searchParams.get("edition");
   const editionKey = requestedEdition && KNOWN_EDITION_KEYS.includes(requestedEdition) ? requestedEdition : "business";
+  // Founder-authored preset (see /3stone-ai/demo-profiles) - applies a
+  // real prospect's org name/wording/color to this demo session instead
+  // of the generic placeholder. Not validated against the DB here (this
+  // route runs before Prisma is reachable from Edge in some deployments) -
+  // (app)/layout.tsx does the real lookup and safely ignores a stale/bad id.
+  const requestedProfileId = url.searchParams.get("profile") || undefined;
 
   const session = await getSession();
   // A real (non-demo) session must never be touched here - only create/
   // recreate when there's no session at all, or the existing one is
-  // itself a demo previewing a different edition.
-  if (!session || (session.isDemo && session.demoEditionKey !== editionKey)) {
+  // itself a demo previewing a different edition or a different profile.
+  if (!session || (session.isDemo && (session.demoEditionKey !== editionKey || session.demoProfileId !== requestedProfileId))) {
     await createSession({
       userId: DEMO_USER.id,
       workspaceId: DEMO_WORKSPACE.id,
       isDemo: true,
       demoEditionKey: editionKey,
+      ...(requestedProfileId ? { demoProfileId: requestedProfileId } : {}),
       sessionVersion: 0,
     });
   }

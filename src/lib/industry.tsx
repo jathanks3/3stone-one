@@ -27,6 +27,12 @@ interface IndustryContextValue {
   // original/flagship, or "workspace"/"student" - see
   // src/lib/editionModules.ts). Drives which nav modules Sidebar shows.
   editionKey: string;
+  // Set only for a demo session opened via a founder-authored DemoProfile
+  // (see /3stone-ai/demo-profiles) that specified a color - AppShell.tsx
+  // prefers this over the viewer's own useAccentColor() personal
+  // preference so a prospect's demo shows up already colored for them,
+  // not whatever the founder last picked on their own device.
+  demoAccentColor: string | null;
 }
 
 const IndustryContext = createContext<IndustryContextValue | null>(null);
@@ -37,6 +43,7 @@ export function IndustryProvider({
   isDemo,
   workspaceName,
   editionKey,
+  demoAccentColor = null,
   children,
 }: {
   initialKey: IndustryProfileKey;
@@ -44,6 +51,7 @@ export function IndustryProvider({
   isDemo: boolean;
   workspaceName: string;
   editionKey: string;
+  demoAccentColor?: string | null;
   children: ReactNode;
 }) {
   const [key, setKey] = useState<IndustryProfileKey>(initialKey);
@@ -69,8 +77,9 @@ export function IndustryProvider({
       isDemo,
       workspaceName,
       editionKey,
+      demoAccentColor,
     }),
-    [profile, currentBusinessId, isDemo, workspaceName, editionKey]
+    [profile, currentBusinessId, isDemo, workspaceName, editionKey, demoAccentColor]
   );
 
   return <IndustryContext.Provider value={value}>{children}</IndustryContext.Provider>;

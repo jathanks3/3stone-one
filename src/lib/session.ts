@@ -39,6 +39,12 @@ export interface SessionPayload {
   // prospective customer that specific edition's gated nav without a real
   // account.
   demoEditionKey?: string;
+  // Which admin-authored DemoProfile (prisma model, founder-managed under
+  // /3stone-ai/demo-profiles) a demo session should apply - org name,
+  // industry wording, accent color - instead of the generic placeholder.
+  // Only ever meaningful when isDemo is true, same trust rule as
+  // demoEditionKey above; unset means "the generic demo," not an error.
+  demoProfileId?: string;
   // The User.sessionVersion this cookie was issued against. A password
   // change/reset increments the DB value, which makes every
   // previously-issued cookie's embedded number stale — that mismatch is
@@ -197,12 +203,19 @@ export async function parseSessionCookie(raw: string | undefined | null): Promis
       ? raw2.demoEditionKey
       : undefined;
 
+  // No fixed vocabulary to validate against (it's a free-form cuid
+  // looked up against a real table, not an enum) - just fail closed on
+  // "isDemo" the same way every other demo-only field here does.
+  const demoProfileId =
+    isDemo && typeof raw2.demoProfileId === "string" && raw2.demoProfileId ? raw2.demoProfileId : undefined;
+
   return {
     userId: raw2.userId,
     ...(workspaceId ? { workspaceId } : {}),
     isDemo,
     ...(staffRole ? { staffRole } : {}),
     ...(demoEditionKey ? { demoEditionKey } : {}),
+    ...(demoProfileId ? { demoProfileId } : {}),
     sessionVersion,
   };
 }

@@ -43,11 +43,16 @@ export function AppShell({
 }) {
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
-  const { editionKey } = useIndustry();
+  const { editionKey, demoAccentColor } = useIndustry();
   const { accentColor } = useAccentColor();
   const brand = EDITION_BRAND[editionKey];
   const Mark = brand?.Mark;
-  const accentClass = accentColor === "default" ? EDITION_CLASS[editionKey] : ACCENT_CLASS[accentColor];
+  // A founder-authored DemoProfile's color (see /3stone-ai/demo-profiles)
+  // always wins over the viewer's own personal preference - a prospect's
+  // demo should show up already colored for them, not whatever the
+  // founder last picked for themselves on this same browser.
+  const effectiveAccentColor = demoAccentColor && demoAccentColor in ACCENT_CLASS ? (demoAccentColor as keyof typeof ACCENT_CLASS) : accentColor;
+  const accentClass = effectiveAccentColor === "default" ? EDITION_CLASS[editionKey] : ACCENT_CLASS[effectiveAccentColor];
 
   return (
     <div className={cn("flex h-screen flex-col", accentClass)}>
