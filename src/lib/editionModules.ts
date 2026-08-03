@@ -44,6 +44,11 @@ export const EDITION_MODULES: Record<string, string[] | null> = {
   // Meetings either - a student doesn't run agendas/AI summaries the way
   // a workplace does; Calendar covers classes/deadlines/study sessions
   // instead, and Notes covers quick study notes.
+  // "communications" (not "emails") - same module/route Workspace uses,
+  // just with its Slack and Call Notes tabs hidden (see
+  // RealCommunicationsClient.tsx's isStudent gating) since neither has
+  // real data to back it for Student: no CRM contacts to log a call
+  // against, and Slack isn't in Student's Integrations catalog.
   // gpa (GPA Calculator) and job-tracker (Internship & Job Tracker) are
   // Student-only - not concepts that apply to any other edition,
   // including Business (which otherwise sees every module via the
@@ -54,7 +59,7 @@ export const EDITION_MODULES: Record<string, string[] | null> = {
     "calendar",
     "documents",
     "notes",
-    "emails",
+    "communications",
     "grades",
     "gpa",
     "job-tracker",

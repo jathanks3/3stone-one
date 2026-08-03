@@ -17,16 +17,23 @@ export default async function CommunicationsPage() {
   const session = await getSession();
   if (session && !session.isDemo) {
     const workspaceId = await getActiveWorkspaceIdForUser(session.userId);
-    if (!workspaceId) return <RealCommunicationsClient initialCallNotes={[]} people={[]} outlookConnected={false} outlookMessages={[]} gmailConnected={false} gmailMessages={[]} slackConnected={false} slackChannels={[]} slackMessages={[]} />;
+    if (!workspaceId) return <RealCommunicationsClient editionKey="business" initialCallNotes={[]} people={[]} outlookConnected={false} outlookMessages={[]} gmailConnected={false} gmailMessages={[]} slackConnected={false} slackChannels={[]} slackMessages={[]} />;
+    const workspace = await db.workspace.findUnique({ where: { id: workspaceId }, select: { editionKey: true } });
+    const editionKey = workspace?.editionKey ?? "business";
+    // Student has neither CRM (Call Notes needs a contact to log against)
+    // nor Slack in its Integrations catalog (integrationCatalog.ts) - skip
+    // those queries entirely rather than run them for data the client
+    // won't render (see RealCommunicationsClient's isStudent gating).
+    const isStudent = editionKey === "student";
     const microsoft = await db.integration.findUnique({ where: { workspaceId_provider: { workspaceId, provider: "microsoft" } } });
     const google = await db.integration.findUnique({ where: { workspaceId_provider: { workspaceId, provider: "google" } } });
-    const slack = await db.integration.findUnique({ where: { workspaceId_provider: { workspaceId, provider: "slack" } } });
+    const slack = isStudent ? null : await db.integration.findUnique({ where: { workspaceId_provider: { workspaceId, provider: "slack" } } });
     const outlookConnected = microsoft?.status === "connected";
     const gmailConnected = google?.status === "connected";
     const slackConnected = slack?.status === "connected";
     const [callNotes, people, outlookMessages, gmailMessages, slackChannels] = await Promise.all([
-      listCallNotes(workspaceId),
-      listPeople(workspaceId),
+      isStudent ? Promise.resolve([]) : listCallNotes(workspaceId),
+      isStudent ? Promise.resolve([]) : listPeople(workspaceId),
       outlookConnected ? getRecentOutlookMessages(workspaceId).catch(() => null) : Promise.resolve([]),
       gmailConnected ? getRecentGmailMessages(workspaceId).catch(() => null) : Promise.resolve([]),
       slackConnected ? listSlackChannels(workspaceId).catch(() => null) : Promise.resolve([]),
@@ -34,6 +41,7 @@ export default async function CommunicationsPage() {
     const slackMessages = slackChannels ? (await Promise.all(slackChannels.slice(0, 20).map((channel) => listSlackMessages(workspaceId, channel.id).catch(() => [])))).flat() : null;
     return (
       <RealCommunicationsClient
+        editionKey={editionKey}
         initialCallNotes={callNotes}
         people={people}
         outlookConnected={outlookConnected}
