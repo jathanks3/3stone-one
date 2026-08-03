@@ -447,6 +447,45 @@ html[data-reduced-motion="true"] *::after {
   }
 }
 
+/* AI assistant launcher (src/components/assistant/AiAssistant.tsx) - a
+   living, breathing orb rather than a static icon button, the same way
+   Codex's own AI launcher reads as "active" at rest, not just clickable.
+   Both layers read var(--accent), so this automatically matches whichever
+   edition/accent color is active (see AppShell.tsx's ACCENT_CLASS) with
+   zero per-edition special-casing. Reduced-motion is already handled
+   globally above - both animations get neutralized there for free. */
+@keyframes ai-orb-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.55;
+  }
+  50% {
+    transform: scale(1.22);
+    opacity: 0.85;
+  }
+}
+
+@keyframes ai-orb-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.ai-orb-glow {
+  animation: ai-orb-breathe 3.2s ease-in-out infinite;
+  background: radial-gradient(circle, var(--accent) 0%, transparent 70%);
+  filter: blur(6px);
+}
+
+.ai-orb-ring {
+  animation: ai-orb-spin 7s linear infinite;
+  background: conic-gradient(from 0deg, transparent 0%, var(--accent) 20%, transparent 45%, transparent 55%, var(--accent-strong) 75%, transparent 100%);
+}
+
 /* Cursor-reactive card glow for marketing pages only (see
    src/components/marketing/SpotlightCards.tsx, which sets
    --spotlight-x/-y via a delegated mousemove listener) - opt-in via

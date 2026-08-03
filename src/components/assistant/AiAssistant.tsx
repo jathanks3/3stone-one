@@ -103,18 +103,38 @@ export function AiAssistant() {
 
   return (
     <>
-      <button
-        type="button"
-        onClick={() => setOpen((o) => !o)}
-        aria-label={open ? "Close AI assistant" : "Open AI assistant"}
+      <div
         className={cn(
-          "fixed bottom-5 left-1/2 z-[105] flex h-13 w-13 -translate-x-1/2 items-center justify-center rounded-full bg-accent text-on-accent shadow-[var(--shadow)] transition-transform hover:scale-105 active:scale-95",
-          "lg:bottom-6 lg:left-auto lg:right-6 lg:translate-x-0",
-          "h-13 w-13"
+          "fixed bottom-5 left-1/2 z-[105] -translate-x-1/2",
+          "lg:bottom-6 lg:left-auto lg:right-6 lg:translate-x-0"
         )}
       >
-        {open ? <X size={22} /> : <Sparkles size={22} />}
-      </button>
+        {/* A living, breathing orb at rest - not a static icon - so the
+            assistant reads as active/available rather than just another
+            button. Both layers key off var(--accent), so they already
+            match whichever edition/accent color is live with no extra
+            work here. Calmed down while the panel is open (X, not
+            Sparkles) since the "come chat with me" invitation has been
+            accepted at that point. */}
+        {!open ? (
+          <>
+            <span aria-hidden className="ai-orb-glow pointer-events-none absolute inset-[-6px] rounded-full" />
+            <span
+              aria-hidden
+              className="ai-orb-ring pointer-events-none absolute inset-[-3px] rounded-full opacity-70"
+              style={{ mask: "radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 3px))" }}
+            />
+          </>
+        ) : null}
+        <button
+          type="button"
+          onClick={() => setOpen((o) => !o)}
+          aria-label={open ? "Close AI assistant" : "Open AI assistant"}
+          className="relative flex h-13 w-13 items-center justify-center rounded-full bg-accent text-on-accent shadow-[var(--shadow)] transition-transform hover:scale-105 active:scale-95"
+        >
+          {open ? <X size={22} /> : <Sparkles size={22} />}
+        </button>
+      </div>
       {open ? <AssistantPanel onClose={() => setOpen(false)} /> : null}
     </>
   );

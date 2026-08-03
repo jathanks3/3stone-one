@@ -32,6 +32,14 @@ const DARK_BRAND_STYLE = {
   "--on-accent": "#050505",
 } as CSSProperties;
 
+// Wholesale/institutional pricing - nonprofits, schools, and other bulk
+// deals. 25% off the edition's base per-seat rate, billed annually, plus
+// an optional one-time white-glove implementation fee if they want the
+// founder to set it up rather than self-serve signup. Real formula
+// confirmed on an actual negotiation call (2026-08-03), not a made-up
+// discount - see the founder's own wholesale-pricing-formula notes.
+const WHOLESALE_DISCOUNT = 0.25;
+
 const EDITIONS: {
   id: string;
   name: string;
@@ -40,6 +48,7 @@ const EDITIONS: {
   showEnterprise: boolean;
   learnMoreHref?: string;
   accent: string;
+  implementationFee: number;
 }[] = [
   {
     id: "business",
@@ -48,6 +57,7 @@ const EDITIONS: {
     tiers: PLAN_TIERS,
     showEnterprise: true,
     accent: "#6e93d6",
+    implementationFee: 1000,
   },
   {
     id: "workspace",
@@ -57,6 +67,7 @@ const EDITIONS: {
     showEnterprise: false,
     learnMoreHref: "/workspace",
     accent: "#5cbf99",
+    implementationFee: 750,
   },
   {
     id: "student",
@@ -66,6 +77,7 @@ const EDITIONS: {
     showEnterprise: false,
     learnMoreHref: "/student",
     accent: "#a594f5",
+    implementationFee: 500,
   },
 ];
 
@@ -141,6 +153,30 @@ export default function PricingPage() {
                 </div>
               </div>
               <TierGrid tiers={edition.tiers} signupHref="/signup" />
+              <div className="mt-5 flex flex-col rounded-[16px] border border-line bg-surface p-6">
+                <div className="flex flex-wrap items-center justify-between gap-4">
+                  <div>
+                    <h3 className="text-[18px] font-bold text-ink-1">Nonprofit &amp; Education Pricing</h3>
+                    <p className="mt-1 max-w-[480px] text-[13.5px] text-ink-2">
+                      Qualifying nonprofits and schools get 25% off every tier above, billed annually per
+                      seat - starting at{" "}
+                      <span className="font-semibold text-ink-1">
+                        ${Math.round(edition.tiers[0].priceMonthly * (1 - WHOLESALE_DISCOUNT))}/seat/month
+                      </span>
+                      . Want us to set it up for you instead of self-serve signup? A one-time implementation
+                      service is available from <span className="font-semibold text-ink-1">${edition.implementationFee}</span>.
+                    </p>
+                  </div>
+                  <a
+                    href="https://calendly.com/jathan-spaulding3/30min"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex h-10 flex-shrink-0 items-center rounded-[10px] border border-line-strong px-5 text-[13.5px] font-semibold text-ink-1 hover:bg-surface-raised"
+                  >
+                    Book a discovery call
+                  </a>
+                </div>
+              </div>
               {edition.showEnterprise ? (
                 <div className="mt-5 flex flex-col rounded-[16px] border border-line bg-surface p-6">
                   <div className="flex flex-wrap items-center justify-between gap-4">
