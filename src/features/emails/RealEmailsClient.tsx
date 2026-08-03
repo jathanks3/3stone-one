@@ -5,6 +5,7 @@ import { Mail, MessageCircle, Paperclip, Send } from "lucide-react";
 import { Tabs } from "@/ui/Tabs";
 import { EmptyState } from "@/ui/EmptyState";
 import { Button } from "@/ui/Button";
+import { DetailPanel } from "@/ui/DetailPanel";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/lib/toast";
 import { askAssistant } from "@/lib/assistantBus";
@@ -102,6 +103,7 @@ function ProviderInboxTab({
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [draft, setDraft] = useState("");
   const [savingAttachmentId, setSavingAttachmentId] = useState<string | null>(null);
+  const [composing, setComposing] = useState(false);
   const [isPending, startTransition] = useTransition();
   const { showToast } = useToast();
 
@@ -125,10 +127,6 @@ function ProviderInboxTab({
       />
     );
   }
-  if (rows.length === 0) {
-    return <EmptyState icon={Mail} title="Inbox is empty" description={`New ${providerName} messages will appear here.`} />;
-  }
-
   function openMessage(row: Row) {
     setActiveId(row.id);
     setDetail(null);
@@ -185,9 +183,66 @@ function ProviderInboxTab({
     askAssistant(`Help me with this email - "${active.subject}" from ${active.from}: ${detail?.bodyText?.slice(0, 500) ?? ""}`);
   }
 
+  function sendCompose(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const form = new FormData(e.currentTarget);
+    form.set("provider", provider);
+    startTransition(async () => {
+      const result = await sendReplyAction({}, form);
+      if (result.error) return showToast({ title: "Couldn't send", description: result.error });
+      showToast({ title: `${providerName} message sent` });
+      setComposing(false);
+    });
+  }
+
+  const composePanel = (
+    <DetailPanel open={composing} onClose={() => setComposing(false)} title={`New ${providerName} message`}>
+      <form onSubmit={sendCompose} className="flex flex-col gap-4">
+        <label className="text-[12.5px] font-medium text-ink-2">
+          To
+          <input name="to" type="email" required autoFocus className="mt-1 h-10 w-full rounded-[9px] border border-line-strong bg-bg px-3 text-[14px] text-ink-1 outline-none focus:border-accent" />
+        </label>
+        <label className="text-[12.5px] font-medium text-ink-2">
+          Subject
+          <input name="subject" required className="mt-1 h-10 w-full rounded-[9px] border border-line-strong bg-bg px-3 text-[14px] text-ink-1 outline-none focus:border-accent" />
+        </label>
+        <label className="text-[12.5px] font-medium text-ink-2">
+          Message
+          <textarea name="body" required rows={8} className="mt-1 w-full resize-y rounded-[9px] border border-line-strong bg-bg px-3 py-2 text-[13.5px] text-ink-1 outline-none focus:border-accent" />
+        </label>
+        <button type="submit" disabled={isPending} className="h-9 rounded-[9px] bg-accent px-4 text-[13px] font-semibold text-on-accent hover:opacity-90 disabled:opacity-60">
+          {isPending ? "Sending…" : "Send"}
+        </button>
+      </form>
+    </DetailPanel>
+  );
+
+  if (rows.length === 0) {
+    return (
+      <>
+        <EmptyState
+          icon={Mail}
+          title="Inbox is empty"
+          description={`New ${providerName} messages will appear here.`}
+          action={
+            <button onClick={() => setComposing(true)} className="flex h-9 items-center gap-1.5 rounded-[10px] bg-accent px-3.5 text-[13px] font-semibold text-on-accent hover:opacity-90">
+              <Mail size={14} /> Compose
+            </button>
+          }
+        />
+        {composePanel}
+      </>
+    );
+  }
+
   return (
     <div className="flex flex-col gap-4">
-      <p className="text-[13px] text-ink-2">Your 25 most recent {providerName} inbox messages.</p>
+      <div className="flex items-center justify-between">
+        <p className="text-[13px] text-ink-2">Your 25 most recent {providerName} inbox messages.</p>
+        <button onClick={() => setComposing(true)} className="flex h-9 items-center gap-1.5 rounded-[10px] bg-accent px-3.5 text-[13px] font-semibold text-on-accent hover:opacity-90">
+          <Mail size={14} /> Compose
+        </button>
+      </div>
       <div className="grid grid-cols-1 gap-4 md:grid-cols-[280px_1fr]">
         <div className="flex flex-col gap-1 overflow-hidden rounded-2xl border border-line bg-surface p-1.5 md:max-h-[520px] md:overflow-y-auto">
           {rows.map((row) => (
@@ -284,6 +339,7 @@ function ProviderInboxTab({
           ) : null}
         </div>
       </div>
+      {composePanel}
     </div>
   );
 }

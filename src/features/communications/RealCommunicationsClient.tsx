@@ -39,7 +39,7 @@ export function RealCommunicationsClient({
 }) {
   return (
     <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-8">
-      <h1 className="text-[22px] font-bold text-ink-1">Communications</h1>
+      <h1 className="text-[22px] font-bold text-ink-1">📧 Communications</h1>
       <p className="mt-1 text-[14px] text-ink-2">Outlook email, Gmail, Slack, and call notes — one searchable hub.</p>
 
       <div className="mt-6">

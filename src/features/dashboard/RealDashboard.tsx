@@ -4,7 +4,6 @@ import { HealthMeter } from "@/ui/HealthMeter";
 import { KpiTile } from "@/ui/KpiTile";
 import { getAllowedModuleKeys } from "@/lib/editionModules";
 import { humanizeAction, relativeTime } from "@/lib/utils";
-import { DailyDebriefCard } from "@/features/dashboard/DailyDebriefCard";
 import { describeHealth } from "@/server/services/debriefService";
 import type { RealDashboardData } from "@/server/services/dashboardService";
 
@@ -29,12 +28,14 @@ const EDITION_GREETING_SUBTITLE: Record<string, string> = {
 // legitimately zero for a workspace that's just been created, and
 // nothing here is dressed up to look otherwise.
 //
-// Layout deliberately mirrors the demo Dashboard's section order
-// (DashboardClient.tsx: greeting → morning briefing + health ring →
-// "what needs my attention" / "what changed today" → daily debrief →
-// KPI row) so a real session sees the same shape it was shown in the
-// demo, just backed by its own workspace's real numbers instead of mock
-// data.
+// Layout mirrors the demo Dashboard's top section (DashboardClient.tsx:
+// greeting → morning briefing + health ring → "what needs my attention" /
+// "what changed today") so a real session sees the same shape it was
+// shown in the demo, just backed by its own workspace's real numbers
+// instead of mock data. Deliberately does NOT also render
+// DailyDebriefCard below this - that card duplicates the same
+// score/status/attention-items this page already leads with, which read
+// as two dashboards stacked instead of one.
 export function RealDashboard({ data }: { data: RealDashboardData }) {
   const hasAnyActivity =
     data.openProjectCount > 0 || data.unpaidInvoiceCount > 0 || data.recentActivity.length > 0;
@@ -47,7 +48,6 @@ export function RealDashboard({ data }: { data: RealDashboardData }) {
   const allowedModules = getAllowedModuleKeys(data.editionKey);
   const showTeamMembers = !allowedModules || allowedModules.has("people");
   const showInvoices = !allowedModules || allowedModules.has("finance");
-  const isStudent = data.editionKey === "student";
 
   const health = describeHealth(data.debrief.score);
   const firstName = data.userName.split(" ")[0];
@@ -122,8 +122,6 @@ export function RealDashboard({ data }: { data: RealDashboardData }) {
           )}
         </Card>
       </div>
-
-      <DailyDebriefCard debrief={data.debrief} isStudent={isStudent} />
 
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
         {showTeamMembers ? (
