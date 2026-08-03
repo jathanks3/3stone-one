@@ -20,16 +20,24 @@ export function isAiProviderConfigured(): boolean {
 export interface AiTextResult {
   text: string;
   real: boolean;
-  /** Set only when the model actually used create_note this turn - the
-   * route persists it via noteService, this function never touches the
-   * database itself. */
-  createdNote?: { title: string; body: string };
 }
 
 export interface AiChatMessage {
   role: "user" | "assistant";
   content: string;
 }
+
+export type AiTool = Anthropic.Tool;
+
+// Deliberately generic - this file has no idea what "create_note" or
+// "create_project" mean, it just runs whatever tool the model called and
+// hands back a plain string result. The caller (api/ai/assistant/route.ts)
+// owns the real tool list (edition-gated via getAllowedModuleKeys) and
+// the actual service calls - this file stays free of every service
+// import, matching this app's own architecture rule that a route/service
+// boundary is never blurred. Not a general AiCapability registry (still
+// docs-only per CLAUDE.md) - just real tool-use, one bounded round.
+export type AiToolExecutor = (name: string, input: Record<string, unknown>) => Promise<string>;
 
 let client: Anthropic | null = null;
 function getClient(): Anthropic {
@@ -39,30 +47,25 @@ function getClient(): Anthropic {
   return client;
 }
 
-// One real tool, not a general framework - the founder asked specifically
-// for "the assistant can create notes that populate in the note section,"
-// not a general capability registry (that's still the docs-only
-// aspiration described in CLAUDE.md's AiCapability section). If more
-// tools are genuinely needed later, generalize this then.
-const CREATE_NOTE_TOOL: Anthropic.Tool = {
-  name: "create_note",
-  description:
-    "Save a real note to the user's Notes section. Only call this when the user clearly asks you to save/write/remember something as a note - never for an ordinary conversational reply.",
-  input_schema: {
-    type: "object",
-    properties: {
-      title: { type: "string", description: "A short, clear title for the note." },
-      body: { type: "string", description: "The note's full content, in the user's own words where possible." },
-    },
-    required: ["title", "body"],
-  },
-};
+function extractText(content: Anthropic.ContentBlock[]): string {
+  return content
+    .filter((block): block is Anthropic.TextBlock => block.type === "text")
+    .map((block) => block.text)
+    .join("");
+}
 
-// Multi-turn text chat, plus the one create_note tool above. Still not a
-// general retrieval/automation framework - the context this reasons over
-// comes entirely from the workspace data snapshot already built into the
-// system prompt (see src/server/ai/context.ts), not live tool calls.
-export async function generateChatReply(systemPrompt: string, messages: AiChatMessage[]): Promise<AiTextResult> {
+// Multi-turn text chat, plus whatever tools the caller passes in (empty
+// array = plain chat, same as before tools existed). Bounded to one
+// round of tool use - if the model tries to call more tools after seeing
+// the results, this returns whatever text came back rather than looping
+// again, so a single request can never spiral into an unbounded chain of
+// model calls.
+export async function generateChatReply(
+  systemPrompt: string,
+  messages: AiChatMessage[],
+  tools: AiTool[] = [],
+  executeTool?: AiToolExecutor
+): Promise<AiTextResult> {
   if (!isAiProviderConfigured()) {
     return { text: "", real: false };
   }
@@ -72,48 +75,39 @@ export async function generateChatReply(systemPrompt: string, messages: AiChatMe
     model: MODEL,
     system: systemPrompt,
     messages: anthropicMessages,
-    tools: [CREATE_NOTE_TOOL],
+    ...(tools.length ? { tools } : {}),
     max_tokens: 1024,
   });
 
-  const toolUse = first.content.find(
-    (block): block is Anthropic.ToolUseBlock => block.type === "tool_use" && block.name === "create_note"
-  );
-
-  if (!toolUse) {
-    const text = first.content
-      .filter((block): block is Anthropic.TextBlock => block.type === "text")
-      .map((block) => block.text)
-      .join("");
-    return { text, real: true };
+  const toolUses = first.content.filter((block): block is Anthropic.ToolUseBlock => block.type === "tool_use");
+  if (toolUses.length === 0 || !executeTool) {
+    return { text: extractText(first.content), real: true };
   }
 
-  const input = toolUse.input as { title?: unknown; body?: unknown };
-  const createdNote = {
-    title: typeof input.title === "string" && input.title.trim() ? input.title.trim() : "Note from assistant",
-    body: typeof input.body === "string" ? input.body.trim() : "",
-  };
+  // Claude's tool-use protocol requires every tool_use block be followed
+  // by a matching tool_result before the model can give its next real
+  // reply - run each one, then make the follow-up call with the results.
+  const toolResults: Anthropic.ToolResultBlockParam[] = await Promise.all(
+    toolUses.map(async (tu) => {
+      let content: string;
+      try {
+        content = await executeTool(tu.name, tu.input as Record<string, unknown>);
+      } catch (err) {
+        content = `Failed: ${err instanceof Error ? err.message : "something went wrong."}`;
+      }
+      return { type: "tool_result", tool_use_id: tu.id, content };
+    })
+  );
 
-  // Second turn: tell the model the note is saved so it can give a real
-  // conversational reply instead of leaving the user staring at nothing -
-  // Claude's own tool-use protocol requires this round trip (a tool_use
-  // block must always be followed by a matching tool_result).
   const second = await getClient().messages.create({
     model: MODEL,
     system: systemPrompt,
     messages: [
       ...anthropicMessages,
       { role: "assistant", content: first.content },
-      {
-        role: "user",
-        content: [{ type: "tool_result", tool_use_id: toolUse.id, content: "Saved to Notes." } satisfies Anthropic.ToolResultBlockParam],
-      },
+      { role: "user", content: toolResults },
     ],
     max_tokens: 1024,
   });
-  const text = second.content
-    .filter((block): block is Anthropic.TextBlock => block.type === "text")
-    .map((block) => block.text)
-    .join("");
-  return { text, real: true, createdNote };
+  return { text: extractText(second.content), real: true };
 }

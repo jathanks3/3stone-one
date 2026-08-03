@@ -14,6 +14,7 @@ import { Badge } from "@/ui/Badge";
 import { Button } from "@/ui/Button";
 import { formatCurrency } from "@/lib/utils";
 import { useToast } from "@/lib/toast";
+import type { WildApricotContact } from "@/server/services/wildApricotIntegrationService";
 import {
   createDealAction,
   createOrganizationAction,
@@ -38,10 +39,14 @@ export function RealCrmClient({
   initialOrganizations,
   initialPeople,
   initialDeals,
+  wildApricotConnected = false,
+  wildApricotContacts = [],
 }: {
   initialOrganizations: OrganizationRow[];
   initialPeople: PersonRow[];
   initialDeals: DealRow[];
+  wildApricotConnected?: boolean;
+  wildApricotContacts?: WildApricotContact[];
 }) {
   const { profile } = useIndustry();
   const [organizations, setOrganizations] = useState(initialOrganizations);
@@ -81,6 +86,30 @@ export function RealCrmClient({
           ]}
         />
       </div>
+
+      {wildApricotConnected ? (
+        <div className="mt-8">
+          <div className="mb-3">
+            <h2 className="text-[16px] font-semibold text-ink-1">Wild Apricot members</h2>
+            <p className="mt-0.5 text-[12.5px] text-ink-3">Members stay in Wild Apricot; 3Stone One does not duplicate their records.</p>
+          </div>
+          {wildApricotContacts.length === 0 ? (
+            <div className="rounded-[12px] border border-line bg-surface p-4 text-[13px] text-ink-3">No members found for this account.</div>
+          ) : (
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              {wildApricotContacts.map((c) => (
+                <div key={c.id} className="flex items-center gap-2.5 rounded-[10px] border border-line bg-surface px-3 py-2.5">
+                  <Avatar initials={c.displayName.slice(0, 2).toUpperCase()} size={24} />
+                  <div className="min-w-0">
+                    <p className="truncate text-[13px] font-medium text-ink-1">{c.displayName}</p>
+                    <p className="truncate text-[11.5px] text-ink-3">{c.membershipLevel ?? c.status ?? c.email ?? ""}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      ) : null}
 
       <DetailPanel
         open={!!selectedPerson}

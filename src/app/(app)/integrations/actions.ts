@@ -8,6 +8,8 @@ import { disconnectGoogle } from "@/server/services/googleIntegrationService";
 import { disconnectMicrosoft } from "@/server/services/microsoftIntegrationService";
 import { disconnectSlack } from "@/server/services/slackIntegrationService";
 import { connectCanvas, disconnectCanvas } from "@/server/services/canvasIntegrationService";
+import { connectWildApricot, disconnectWildApricot } from "@/server/services/wildApricotIntegrationService";
+import { disconnectBasecamp } from "@/server/services/basecampIntegrationService";
 
 export interface ActionState {
   error?: string;
@@ -81,5 +83,44 @@ export async function disconnectCanvasAction(_prev: ActionState, _formData: Form
     return { success: "Canvas disconnected." };
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Couldn't disconnect Canvas." };
+  }
+}
+
+export async function connectWildApricotAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  try {
+    const { userId, workspaceId } = await currentWorkspaceId();
+    await requireTeamManager(userId, workspaceId);
+    await connectWildApricot(workspaceId, userId, String(formData.get("apiKey") ?? ""));
+    revalidatePath("/integrations");
+    revalidatePath("/crm");
+    return { success: "Wild Apricot connected. Members now populate CRM." };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Couldn't connect Wild Apricot." };
+  }
+}
+
+export async function disconnectWildApricotAction(_prev: ActionState, _formData: FormData): Promise<ActionState> {
+  try {
+    const { userId, workspaceId } = await currentWorkspaceId();
+    await requireTeamManager(userId, workspaceId);
+    await disconnectWildApricot(workspaceId);
+    revalidatePath("/integrations");
+    revalidatePath("/crm");
+    return { success: "Wild Apricot disconnected." };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Couldn't disconnect Wild Apricot." };
+  }
+}
+
+export async function disconnectBasecampAction(_prev: ActionState, _formData: FormData): Promise<ActionState> {
+  try {
+    const { userId, workspaceId } = await currentWorkspaceId();
+    await requireTeamManager(userId, workspaceId);
+    await disconnectBasecamp(workspaceId);
+    revalidatePath("/integrations");
+    revalidatePath("/projects");
+    return { success: "Basecamp disconnected." };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Couldn't disconnect Basecamp." };
   }
 }

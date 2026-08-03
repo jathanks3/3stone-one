@@ -7,7 +7,17 @@ import { Card } from "@/ui/Card";
 import { Badge } from "@/ui/Badge";
 import { Button } from "@/ui/Button";
 import { useToast } from "@/lib/toast";
-import { connectCanvasAction, disconnectCanvasAction, disconnectGoogleAction, disconnectMicrosoftAction, disconnectSlackAction, type ActionState } from "@/app/(app)/integrations/actions";
+import {
+  connectCanvasAction,
+  disconnectCanvasAction,
+  disconnectGoogleAction,
+  disconnectMicrosoftAction,
+  disconnectSlackAction,
+  connectWildApricotAction,
+  disconnectWildApricotAction,
+  disconnectBasecampAction,
+  type ActionState,
+} from "@/app/(app)/integrations/actions";
 import { integrationsForEdition, type IntegrationReadiness } from "@/lib/integrationCatalog";
 
 const emptyState: ActionState = {};
@@ -124,6 +134,11 @@ export function RealIntegrationsClient({
   slackConnectedAt,
   canvasStatus,
   canvasConnectedAt,
+  wildApricotStatus,
+  wildApricotConnectedAt,
+  basecampConfigured,
+  basecampStatus,
+  basecampConnectedAt,
 }: {
   googleConfigured: boolean;
   googleStatus: Status;
@@ -139,6 +154,11 @@ export function RealIntegrationsClient({
   slackConnectedAt: string | null;
   canvasStatus: Status;
   canvasConnectedAt: string | null;
+  wildApricotStatus: Status;
+  wildApricotConnectedAt: string | null;
+  basecampConfigured: boolean;
+  basecampStatus: Status;
+  basecampConnectedAt: string | null;
 }) {
   const searchParams = useSearchParams();
   const { showToast } = useToast();
@@ -146,6 +166,9 @@ export function RealIntegrationsClient({
   const [canvasState, canvasAction, canvasPending] = useActionState(connectCanvasAction, emptyState);
   const [canvasDisconnectState, canvasDisconnectAction, canvasDisconnectPending] = useActionState(disconnectCanvasAction, emptyState);
   const [canvasGuideOpen, setCanvasGuideOpen] = useState(false);
+  const [wildApricotState, wildApricotAction, wildApricotPending] = useActionState(connectWildApricotAction, emptyState);
+  const [wildApricotDisconnectState, wildApricotDisconnectAction, wildApricotDisconnectPending] = useActionState(disconnectWildApricotAction, emptyState);
+  const [wildApricotFormOpen, setWildApricotFormOpen] = useState(false);
 
   useEffect(() => {
     const error = searchParams.get("error");
@@ -158,6 +181,8 @@ export function RealIntegrationsClient({
       showToast({ title: "Microsoft connected", description: "Your Outlook Calendar and Mail are now linked." });
     } else if (connected === "slack") {
       showToast({ title: "Slack connected", description: "Your Slack workspace is now linked." });
+    } else if (connected === "basecamp") {
+      showToast({ title: "Basecamp connected", description: "Your Basecamp projects are now linked." });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -201,6 +226,23 @@ export function RealIntegrationsClient({
             configured={slackConfigured}
             connectHref="/api/integrations/slack/connect"
             disconnectAction={disconnectSlackAction}
+            events={null}
+            eventsLabel=""
+          />
+        ) : null}
+        {catalog.some((item) => item.key === "basecamp") ? (
+          <IntegrationCard
+            name="Basecamp"
+            blurb={
+              basecampConfigured
+                ? "Real Basecamp projects populate Projects."
+                : "Code is ready - needs a Basecamp OAuth app registered (client ID/secret) before anyone can connect."
+            }
+            status={basecampStatus}
+            connectedAt={basecampConnectedAt}
+            configured={basecampConfigured}
+            connectHref="/api/integrations/basecamp/connect"
+            disconnectAction={disconnectBasecampAction}
             events={null}
             eventsLabel=""
           />
@@ -254,6 +296,53 @@ export function RealIntegrationsClient({
             ) : null}
             {(canvasState.error || canvasDisconnectState.error) ? <p className="mt-3 text-[12px] text-critical">{canvasState.error ?? canvasDisconnectState.error}</p> : null}
             {canvasState.success ? <p className="mt-3 text-[12px] text-positive">{canvasState.success}</p> : null}
+          </Card>
+        ) : null}
+        {catalog.some((item) => item.key === "wildapricot") ? (
+          <Card className="p-5">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <div className="flex items-center gap-2">
+                  <p className="text-[14.5px] font-semibold text-ink-1">Wild Apricot</p>
+                  <Badge tone={wildApricotStatus === "connected" ? "good" : "neutral"}>{wildApricotStatus === "connected" ? "Connected" : "Not connected"}</Badge>
+                </div>
+                <p className="mt-1 text-[13px] text-ink-2">Uses your Wild Apricot account's own API key. Members populate CRM.</p>
+                {wildApricotConnectedAt ? <p className="mt-1 text-[11.5px] text-ink-3">Connected {new Date(wildApricotConnectedAt).toLocaleDateString()}</p> : null}
+              </div>
+              {wildApricotStatus === "connected" ? (
+                <form action={wildApricotDisconnectAction}><Button type="submit" variant="secondary" disabled={wildApricotDisconnectPending}>{wildApricotDisconnectPending ? "Disconnecting…" : "Disconnect"}</Button></form>
+              ) : null}
+            </div>
+            {wildApricotStatus !== "connected" && !wildApricotFormOpen ? (
+              <div className="mt-4 border-t border-line pt-4">
+                <Button type="button" variant="primary" onClick={() => setWildApricotFormOpen(true)}>Connect Wild Apricot</Button>
+              </div>
+            ) : null}
+            {wildApricotStatus !== "connected" && wildApricotFormOpen ? (
+              <div className="mt-4 border-t border-line pt-4">
+                <div className="rounded-[12px] bg-surface-raised p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-[14px] font-semibold text-ink-1">Connect your Wild Apricot account</p>
+                      <p className="mt-1 text-[12.5px] text-ink-2">Generate an API key from your own account - your Wild Apricot login is never entered here.</p>
+                    </div>
+                    <button type="button" onClick={() => setWildApricotFormOpen(false)} className="text-[12px] font-medium text-ink-3 hover:text-ink-1">Close</button>
+                  </div>
+                  <ol className="mt-4 space-y-3 text-[12.5px] leading-relaxed text-ink-2">
+                    <li><strong className="text-ink-1">1. Log into Wild Apricot</strong> as an administrator.</li>
+                    <li><strong className="text-ink-1">2. Open Settings → Authorized applications.</strong></li>
+                    <li><strong className="text-ink-1">3. Click "Authorize application"</strong> and choose <strong>full access</strong> (or the scopes you want 3Stone One to read).</li>
+                    <li><strong className="text-ink-1">4. Copy the API key</strong> Wild Apricot shows you, then paste it below.</li>
+                  </ol>
+                </div>
+                <form action={wildApricotAction} className="mt-4 grid gap-3 sm:grid-cols-[1fr_auto]">
+                  <label className="text-[12px] font-medium text-ink-2">API key<input name="apiKey" type="password" required placeholder="Paste your Wild Apricot API key" aria-label="Wild Apricot API key" className="mt-1 w-full rounded-[9px] border border-line bg-surface px-3 py-2 text-[13px] text-ink-1" /></label>
+                  <Button type="submit" variant="primary" disabled={wildApricotPending} className="self-end">{wildApricotPending ? "Testing…" : "Connect securely"}</Button>
+                </form>
+              </div>
+            ) : null}
+            {(wildApricotState.error || wildApricotDisconnectState.error) ? <p className="mt-3 text-[12px] text-critical">{wildApricotState.error ?? wildApricotDisconnectState.error}</p> : null}
+            {wildApricotState.success ? <p className="mt-3 text-[12px] text-positive">{wildApricotState.success}</p> : null}
           </Card>
         ) : null}
       </div>

@@ -14,6 +14,7 @@ import { Button } from "@/ui/Button";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/lib/toast";
 import { JOB_STATUS_LABEL } from "@/server/mock-data";
+import type { BasecampProject } from "@/server/services/basecampIntegrationService";
 import {
   createProjectAction,
   createTaskAction,
@@ -39,7 +40,15 @@ const STATUS_TONE: Record<ProjectStatusKey, "neutral" | "accent" | "good"> = {
   done: "good",
 };
 
-export function RealProjectsClient({ initialProjects }: { initialProjects: ProjectRow[] }) {
+export function RealProjectsClient({
+  initialProjects,
+  basecampConnected = false,
+  basecampProjects = [],
+}: {
+  initialProjects: ProjectRow[];
+  basecampConnected?: boolean;
+  basecampProjects?: BasecampProject[];
+}) {
   const { profile } = useIndustry();
   const [projects, setProjects] = useState<ProjectRow[]>(initialProjects);
   const [selected, setSelected] = useState<ProjectRow | null>(null);
@@ -127,6 +136,33 @@ export function RealProjectsClient({ initialProjects }: { initialProjects: Proje
           />
         </div>
       )}
+
+      {basecampConnected ? (
+        <div className="mt-8">
+          <div className="mb-3">
+            <h2 className="text-[16px] font-semibold text-ink-1">Basecamp projects</h2>
+            <p className="mt-0.5 text-[12.5px] text-ink-3">Projects stay in Basecamp and open there; 3Stone One does not duplicate their contents.</p>
+          </div>
+          {basecampProjects.length === 0 ? (
+            <div className="rounded-[12px] border border-line bg-surface p-4 text-[13px] text-ink-3">No Basecamp projects found.</div>
+          ) : (
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              {basecampProjects.map((p) => (
+                <a
+                  key={p.id}
+                  href={p.url || "#"}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="rounded-xl border border-line bg-surface p-3 hover:bg-surface-raised"
+                >
+                  <p className="truncate text-[13.5px] font-semibold text-ink-1">{p.name}</p>
+                  {p.description ? <p className="mt-1 truncate text-[11.5px] text-ink-3">{p.description}</p> : null}
+                </a>
+              ))}
+            </div>
+          )}
+        </div>
+      ) : null}
 
       <DetailPanel open={creating} onClose={() => setCreating(false)} title={`New ${profile.terms.project.toLowerCase()}`}>
         <form onSubmit={handleCreate} className="flex flex-col gap-4">

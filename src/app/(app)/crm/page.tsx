@@ -4,6 +4,8 @@ import { RealCrmClient } from "@/features/crm/RealCrmClient";
 import { getSession } from "@/lib/session";
 import { getActiveWorkspaceIdForUser } from "@/server/services/onboardingService";
 import { listDeals, listOrganizations, listPeople } from "@/server/services/crmService";
+import { db } from "@/server/db";
+import { listWildApricotContacts } from "@/server/services/wildApricotIntegrationService";
 
 export const metadata: Metadata = { title: "CRM — 3Stone One" };
 export const dynamic = "force-dynamic";
@@ -15,7 +17,20 @@ export default async function CrmPage() {
     const [organizations, people, deals] = workspaceId
       ? await Promise.all([listOrganizations(workspaceId), listPeople(workspaceId), listDeals(workspaceId)])
       : [[], [], []];
-    return <RealCrmClient initialOrganizations={organizations} initialPeople={people} initialDeals={deals} />;
+    const wildApricot = workspaceId
+      ? await db.integration.findUnique({ where: { workspaceId_provider: { workspaceId, provider: "wildapricot" } } })
+      : null;
+    const wildApricotContacts =
+      workspaceId && wildApricot?.status === "connected" ? await listWildApricotContacts(workspaceId).catch(() => []) : [];
+    return (
+      <RealCrmClient
+        initialOrganizations={organizations}
+        initialPeople={people}
+        initialDeals={deals}
+        wildApricotConnected={wildApricot?.status === "connected"}
+        wildApricotContacts={wildApricotContacts}
+      />
+    );
   }
   return <CrmClient />;
 }

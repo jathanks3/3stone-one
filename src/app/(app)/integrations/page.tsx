@@ -7,6 +7,7 @@ import { db } from "@/server/db";
 import { isGoogleIntegrationConfigured, getUpcomingGoogleCalendarEvents } from "@/server/services/googleIntegrationService";
 import { isMicrosoftIntegrationConfigured, getUpcomingOutlookEvents } from "@/server/services/microsoftIntegrationService";
 import { isSlackIntegrationConfigured } from "@/server/services/slackIntegrationService";
+import { isBasecampIntegrationConfigured } from "@/server/services/basecampIntegrationService";
 
 export const metadata: Metadata = { title: "Integrations — 3Stone One" };
 
@@ -21,11 +22,13 @@ export default async function IntegrationsPage() {
     return <IntegrationsClient />;
   }
 
-  const [google, microsoft, slack, canvas] = await Promise.all([
+  const [google, microsoft, slack, canvas, wildApricot, basecamp] = await Promise.all([
     db.integration.findUnique({ where: { workspaceId_provider: { workspaceId, provider: "google" } } }),
     db.integration.findUnique({ where: { workspaceId_provider: { workspaceId, provider: "microsoft" } } }),
     db.integration.findUnique({ where: { workspaceId_provider: { workspaceId, provider: "slack" } } }),
     db.integration.findUnique({ where: { workspaceId_provider: { workspaceId, provider: "canvas" } } }),
+    db.integration.findUnique({ where: { workspaceId_provider: { workspaceId, provider: "wildapricot" } } }),
+    db.integration.findUnique({ where: { workspaceId_provider: { workspaceId, provider: "basecamp" } } }),
   ]);
   const workspace = await db.workspace.findUnique({ where: { id: workspaceId }, select: { editionKey: true } });
   const [googleEvents, microsoftEvents] = await Promise.all([
@@ -49,6 +52,11 @@ export default async function IntegrationsPage() {
       slackConnectedAt={slack?.connectedAt?.toISOString() ?? null}
       canvasStatus={canvas?.status ?? "not_connected"}
       canvasConnectedAt={canvas?.connectedAt?.toISOString() ?? null}
+      wildApricotStatus={wildApricot?.status ?? "not_connected"}
+      wildApricotConnectedAt={wildApricot?.connectedAt?.toISOString() ?? null}
+      basecampConfigured={isBasecampIntegrationConfigured()}
+      basecampStatus={basecamp?.status ?? "not_connected"}
+      basecampConnectedAt={basecamp?.connectedAt?.toISOString() ?? null}
     />
   );
 }
