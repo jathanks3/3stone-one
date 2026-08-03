@@ -13,7 +13,13 @@ export type IndustryProfileKey =
   // apply the way it does for the flagship product. See
   // src/config/industry-profiles/workplace.ts and student.ts.
   | "workplace"
-  | "student";
+  | "student"
+  // A real, selectable alternate to "workplace" for Workspace edition only
+  // (see (marketing)/signup/product/ProductForm.tsx + actions.ts) - not a
+  // fixed default like workplace/student above, the founder expects a real
+  // share of Workspace customers to be nonprofits going forward, so this
+  // is a genuine choice at signup, not automatic.
+  | "nonprofit";
 
 export interface IndustryTerms {
   project: string;

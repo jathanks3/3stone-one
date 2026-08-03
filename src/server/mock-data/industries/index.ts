@@ -21,6 +21,12 @@ const REGISTRY: Record<IndustryProfileKey, IndustryDataset> = {
   salon: { ...MEDICAL_DATASET, profileKey: "salon", orgName: "Luma Beauty Collective", greetingSubtitle: "Here’s what matters across Luma’s services and retail today." },
   workplace: WORKPLACE_DATASET,
   student: STUDENT_DATASET,
+  // No dedicated demo dataset - nonprofit is a real signup-time choice
+  // (see src/config/industry-profiles/nonprofit.ts + ProductForm.tsx),
+  // not one of the flagship's showcased demo industries, so it reuses
+  // Workplace's dataset with just the label/name swapped, same pattern as
+  // clothing_brand/salon above.
+  nonprofit: { ...WORKPLACE_DATASET, profileKey: "nonprofit", orgName: "Far Eastside Community Alliance", greetingSubtitle: "Here's what matters across your programs today." },
 };
 
 export function getIndustryDataset(key: IndustryProfileKey): IndustryDataset {

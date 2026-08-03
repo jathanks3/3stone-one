@@ -27,10 +27,12 @@ const OPTIONS = [
 export function ProductForm() {
   const [state, formAction, pending] = useActionState(selectEditionAction, initialState);
   const [selected, setSelected] = useState<string>("business");
+  const [isNonprofit, setIsNonprofit] = useState(false);
 
   return (
     <form action={formAction} className="flex flex-col gap-4">
       <input type="hidden" name="editionKey" value={selected} />
+      <input type="hidden" name="isNonprofit" value={isNonprofit ? "true" : "false"} />
       <div className="flex flex-col gap-2">
         {OPTIONS.map((option) => (
           <button
@@ -55,6 +57,23 @@ export function ProductForm() {
           </button>
         ))}
       </div>
+      {selected === "workspace" ? (
+        <label className="flex items-start gap-3 rounded-[10px] border border-line-strong bg-surface px-4 py-3 text-left">
+          <input
+            type="checkbox"
+            checked={isNonprofit}
+            onChange={(e) => setIsNonprofit(e.target.checked)}
+            className="mt-0.5 h-4 w-4 flex-shrink-0"
+          />
+          <span>
+            <span className="block text-[14px] font-semibold text-ink-1">This is a nonprofit organization</span>
+            <span className="mt-0.5 block text-[12.5px] leading-relaxed text-ink-3">
+              Switches the wording throughout to match nonprofit terminology - Programs, Constituents, Staff -
+              instead of generic business terms.
+            </span>
+          </span>
+        </label>
+      ) : null}
       {state.error ? (
         <p role="alert" className="text-[13px] text-critical">
           {state.error}

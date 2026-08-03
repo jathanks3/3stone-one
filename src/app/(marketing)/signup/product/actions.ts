@@ -33,10 +33,14 @@ export async function selectEditionAction(_prevState: ProductFormState, formData
   // Student definitely isn't one. Workspace/Student each get a fixed
   // industry profile (see src/config/industry-profiles/workplace.ts,
   // student.ts) and skip both steps straight to plan selection, rather
-  // than being asked for a business name they don't have.
+  // than being asked for a business name they don't have. Workspace has
+  // one real choice within that fixed step though - nonprofit vs generic
+  // business wording (see nonprofit.ts + ProductForm.tsx's checkbox) -
+  // Student doesn't get this choice, it isn't a real fit for coursework.
   if (editionKey === "business") {
     redirect("/signup/business-info");
   }
-  await selectIndustry(workspaceId, editionKey === "workspace" ? "workplace" : "student");
+  const isNonprofit = editionKey === "workspace" && formData.get("isNonprofit") === "true";
+  await selectIndustry(workspaceId, isNonprofit ? "nonprofit" : editionKey === "workspace" ? "workplace" : "student");
   redirect("/signup/plan");
 }

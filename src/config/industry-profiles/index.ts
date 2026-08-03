@@ -10,6 +10,7 @@ import { clothingBrandProfile } from "./clothingBrand";
 import { salonProfile } from "./salon";
 import { workplaceProfile } from "./workplace";
 import { studentProfile } from "./student";
+import { nonprofitProfile } from "./nonprofit";
 
 export const industryProfiles: Record<IndustryProfileKey, IndustryProfile> = {
   construction: constructionProfile,
@@ -23,6 +24,7 @@ export const industryProfiles: Record<IndustryProfileKey, IndustryProfile> = {
   salon: salonProfile,
   workplace: workplaceProfile,
   student: studentProfile,
+  nonprofit: nonprofitProfile,
 };
 
 // Real bug found here: workplaceProfile/studentProfile were in the
@@ -47,6 +49,7 @@ export const industryProfileList: IndustryProfile[] = [
   salonProfile,
   workplaceProfile,
   studentProfile,
+  nonprofitProfile,
 ];
 
 export function getIndustryProfile(key: IndustryProfileKey): IndustryProfile {
