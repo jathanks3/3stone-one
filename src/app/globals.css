@@ -539,6 +539,42 @@ html[data-reduced-motion="true"] *::after {
   animation: ai-face-grin 8s ease-in-out infinite;
 }
 
+/* The little bot's body (see AiAssistant.tsx) - a gentle idle bob so it
+   reads as standing there, alive, rather than a pasted-on icon, plus a
+   quick wave on the right arm synced to the exact same 48-52% moment the
+   right eye winks (ai-face-blink-right) - a wink and a wave together. */
+@keyframes ai-bot-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-1.5px);
+  }
+}
+
+@keyframes ai-bot-wave {
+  0%,
+  46%,
+  56%,
+  100% {
+    transform: rotate(0deg);
+  }
+  50% {
+    transform: rotate(-18deg);
+  }
+}
+
+.ai-bot-bob {
+  animation: ai-bot-bob 3.6s ease-in-out infinite;
+}
+
+.ai-bot-arm-right {
+  transform-box: fill-box;
+  transform-origin: top right;
+  animation: ai-bot-wave 8s ease-in-out infinite;
+}
+
 /* Cursor-reactive card glow for marketing pages only (see
    src/components/marketing/SpotlightCards.tsx, which sets
    --spotlight-x/-y via a delegated mousemove listener) - opt-in via

@@ -147,14 +147,27 @@ export function AiAssistant() {
           {open ? (
             <X size={iconSize} />
           ) : (
-            <svg width={faceSize} height={faceSize} viewBox="0 0 27 27" fill="none" aria-hidden="true">
-              <ellipse className="ai-face-eye-left" cx="8.7" cy="11.2" rx="2.2" ry="2.7" fill="currentColor" />
-              <ellipse className="ai-face-eye-right" cx="18.3" cy="11.2" rx="2.2" ry="2.7" fill="currentColor" />
+            <svg width={faceSize} height={faceSize * 1.15} viewBox="0 0 32 37" fill="none" aria-hidden="true" className="ai-bot-bob">
+              {/* Antenna */}
+              <line x1="16" y1="4" x2="16" y2="0.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+              <circle cx="16" cy="0.5" r="1.3" fill="currentColor" />
+              {/* Body - drawn before limbs so they attach cleanly to its edge */}
+              <rect x="4.5" y="4.5" width="23" height="19.5" rx="9.5" stroke="currentColor" strokeWidth="1.6" fill="currentColor" fillOpacity="0.08" />
+              {/* Arms - the right one waves at the same moment the right eye winks below */}
+              <path className="ai-bot-arm-left" d="M7 15c-2.5 1-4 2.8-4.5 5.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+              <path className="ai-bot-arm-right" d="M25 15c2.5 1 4 2.8 4.5 5.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+              {/* Legs */}
+              <line x1="11.5" y1="23.5" x2="11.5" y2="29.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+              <line x1="20.5" y1="23.5" x2="20.5" y2="29.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+              <line x1="8.5" y1="30.2" x2="14.5" y2="30.2" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+              <line x1="17.5" y1="30.2" x2="23.5" y2="30.2" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+              <ellipse className="ai-face-eye-left" cx="12" cy="13.2" rx="2.1" ry="2.6" fill="currentColor" />
+              <ellipse className="ai-face-eye-right" cx="20" cy="13.2" rx="2.1" ry="2.6" fill="currentColor" />
               <path
                 className="ai-face-mouth"
-                d="M7.8 16.8c1.8 2.1 9.6 2.1 11.4 0"
+                d="M11.2 18.4c1.7 2 8.9 2 10.6 0"
                 stroke="currentColor"
-                strokeWidth="2"
+                strokeWidth="1.8"
                 strokeLinecap="round"
                 fill="none"
               />
