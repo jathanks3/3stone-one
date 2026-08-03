@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { Sparkles, X, ArrowUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useIndustry } from "@/lib/industry";
+import { useAssistantSize } from "@/lib/assistantSize";
 import { getIndustryDataset } from "@/server/mock-data/industries";
 import { generateAttendanceForEmployees } from "@/server/mock-data/attendance";
 import { DEMO_VENDORS } from "@/server/mock-data";
@@ -87,9 +88,21 @@ function realSessionHint(editionKey: string): string {
   return "Ask anything — documents, planning, writing";
 }
 
+// "Large" is the new default (roughly 2.2cm at typical screen density) -
+// "Compact" is the original size, kept as the opt-out (see Settings ->
+// Appearance). Icon/face size scales with the button so it never looks
+// like a tiny icon adrift in a big circle.
+const BUTTON_SIZE: Record<"large" | "compact", number> = { large: 84, compact: 52 };
+const ICON_SIZE: Record<"large" | "compact", number> = { large: 34, compact: 22 };
+const FACE_SIZE: Record<"large" | "compact", number> = { large: 42, compact: 27 };
+
 export function AiAssistant() {
   const [open, setOpen] = useState(false);
   const { isDemo } = useIndustry();
+  const { assistantSize } = useAssistantSize();
+  const buttonSize = BUTTON_SIZE[assistantSize];
+  const iconSize = ICON_SIZE[assistantSize];
+  const faceSize = FACE_SIZE[assistantSize];
 
   // Real bug found during an earlier AI audit: this widget used to answer
   // every question from DEMO_VENDORS / getIndustryDataset(profile.key) —
@@ -117,17 +130,24 @@ export function AiAssistant() {
             color is live with no extra work here. Calmed down to a plain
             X while the panel is open since the "come chat with me"
             invitation has been accepted at that point. */}
-        {!open ? <span aria-hidden className="ai-orb-glow pointer-events-none absolute inset-[-6px] rounded-full" /> : null}
+        {!open ? (
+          <span
+            aria-hidden
+            className="ai-orb-glow pointer-events-none absolute rounded-full"
+            style={{ inset: -Math.round(buttonSize * 0.11) }}
+          />
+        ) : null}
         <button
           type="button"
           onClick={() => setOpen((o) => !o)}
           aria-label={open ? "Close AI assistant" : "Open AI assistant"}
-          className="relative flex h-13 w-13 items-center justify-center rounded-full bg-accent text-on-accent shadow-[var(--shadow)] transition-transform hover:scale-105 active:scale-95"
+          className="relative flex items-center justify-center rounded-full bg-accent text-on-accent shadow-[var(--shadow)] transition-transform hover:scale-105 active:scale-95"
+          style={{ width: buttonSize, height: buttonSize }}
         >
           {open ? (
-            <X size={22} />
+            <X size={iconSize} />
           ) : (
-            <svg width="27" height="27" viewBox="0 0 27 27" fill="none" aria-hidden="true">
+            <svg width={faceSize} height={faceSize} viewBox="0 0 27 27" fill="none" aria-hidden="true">
               <ellipse className="ai-face-eye-left" cx="8.7" cy="11.2" rx="2.2" ry="2.7" fill="currentColor" />
               <ellipse className="ai-face-eye-right" cx="18.3" cy="11.2" rx="2.2" ry="2.7" fill="currentColor" />
               <path

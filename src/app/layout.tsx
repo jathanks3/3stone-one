@@ -4,6 +4,7 @@ import { ThemeProvider, THEME_NO_FLASH_SCRIPT } from "@/lib/theme";
 import { FontSizeProvider, FONT_SIZE_NO_FLASH_SCRIPT } from "@/lib/fontSize";
 import { ReducedMotionProvider, REDUCED_MOTION_NO_FLASH_SCRIPT } from "@/lib/reducedMotion";
 import { AccentColorProvider } from "@/lib/accentColor";
+import { AssistantSizeProvider } from "@/lib/assistantSize";
 import { ToastProvider } from "@/lib/toast";
 import { PageTracker } from "@/components/shared/PageTracker";
 import { ReportProblemButton } from "@/components/shared/ReportProblemButton";
@@ -55,11 +56,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <FontSizeProvider>
             <ReducedMotionProvider>
               <AccentColorProvider>
-                <ToastProvider>
-                  <PageTracker />
-                  {children}
-                  <ReportProblemButton />
-                </ToastProvider>
+                <AssistantSizeProvider>
+                  <ToastProvider>
+                    <PageTracker />
+                    {children}
+                    <ReportProblemButton />
+                  </ToastProvider>
+                </AssistantSizeProvider>
               </AccentColorProvider>
             </ReducedMotionProvider>
           </FontSizeProvider>

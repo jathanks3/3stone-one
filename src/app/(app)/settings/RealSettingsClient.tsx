@@ -15,6 +15,7 @@ import { useTheme, type ThemeMode } from "@/lib/theme";
 import { useFontSize, type FontSizeMode } from "@/lib/fontSize";
 import { useReducedMotion } from "@/lib/reducedMotion";
 import { useAccentColor, type AccentColor } from "@/lib/accentColor";
+import { useAssistantSize, type AssistantSizeMode } from "@/lib/assistantSize";
 import { cn } from "@/lib/utils";
 import type { WorkspaceSettings } from "@/server/services/workspaceSettingsService";
 import type { TeamMemberRow, PendingInvitationRow, AssignableRoleName } from "@/server/services/teamService";
@@ -136,11 +137,17 @@ const ACCENT_COLOR_OPTIONS: { key: AccentColor; label: string; swatch: string }[
   { key: "purple", label: "Purple", swatch: "#6f57d6" },
 ];
 
+const ASSISTANT_SIZE_OPTIONS: { key: AssistantSizeMode; label: string }[] = [
+  { key: "large", label: "Large" },
+  { key: "compact", label: "Compact" },
+];
+
 function AppearanceTab() {
   const { theme, setTheme } = useTheme();
   const { accentColor, setAccentColor } = useAccentColor();
   const { fontSize, setFontSize } = useFontSize();
   const { reducedMotion, setReducedMotion } = useReducedMotion();
+  const { assistantSize, setAssistantSize } = useAssistantSize();
 
   return (
     <div className="flex flex-col gap-4">
@@ -188,6 +195,14 @@ function AppearanceTab() {
             value={fontSize}
             onChange={setFontSize}
           />
+        </div>
+      </Card>
+
+      <Card className="p-5">
+        <p className="text-[14px] font-semibold text-ink-1">AI assistant size</p>
+        <p className="mt-1 text-[12.5px] text-ink-3">The floating assistant button in the corner of every page.</p>
+        <div className="mt-3">
+          <SegmentedControl options={ASSISTANT_SIZE_OPTIONS} value={assistantSize} onChange={setAssistantSize} />
         </div>
       </Card>
 
