@@ -42,7 +42,7 @@ function formatTime12h(time24: string): string {
 }
 
 function formatDateHeading(iso: string): string {
-  return parseLocalDate(iso).toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" });
+  return parseLocalDate(iso).toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric", year: "numeric" });
 }
 
 function dayBadge(iso: string): { weekday: string; day: string } {
