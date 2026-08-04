@@ -11,6 +11,12 @@ import { encryptToken, decryptToken } from "@/lib/tokenEncryption";
 // Sheets exports from Analytics. Gmail/Drive scopes require Google review.
 function googleScopesForEdition(editionKey: string): string {
   const identity = ["openid", "email"];
+  // The isolated Google verification project intentionally exercises only
+  // Google's recommended per-file flow. This flag is branch-scoped in Vercel
+  // Preview and must never be set in production.
+  if (process.env.GOOGLE_DRIVE_PICKER_TEST_MODE === "true") {
+    return ["https://www.googleapis.com/auth/drive.file", ...identity].join(" ");
+  }
   if (editionKey === "student")
     return [
       "https://www.googleapis.com/auth/drive.file",
