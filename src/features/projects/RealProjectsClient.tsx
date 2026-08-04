@@ -24,6 +24,7 @@ import {
   updateProjectStatusAction,
 } from "@/app/(app)/projects/actions";
 import type { ProjectRow, ProjectStatusKey } from "@/server/services/projectService";
+import type { CanvasAssignment } from "@/server/services/canvasIntegrationService";
 
 // Duplicated from projectService.ts (not re-imported) - that file also
 // pulls in the Prisma/pg client, which would otherwise leak an
@@ -44,10 +45,14 @@ export function RealProjectsClient({
   initialProjects,
   basecampConnected = false,
   basecampProjects = [],
+  canvasConnected = false,
+  canvasAssignments = [],
 }: {
   initialProjects: ProjectRow[];
   basecampConnected?: boolean;
   basecampProjects?: BasecampProject[];
+  canvasConnected?: boolean;
+  canvasAssignments?: CanvasAssignment[];
 }) {
   const { profile } = useIndustry();
   const [projects, setProjects] = useState<ProjectRow[]>(initialProjects);
@@ -136,6 +141,38 @@ export function RealProjectsClient({
           />
         </div>
       )}
+
+      {canvasConnected ? (
+        <section className="mt-8">
+          <div className="mb-3">
+            <h2 className="text-[16px] font-semibold text-ink-1">Canvas assignments</h2>
+            <p className="mt-0.5 text-[12.5px] text-ink-3">Assignments load live from Canvas and stay read-only here.</p>
+          </div>
+          {canvasAssignments.length === 0 ? (
+            <div className="rounded-[12px] border border-line bg-surface p-4 text-[13px] text-ink-3">Canvas is connected, but no dated assignments were returned from the active courses.</div>
+          ) : (
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              {canvasAssignments.map((assignment) => (
+                <a
+                  key={`${assignment.courseId ?? "course"}:${assignment.id}`}
+                  href={assignment.url || "#"}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="rounded-xl border border-line bg-surface p-3 hover:bg-surface-raised"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <p className="text-[13.5px] font-semibold text-ink-1">{assignment.title}</p>
+                    <Badge tone={assignment.submitted ? "good" : "accent"}>{assignment.submitted ? "Submitted" : "Due"}</Badge>
+                  </div>
+                  <p className="mt-1 text-[11.5px] text-ink-3">{assignment.courseName ?? "Canvas"}</p>
+                  <p className="mt-2 text-[12px] text-ink-2">Due {new Date(assignment.dueAt).toLocaleString()}</p>
+                  {assignment.score !== null && assignment.score !== undefined ? <p className="mt-1 text-[12px] font-medium text-ink-2">Score: {assignment.score}</p> : null}
+                </a>
+              ))}
+            </div>
+          )}
+        </section>
+      ) : null}
 
       {basecampConnected ? (
         <div className="mt-8">

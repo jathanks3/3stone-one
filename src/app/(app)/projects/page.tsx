@@ -6,6 +6,7 @@ import { getActiveWorkspaceIdForUser } from "@/server/services/onboardingService
 import { listProjects } from "@/server/services/projectService";
 import { db } from "@/server/db";
 import { listBasecampProjects } from "@/server/services/basecampIntegrationService";
+import { listCanvasAssignments } from "@/server/services/canvasIntegrationService";
 
 export const metadata: Metadata = { title: "Projects — 3Stone One" };
 export const dynamic = "force-dynamic";
@@ -15,16 +16,21 @@ export default async function ProjectsPage() {
   if (session && !session.isDemo) {
     const workspaceId = await getActiveWorkspaceIdForUser(session.userId);
     const projects = workspaceId ? await listProjects(workspaceId) : [];
-    const basecamp = workspaceId
-      ? await db.integration.findUnique({ where: { workspaceId_provider: { workspaceId, provider: "basecamp" } } })
-      : null;
+    const [basecamp, canvas] = workspaceId ? await Promise.all([
+      db.integration.findUnique({ where: { workspaceId_provider: { workspaceId, provider: "basecamp" } } }),
+      db.integration.findUnique({ where: { workspaceId_provider: { workspaceId, provider: "canvas" } } }),
+    ]) : [null, null];
     const basecampProjects =
       workspaceId && basecamp?.status === "connected" ? await listBasecampProjects(workspaceId).catch(() => []) : [];
+    const canvasAssignments =
+      workspaceId && canvas?.status === "connected" ? await listCanvasAssignments(workspaceId).catch(() => []) : [];
     return (
       <RealProjectsClient
         initialProjects={projects}
         basecampConnected={basecamp?.status === "connected"}
         basecampProjects={basecampProjects}
+        canvasConnected={canvas?.status === "connected"}
+        canvasAssignments={canvasAssignments}
       />
     );
   }

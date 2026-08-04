@@ -38,7 +38,16 @@ export async function disconnectCanvas(workspaceId: string): Promise<void> {
   });
 }
 
-export interface CanvasAssignment { id: string; title: string; dueAt: string; url?: string }
+export interface CanvasAssignment {
+  id: string;
+  title: string;
+  dueAt: string;
+  url?: string;
+  courseId?: string;
+  courseName?: string;
+  submitted?: boolean;
+  score?: number | null;
+}
 
 // Shared by every list* function below - a not-connected workspace (or
 // one whose token was revoked) just gets an empty result, never an
@@ -55,17 +64,35 @@ async function getConnectedCanvas(workspaceId: string): Promise<{ baseUrl: strin
 export async function listCanvasAssignments(workspaceId: string): Promise<CanvasAssignment[]> {
   const canvas = await getConnectedCanvas(workspaceId);
   if (!canvas) return [];
-  const events = await canvasRequest(canvas.baseUrl, canvas.token, "/api/v1/users/self/upcoming_events?per_page=100");
-  if (!Array.isArray(events)) return [];
-  return events.map((event: Record<string, unknown>) => {
-    const assignment = event.assignment && typeof event.assignment === "object" ? event.assignment as Record<string, unknown> : {};
-    return {
-      id: String(assignment.id ?? event.id ?? ""),
-      title: String(assignment.name ?? event.title ?? "Canvas assignment"),
-      dueAt: String(assignment.due_at ?? event.start_at ?? ""),
-      url: typeof assignment.html_url === "string" ? assignment.html_url : typeof event.html_url === "string" ? event.html_url : undefined,
-    };
-  }).filter((item: CanvasAssignment) => item.id && item.dueAt);
+  const courses = await listActiveCanvasCourses(canvas);
+  const assignments = await Promise.all(courses.map(async (course) => {
+    if (course.id === undefined || typeof course.name !== "string") return [];
+    const courseId = String(course.id);
+    const courseName = course.name;
+    const rows = await canvasRequest(
+      canvas.baseUrl,
+      canvas.token,
+      `/api/v1/courses/${courseId}/assignments?include[]=submission&order_by=due_at&per_page=100`
+    ).catch(() => []);
+    if (!Array.isArray(rows)) return [];
+    return rows.map((assignment: Record<string, unknown>): CanvasAssignment | null => {
+      if (assignment.id === undefined || typeof assignment.name !== "string" || typeof assignment.due_at !== "string") return null;
+      const submission = assignment.submission && typeof assignment.submission === "object"
+        ? assignment.submission as Record<string, unknown>
+        : {};
+      return {
+        id: String(assignment.id),
+        title: assignment.name,
+        dueAt: assignment.due_at,
+        url: typeof assignment.html_url === "string" ? assignment.html_url : undefined,
+        courseId,
+        courseName,
+        submitted: submission.workflow_state === "submitted" || submission.workflow_state === "graded",
+        score: typeof submission.score === "number" ? submission.score : null,
+      };
+    }).filter((assignment): assignment is CanvasAssignment => assignment !== null);
+  }));
+  return assignments.flat().sort((a, b) => new Date(b.dueAt).getTime() - new Date(a.dueAt).getTime()).slice(0, 100);
 }
 
 export interface CanvasCourseGrade {
