@@ -97,7 +97,8 @@ export function GoogleDrivePickerButton({ clientId, apiKey, appId }: { clientId:
           scope: "https://www.googleapis.com/auth/drive.file",
           callback: (response) => {
             window.clearTimeout(timeout);
-            response.access_token ? resolve(response.access_token) : reject(new Error(response.error ?? "Google authorization was cancelled."));
+            if (response.access_token) resolve(response.access_token);
+            else reject(new Error(response.error ?? "Google authorization was cancelled."));
           },
         });
         client.requestAccessToken({ prompt: "" });
