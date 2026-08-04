@@ -76,7 +76,7 @@ export function RealDocumentsClient({
   }
 
   function previewCanvasFile(file: CanvasCourseMaterial) {
-    setPreviewFile({ name: file.displayName, src: file.url, externalUrl: file.url, externalLabel: "Open in Canvas", externalNewTab: true });
+    setPreviewFile({ name: file.displayName, src: `/api/integrations/canvas/files/${file.fileId}`, externalUrl: file.url, externalLabel: "Open in Canvas", externalNewTab: true });
   }
 
   function previewUploadedFile(file: DocumentRow) {

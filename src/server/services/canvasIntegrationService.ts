@@ -123,6 +123,32 @@ export interface CanvasCourseMaterial {
   updatedAt: string;
 }
 
+export async function getCanvasFileBytes(
+  workspaceId: string,
+  fileId: string
+): Promise<{ bytes: ArrayBuffer; contentType: string; filename: string }> {
+  const canvas = await getConnectedCanvas(workspaceId);
+  if (!canvas) throw new Error("Canvas is not connected.");
+  if (!/^\d+$/.test(fileId)) throw new Error("Invalid Canvas file.");
+
+  const file = await canvasRequest(canvas.baseUrl, canvas.token, `/api/v1/files/${fileId}`) as Record<string, unknown>;
+  if (typeof file.url !== "string") throw new Error("Canvas did not return this file.");
+  const fileUrl = new URL(file.url);
+  if (fileUrl.origin !== new URL(canvas.baseUrl).origin) throw new Error("Canvas returned an unexpected file location.");
+
+  const response = await fetch(fileUrl, {
+    headers: { Authorization: `Bearer ${canvas.token}` },
+    cache: "no-store",
+    redirect: "follow",
+  });
+  if (!response.ok) throw new Error(`Canvas could not load this file (${response.status}).`);
+  return {
+    bytes: await response.arrayBuffer(),
+    contentType: response.headers.get("content-type") || (typeof file["content-type"] === "string" ? file["content-type"] : "application/octet-stream"),
+    filename: typeof file.display_name === "string" ? file.display_name : `canvas-file-${fileId}`,
+  };
+}
+
 export async function listCanvasCourseMaterials(workspaceId: string): Promise<CanvasCourseMaterial[]> {
   const canvas = await getConnectedCanvas(workspaceId);
   if (!canvas) return [];
