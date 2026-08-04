@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
-import { BookOpen, Plus } from "lucide-react";
+import { BookOpen, Plus, ExternalLink, GraduationCap } from "lucide-react";
 import { SearchInput } from "@/ui/SearchInput";
 import { Card } from "@/ui/Card";
 import { Badge } from "@/ui/Badge";
@@ -16,6 +16,7 @@ import {
   updateKnowledgeArticleAction,
 } from "@/app/(app)/knowledge/actions";
 import type { KnowledgeArticleRow } from "@/server/services/knowledgeService";
+import type { CanvasCourseMaterial } from "@/server/services/canvasIntegrationService";
 
 const KNOWLEDGE_CATEGORY_LABEL: Record<string, string> = {
   policy: "Policy",
@@ -27,7 +28,15 @@ const KNOWLEDGE_CATEGORY_LABEL: Record<string, string> = {
 
 const CATEGORIES = ["all", "policy", "training", "process", "sop", "video"] as const;
 
-export function RealKnowledgeClient({ initialArticles }: { initialArticles: KnowledgeArticleRow[] }) {
+export function RealKnowledgeClient({
+  initialArticles,
+  canvasConnected = false,
+  canvasMaterials = [],
+}: {
+  initialArticles: KnowledgeArticleRow[];
+  canvasConnected?: boolean;
+  canvasMaterials?: CanvasCourseMaterial[];
+}) {
   const [articles, setArticles] = useState<KnowledgeArticleRow[]>(initialArticles);
   const [category, setCategory] = useState<(typeof CATEGORIES)[number]>("all");
   const [query, setQuery] = useState("");
@@ -98,7 +107,7 @@ export function RealKnowledgeClient({ initialArticles }: { initialArticles: Know
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-[22px] font-bold text-ink-1">Knowledge Center</h1>
-          <p className="mt-1 text-[14px] text-ink-2">Policies, training, processes, and SOPs — your team's own knowledge base.</p>
+          <p className="mt-1 text-[14px] text-ink-2">Policies, training, processes, and SOPs — your team&apos;s own knowledge base.</p>
         </div>
         <Button variant="primary" onClick={openNew}>
           <Plus size={14} /> New article
@@ -106,6 +115,32 @@ export function RealKnowledgeClient({ initialArticles }: { initialArticles: Know
       </div>
 
       <div className="mt-6 flex flex-col gap-4">
+        {canvasConnected ? (
+          <section className="rounded-2xl border border-line bg-surface p-4 sm:p-5">
+            <div className="flex items-start gap-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-accent/10 text-accent"><GraduationCap size={18} /></div>
+              <div>
+                <h2 className="text-[15px] font-semibold text-ink-1">Canvas course knowledge</h2>
+                <p className="mt-0.5 text-[12.5px] text-ink-3">Read-only course files from Canvas. They stay with your school and open there.</p>
+              </div>
+            </div>
+            {canvasMaterials.length ? (
+              <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                {canvasMaterials.slice(0, 40).map((material) => (
+                  <a key={`${material.courseId}-${material.fileId}`} href={material.url} target="_blank" rel="noreferrer" className="group rounded-xl border border-line bg-bg p-3 hover:bg-surface-raised">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="truncate text-[13px] font-semibold text-ink-1">{material.displayName}</p>
+                        <p className="mt-1 truncate text-[11.5px] text-ink-3">{material.courseName}</p>
+                      </div>
+                      <ExternalLink size={14} className="mt-0.5 flex-none text-ink-3 group-hover:text-accent" />
+                    </div>
+                  </a>
+                ))}
+              </div>
+            ) : <p className="mt-4 text-[13px] text-ink-3">Canvas is connected, but no files were returned from active courses. Some schools or instructors disable course-file API access.</p>}
+          </section>
+        ) : null}
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex flex-wrap gap-1.5">
             {CATEGORIES.map((c) => (

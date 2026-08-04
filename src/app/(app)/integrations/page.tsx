@@ -22,13 +22,15 @@ export default async function IntegrationsPage() {
     return <IntegrationsClient />;
   }
 
-  const [google, microsoft, slack, canvas, wildApricot, basecamp] = await Promise.all([
+  const [google, microsoft, slack, canvas, wildApricot, basecamp, openai, anthropic] = await Promise.all([
     db.integration.findUnique({ where: { workspaceId_provider: { workspaceId, provider: "google" } } }),
     db.integration.findUnique({ where: { workspaceId_provider: { workspaceId, provider: "microsoft" } } }),
     db.integration.findUnique({ where: { workspaceId_provider: { workspaceId, provider: "slack" } } }),
     db.integration.findUnique({ where: { workspaceId_provider: { workspaceId, provider: "canvas" } } }),
     db.integration.findUnique({ where: { workspaceId_provider: { workspaceId, provider: "wildapricot" } } }),
     db.integration.findUnique({ where: { workspaceId_provider: { workspaceId, provider: "basecamp" } } }),
+    db.integration.findUnique({ where: { workspaceId_provider: { workspaceId, provider: "ai_openai" } } }),
+    db.integration.findUnique({ where: { workspaceId_provider: { workspaceId, provider: "ai_anthropic" } } }),
   ]);
   const workspace = await db.workspace.findUnique({ where: { id: workspaceId }, select: { editionKey: true } });
   const [googleEvents, microsoftEvents] = await Promise.all([
@@ -57,6 +59,10 @@ export default async function IntegrationsPage() {
       basecampConfigured={isBasecampIntegrationConfigured()}
       basecampStatus={basecamp?.status ?? "not_connected"}
       basecampConnectedAt={basecamp?.connectedAt?.toISOString() ?? null}
+      openaiStatus={openai?.status ?? "not_connected"}
+      openaiConnectedAt={openai?.connectedAt?.toISOString() ?? null}
+      anthropicStatus={anthropic?.status ?? "not_connected"}
+      anthropicConnectedAt={anthropic?.connectedAt?.toISOString() ?? null}
     />
   );
 }

@@ -16,6 +16,8 @@ import {
   connectWildApricotAction,
   disconnectWildApricotAction,
   disconnectBasecampAction,
+  connectCustomerAiAction,
+  disconnectCustomerAiAction,
   type ActionState,
 } from "@/app/(app)/integrations/actions";
 import { integrationsForEdition, type IntegrationReadiness } from "@/lib/integrationCatalog";
@@ -33,6 +35,43 @@ const ERROR_MESSAGES: Record<string, string> = {
 
 type Status = "connected" | "not_connected" | "error";
 type CalendarEvent = { summary: string; start: string };
+
+function CustomerAiCard({ provider, status, connectedAt }: { provider: "openai" | "anthropic"; status: Status; connectedAt: string | null }) {
+  const [connectState, connectAction, connectPending] = useActionState(connectCustomerAiAction, emptyState);
+  const [disconnectState, disconnectAction, disconnectPending] = useActionState(disconnectCustomerAiAction, emptyState);
+  const [open, setOpen] = useState(false);
+  const name = provider === "openai" ? "OpenAI API" : "Anthropic API";
+  return (
+    <Card className="p-5">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-2">
+            <p className="text-[14.5px] font-semibold text-ink-1">{name}</p>
+            <Badge tone={status === "connected" ? "good" : "neutral"}>{status === "connected" ? "Connected" : "Not connected"}</Badge>
+          </div>
+          <p className="mt-1 text-[13px] text-ink-2">Use your workspace&apos;s own {name} key first. If it fails, 3Stone AI falls back to its included allowance.</p>
+          <p className="mt-1 text-[11.5px] text-ink-3">A ChatGPT or Claude subscription is separate; this requires a provider API key with API billing enabled.</p>
+          {connectedAt ? <p className="mt-1 text-[11.5px] text-ink-3">Connected {new Date(connectedAt).toLocaleDateString()}</p> : null}
+        </div>
+        {status === "connected" ? (
+          <form action={disconnectAction}>
+            <input type="hidden" name="provider" value={provider} />
+            <Button type="submit" variant="secondary" disabled={disconnectPending}>{disconnectPending ? "Disconnecting…" : "Disconnect"}</Button>
+          </form>
+        ) : <Button type="button" variant="primary" onClick={() => setOpen((v) => !v)}>{open ? "Close" : "Connect"}</Button>}
+      </div>
+      {status !== "connected" && open ? (
+        <form action={connectAction} className="mt-4 grid gap-3 border-t border-line pt-4 sm:grid-cols-[1fr_auto]">
+          <input type="hidden" name="provider" value={provider} />
+          <label className="text-[12px] font-medium text-ink-2">{name} key<input name="apiKey" type="password" required autoComplete="off" placeholder={provider === "openai" ? "sk-…" : "sk-ant-…"} className="mt-1 w-full rounded-[9px] border border-line bg-surface px-3 py-2 text-[13px] text-ink-1" /></label>
+          <Button type="submit" variant="primary" disabled={connectPending} className="self-end">{connectPending ? "Validating…" : "Connect securely"}</Button>
+        </form>
+      ) : null}
+      {(connectState.error || disconnectState.error) ? <p className="mt-3 text-[12px] text-critical">{connectState.error ?? disconnectState.error}</p> : null}
+      {(connectState.success || disconnectState.success) ? <p className="mt-3 text-[12px] text-positive">{connectState.success ?? disconnectState.success}</p> : null}
+    </Card>
+  );
+}
 
 function IntegrationCard({
   name,
@@ -139,6 +178,10 @@ export function RealIntegrationsClient({
   basecampConfigured,
   basecampStatus,
   basecampConnectedAt,
+  openaiStatus,
+  openaiConnectedAt,
+  anthropicStatus,
+  anthropicConnectedAt,
 }: {
   googleConfigured: boolean;
   googleStatus: Status;
@@ -159,6 +202,10 @@ export function RealIntegrationsClient({
   basecampConfigured: boolean;
   basecampStatus: Status;
   basecampConnectedAt: string | null;
+  openaiStatus: Status;
+  openaiConnectedAt: string | null;
+  anthropicStatus: Status;
+  anthropicConnectedAt: string | null;
 }) {
   const searchParams = useSearchParams();
   const { showToast } = useToast();
@@ -195,6 +242,8 @@ export function RealIntegrationsClient({
       </p>
 
       <div className="mt-6 flex flex-col gap-4">
+        {catalog.some((item) => item.key === "chatgpt") ? <CustomerAiCard provider="openai" status={openaiStatus} connectedAt={openaiConnectedAt} /> : null}
+        {catalog.some((item) => item.key === "claude") ? <CustomerAiCard provider="anthropic" status={anthropicStatus} connectedAt={anthropicConnectedAt} /> : null}
         <IntegrationCard
           name={editionKey === "student" ? "Google Drive" : "Google Workspace"}
           blurb={editionKey === "student" ? "Student connection requests Drive read access only." : "Gmail and Calendar populate Communications and Calendar; Business also enables Drive and Sheets."}
@@ -255,7 +304,7 @@ export function RealIntegrationsClient({
                   <p className="text-[14.5px] font-semibold text-ink-1">Canvas</p>
                   <Badge tone={canvasStatus === "connected" ? "good" : "neutral"}>{canvasStatus === "connected" ? "Connected" : "Not connected"}</Badge>
                 </div>
-                <p className="mt-1 text-[13px] text-ink-2">Uses the student's school Canvas URL and personal access token. Upcoming assignments populate Calendar.</p>
+                <p className="mt-1 text-[13px] text-ink-2">Uses the student&apos;s school Canvas URL and personal access token. Assignments populate Calendar; course files populate Documents and Knowledge Center.</p>
                 {canvasConnectedAt ? <p className="mt-1 text-[11.5px] text-ink-3">Connected {new Date(canvasConnectedAt).toLocaleDateString()}</p> : null}
               </div>
               {canvasStatus === "connected" ? (
@@ -280,7 +329,7 @@ export function RealIntegrationsClient({
                   <ol className="mt-4 space-y-3 text-[12.5px] leading-relaxed text-ink-2">
                     <li><strong className="text-ink-1">1. Find your Canvas website.</strong> Open Canvas from your school portal or a Canvas course email. Copy the address through the school domain, such as <span className="font-mono text-[11.5px]">https://school.instructure.com</span> or <span className="font-mono text-[11.5px]">https://canvas.school.edu</span>.</li>
                     <li><strong className="text-ink-1">2. Sign in with your school account.</strong> Use the email, username, or student ID your institution requires. Complete school SSO or MFA if prompted.</li>
-                    <li><strong className="text-ink-1">3. Open Account → Settings.</strong> In Canvas's left navigation, select <strong>Account</strong>, then <strong>Settings</strong>.</li>
+                    <li><strong className="text-ink-1">3. Open Account → Settings.</strong> In Canvas&apos;s left navigation, select <strong>Account</strong>, then <strong>Settings</strong>.</li>
                     <li><strong className="text-ink-1">4. Create a token.</strong> Scroll to <strong>Approved Integrations</strong>, choose <strong>+ New Access Token</strong>, enter <strong>3Stone One</strong> as the purpose, choose an expiration date if your school requires one, and select <strong>Generate Token</strong>.</li>
                     <li><strong className="text-ink-1">5. Copy it immediately.</strong> Canvas normally shows the complete token only once. Return here, paste the school URL and token below, then connect.</li>
                   </ol>
@@ -306,7 +355,7 @@ export function RealIntegrationsClient({
                   <p className="text-[14.5px] font-semibold text-ink-1">Wild Apricot</p>
                   <Badge tone={wildApricotStatus === "connected" ? "good" : "neutral"}>{wildApricotStatus === "connected" ? "Connected" : "Not connected"}</Badge>
                 </div>
-                <p className="mt-1 text-[13px] text-ink-2">Uses your Wild Apricot account's own API key. Members populate CRM.</p>
+                <p className="mt-1 text-[13px] text-ink-2">Uses your Wild Apricot account&apos;s own API key. Members populate CRM.</p>
                 {wildApricotConnectedAt ? <p className="mt-1 text-[11.5px] text-ink-3">Connected {new Date(wildApricotConnectedAt).toLocaleDateString()}</p> : null}
               </div>
               {wildApricotStatus === "connected" ? (
@@ -331,7 +380,7 @@ export function RealIntegrationsClient({
                   <ol className="mt-4 space-y-3 text-[12.5px] leading-relaxed text-ink-2">
                     <li><strong className="text-ink-1">1. Log into Wild Apricot</strong> as an administrator.</li>
                     <li><strong className="text-ink-1">2. Open Settings → Authorized applications.</strong></li>
-                    <li><strong className="text-ink-1">3. Click "Authorize application"</strong> and choose <strong>full access</strong> (or the scopes you want 3Stone One to read).</li>
+                    <li><strong className="text-ink-1">3. Click &quot;Authorize application&quot;</strong> and choose <strong>full access</strong> (or the scopes you want 3Stone One to read).</li>
                     <li><strong className="text-ink-1">4. Copy the API key</strong> Wild Apricot shows you, then paste it below.</li>
                   </ol>
                 </div>

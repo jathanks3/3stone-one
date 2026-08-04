@@ -10,6 +10,7 @@ import { disconnectSlack } from "@/server/services/slackIntegrationService";
 import { connectCanvas, disconnectCanvas } from "@/server/services/canvasIntegrationService";
 import { connectWildApricot, disconnectWildApricot } from "@/server/services/wildApricotIntegrationService";
 import { disconnectBasecamp } from "@/server/services/basecampIntegrationService";
+import { connectCustomerAiProvider, disconnectCustomerAiProvider, type CustomerAiProviderName } from "@/server/services/customerAiProviderService";
 
 export interface ActionState {
   error?: string;
@@ -67,7 +68,9 @@ export async function connectCanvasAction(_prev: ActionState, formData: FormData
     await connectCanvas(workspaceId, userId, String(formData.get("baseUrl") ?? ""), String(formData.get("accessToken") ?? ""));
     revalidatePath("/integrations");
     revalidatePath("/calendar");
-    return { success: "Canvas connected. Upcoming assignments now populate Calendar." };
+    revalidatePath("/documents");
+    revalidatePath("/knowledge");
+    return { success: "Canvas connected. Assignments populate Calendar, and course files populate Documents and Knowledge Center." };
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Couldn't connect Canvas." };
   }
@@ -80,9 +83,39 @@ export async function disconnectCanvasAction(_prev: ActionState, _formData: Form
     await disconnectCanvas(workspaceId);
     revalidatePath("/integrations");
     revalidatePath("/calendar");
+    revalidatePath("/documents");
+    revalidatePath("/knowledge");
     return { success: "Canvas disconnected." };
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Couldn't disconnect Canvas." };
+  }
+}
+
+export async function connectCustomerAiAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  try {
+    const { userId, workspaceId } = await currentWorkspaceId();
+    await requireTeamManager(userId, workspaceId);
+    const provider = String(formData.get("provider") ?? "") as CustomerAiProviderName;
+    if (provider !== "openai" && provider !== "anthropic") throw new Error("Unknown AI provider.");
+    await connectCustomerAiProvider(workspaceId, userId, provider, String(formData.get("apiKey") ?? ""));
+    revalidatePath("/integrations");
+    return { success: `${provider === "openai" ? "OpenAI" : "Anthropic"} connected. Its API key will be used before 3Stone's allowance.` };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Couldn't connect that AI provider." };
+  }
+}
+
+export async function disconnectCustomerAiAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  try {
+    const { userId, workspaceId } = await currentWorkspaceId();
+    await requireTeamManager(userId, workspaceId);
+    const provider = String(formData.get("provider") ?? "") as CustomerAiProviderName;
+    if (provider !== "openai" && provider !== "anthropic") throw new Error("Unknown AI provider.");
+    await disconnectCustomerAiProvider(workspaceId, provider);
+    revalidatePath("/integrations");
+    return { success: `${provider === "openai" ? "OpenAI" : "Anthropic"} disconnected.` };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Couldn't disconnect that AI provider." };
   }
 }
 

@@ -8,6 +8,7 @@ import { buildWorkspaceContext } from "@/server/ai/context";
 import { toolsForEdition, buildToolExecutor } from "@/server/ai/assistantTools";
 import { getIndustryProfile } from "@/config/industry-profiles";
 import type { IndustryProfileKey } from "@/types";
+import { getPreferredCustomerAiProvider } from "@/server/services/customerAiProviderService";
 
 // Real AI, included for every real workspace on every edition - no more
 // Student-only paid toggle. What keeps this safe isn't an edition check,
@@ -114,17 +115,20 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "No workspace found." }, { status: 403 });
   }
 
-  if (!isAiProviderConfigured()) {
+  const customerProvider = await getPreferredCustomerAiProvider(membership.workspace.id);
+  if (!customerProvider && !isAiProviderConfigured()) {
     return NextResponse.json({ error: "AI isn't configured yet." }, { status: 503 });
   }
 
-  try {
-    await assertAiCapacity(membership.workspace.id);
-  } catch (err) {
-    if (err instanceof UsageCapError) {
-      return NextResponse.json({ error: err.message }, { status: 402 });
+  if (!customerProvider) {
+    try {
+      await assertAiCapacity(membership.workspace.id);
+    } catch (err) {
+      if (err instanceof UsageCapError) {
+        return NextResponse.json({ error: err.message }, { status: 402 });
+      }
+      throw err;
     }
-    throw err;
   }
 
   const body = await req.json().catch(() => null);
@@ -153,10 +157,27 @@ export async function POST(req: NextRequest) {
     const terms = getIndustryProfile(membership.workspace.industryProfileKey as IndustryProfileKey).terms;
     const tools = toolsForEdition(membership.workspace.editionKey, terms);
     const executeTool = buildToolExecutor(membership.workspace.id, session.userId);
-    const result = await generateChatReply(systemPromptFor(membership.workspace.editionKey, workspaceContext), messages, tools, executeTool);
+    let usedCustomerProvider = Boolean(customerProvider);
+    let result;
+    try {
+      result = await generateChatReply(systemPromptFor(membership.workspace.editionKey, workspaceContext), messages, tools, executeTool, customerProvider ?? undefined);
+    } catch (customerError) {
+      if (!customerProvider || !isAiProviderConfigured()) throw customerError;
+      console.error("[api/ai/assistant] customer provider failed; using 3Stone fallback:", customerError);
+      try {
+        await assertAiCapacity(membership.workspace.id);
+      } catch (capacityError) {
+        if (capacityError instanceof UsageCapError) {
+          return NextResponse.json({ error: `Your connected AI provider could not respond. ${capacityError.message}` }, { status: 402 });
+        }
+        throw capacityError;
+      }
+      usedCustomerProvider = false;
+      result = await generateChatReply(systemPromptFor(membership.workspace.editionKey, workspaceContext), messages, tools, executeTool);
+    }
     // Only a successful, billed call counts against the cap - a failed
     // generation must never cost the customer part of their allowance.
-    await recordAiUsage(membership.workspace.id, session.userId);
+    if (!usedCustomerProvider) await recordAiUsage(membership.workspace.id, session.userId);
     await db.aiConversationMessage.createMany({
       data: [
         { workspaceId: membership.workspace.id, userId: session.userId, role: "user", content: userMessage },

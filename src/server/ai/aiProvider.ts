@@ -10,6 +10,7 @@
 // fallback. This file is the one place that should import the provider
 // SDK directly.
 import Anthropic from "@anthropic-ai/sdk";
+import type { CustomerAiProvider } from "@/server/services/customerAiProviderService";
 
 const MODEL = "claude-sonnet-5";
 
@@ -47,6 +48,10 @@ function getClient(): Anthropic {
   return client;
 }
 
+function getAnthropicClient(provider?: CustomerAiProvider): Anthropic {
+  return provider?.provider === "anthropic" ? new Anthropic({ apiKey: provider.apiKey }) : getClient();
+}
+
 function extractText(content: Anthropic.ContentBlock[]): string {
   return content
     .filter((block): block is Anthropic.TextBlock => block.type === "text")
@@ -64,15 +69,21 @@ export async function generateChatReply(
   systemPrompt: string,
   messages: AiChatMessage[],
   tools: AiTool[] = [],
-  executeTool?: AiToolExecutor
+  executeTool?: AiToolExecutor,
+  provider?: CustomerAiProvider
 ): Promise<AiTextResult> {
-  if (!isAiProviderConfigured()) {
+  if (!provider && !isAiProviderConfigured()) {
     return { text: "", real: false };
   }
+  if (provider?.provider === "openai") {
+    return generateOpenAiReply(systemPrompt, messages, tools, executeTool, provider);
+  }
   const anthropicMessages: Anthropic.MessageParam[] = messages.map((m) => ({ role: m.role, content: m.content }));
+  const anthropicClient = getAnthropicClient(provider);
+  const model = provider?.model ?? MODEL;
 
-  const first = await getClient().messages.create({
-    model: MODEL,
+  const first = await anthropicClient.messages.create({
+    model,
     system: systemPrompt,
     messages: anthropicMessages,
     ...(tools.length ? { tools } : {}),
@@ -99,8 +110,8 @@ export async function generateChatReply(
     })
   );
 
-  const second = await getClient().messages.create({
-    model: MODEL,
+  const second = await anthropicClient.messages.create({
+    model,
     system: systemPrompt,
     messages: [
       ...anthropicMessages,
@@ -110,4 +121,60 @@ export async function generateChatReply(
     max_tokens: 1024,
   });
   return { text: extractText(second.content), real: true };
+}
+
+type OpenAiToolCall = { id: string; type: "function"; function: { name: string; arguments: string } };
+type OpenAiMessage = { content?: string | null; tool_calls?: OpenAiToolCall[] };
+type OpenAiResponse = { choices?: Array<{ message?: OpenAiMessage }> ; error?: { message?: string } };
+
+async function openAiRequest(apiKey: string, body: Record<string, unknown>): Promise<OpenAiResponse> {
+  const response = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+    cache: "no-store",
+  });
+  const json = await response.json().catch(() => ({})) as OpenAiResponse;
+  if (!response.ok) throw new Error(json.error?.message ?? `OpenAI request failed (${response.status}).`);
+  return json;
+}
+
+async function generateOpenAiReply(
+  systemPrompt: string,
+  messages: AiChatMessage[],
+  tools: AiTool[],
+  executeTool: AiToolExecutor | undefined,
+  provider: CustomerAiProvider
+): Promise<AiTextResult> {
+  const openAiTools = tools.map((tool) => ({
+    type: "function" as const,
+    function: { name: tool.name, description: tool.description, parameters: tool.input_schema },
+  }));
+  const chatMessages: Array<Record<string, unknown>> = [{ role: "system", content: systemPrompt }, ...messages];
+  const first = await openAiRequest(provider.apiKey, {
+    model: provider.model,
+    messages: chatMessages,
+    ...(openAiTools.length ? { tools: openAiTools } : {}),
+    max_completion_tokens: 1024,
+  });
+  const assistant = first.choices?.[0]?.message;
+  if (!assistant) throw new Error("OpenAI returned no assistant message.");
+  const toolCalls = assistant.tool_calls ?? [];
+  if (!toolCalls.length || !executeTool) return { text: assistant.content ?? "", real: true };
+
+  chatMessages.push({ role: "assistant", content: assistant.content ?? null, tool_calls: toolCalls });
+  for (const call of toolCalls) {
+    let input: Record<string, unknown> = {};
+    try { input = JSON.parse(call.function.arguments) as Record<string, unknown>; } catch { /* The executor will receive an empty object and validate it. */ }
+    let content: string;
+    try { content = await executeTool(call.function.name, input); }
+    catch (err) { content = `Failed: ${err instanceof Error ? err.message : "something went wrong."}`; }
+    chatMessages.push({ role: "tool", tool_call_id: call.id, content });
+  }
+  const second = await openAiRequest(provider.apiKey, {
+    model: provider.model,
+    messages: chatMessages,
+    max_completion_tokens: 1024,
+  });
+  return { text: second.choices?.[0]?.message?.content ?? "", real: true };
 }
