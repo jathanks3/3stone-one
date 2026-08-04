@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { FolderOpen } from "lucide-react";
 import { Button } from "@/ui/Button";
@@ -67,21 +67,38 @@ function loadPickerLibrary(): Promise<void> {
 
 export function GoogleDrivePickerButton({ clientId, apiKey, appId }: { clientId: string; apiKey: string; appId: string }) {
   const [pending, setPending] = useState(false);
+  const [ready, setReady] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const router = useRouter();
   const { showToast } = useToast();
+
+  useEffect(() => {
+    let active = true;
+    loadGooglePickerScripts()
+      .then(loadPickerLibrary)
+      .then(() => { if (active) setReady(true); })
+      .catch((error) => {
+        if (active) setLoadError(error instanceof Error ? error.message : "Google Picker couldn't load.");
+      });
+    return () => { active = false; };
+  }, []);
 
   async function chooseFiles() {
     setPending(true);
     try {
-      await loadGooglePickerScripts();
-      await loadPickerLibrary();
+      if (loadError) throw new Error(loadError);
+      if (!ready) throw new Error("Google Picker is still loading. Try again in a moment.");
       const google = window.google;
       if (!google) throw new Error("Google Picker isn't available.");
       const token = await new Promise<string>((resolve, reject) => {
+        const timeout = window.setTimeout(() => reject(new Error("Google authorization didn't open. Check that pop-ups are allowed, then try again.")), 15_000);
         const client = google.accounts.oauth2.initTokenClient({
           client_id: clientId,
           scope: "https://www.googleapis.com/auth/drive.file",
-          callback: (response) => response.access_token ? resolve(response.access_token) : reject(new Error(response.error ?? "Google authorization was cancelled.")),
+          callback: (response) => {
+            window.clearTimeout(timeout);
+            response.access_token ? resolve(response.access_token) : reject(new Error(response.error ?? "Google authorization was cancelled."));
+          },
         });
         client.requestAccessToken({ prompt: "" });
       });
@@ -117,5 +134,5 @@ export function GoogleDrivePickerButton({ clientId, apiKey, appId }: { clientId:
     }
   }
 
-  return <Button type="button" variant="secondary" onClick={chooseFiles} disabled={pending}><FolderOpen size={14} />{pending ? "Opening…" : "Choose Drive files"}</Button>;
+  return <Button type="button" variant="secondary" onClick={chooseFiles} disabled={pending || !ready || Boolean(loadError)} title={loadError ?? undefined}><FolderOpen size={14} />{loadError ? "Picker unavailable" : pending ? "Opening…" : ready ? "Choose Drive files" : "Loading Google Picker…"}</Button>;
 }
