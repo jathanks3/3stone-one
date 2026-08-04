@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { getSession } from "@/lib/session";
+import { db } from "@/server/db";
 import { getActiveWorkspaceIdForUser } from "@/server/services/onboardingService";
 import { requireTeamManager } from "@/server/services/teamService";
 import { disconnectGoogle } from "@/server/services/googleIntegrationService";
@@ -25,6 +26,11 @@ async function currentWorkspaceId(): Promise<{ userId: string; workspaceId: stri
   const workspaceId = await getActiveWorkspaceIdForUser(session.userId);
   if (!workspaceId) throw new Error("No workspace.");
   return { userId: session.userId, workspaceId };
+}
+
+async function requireEdition(workspaceId: string, allowed: string[]): Promise<void> {
+  const workspace = await db.workspace.findUnique({ where: { id: workspaceId }, select: { editionKey: true } });
+  if (!workspace || !allowed.includes(workspace.editionKey)) throw new Error("That integration isn't offered for this edition.");
 }
 
 export async function disconnectGoogleAction(_prev: ActionState, _formData: FormData): Promise<ActionState> {
@@ -67,6 +73,7 @@ export async function connectCanvasAction(_prev: ActionState, formData: FormData
   try {
     const { userId, workspaceId } = await currentWorkspaceId();
     await requireTeamManager(userId, workspaceId);
+    await requireEdition(workspaceId, ["student"]);
     await connectCanvas(workspaceId, userId, String(formData.get("baseUrl") ?? ""), String(formData.get("accessToken") ?? ""));
     revalidatePath("/integrations");
     revalidatePath("/calendar");
@@ -125,6 +132,7 @@ export async function connectWildApricotAction(_prev: ActionState, formData: For
   try {
     const { userId, workspaceId } = await currentWorkspaceId();
     await requireTeamManager(userId, workspaceId);
+    await requireEdition(workspaceId, ["workspace"]);
     await connectWildApricot(workspaceId, userId, String(formData.get("apiKey") ?? ""));
     revalidatePath("/integrations");
     revalidatePath("/crm");

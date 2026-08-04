@@ -18,11 +18,14 @@ export async function GET(req: Request) {
 
   const membership = await db.workspaceMember.findFirst({
     where: { userId: session.userId, status: "active" },
-    select: { workspaceId: true },
+    select: { workspaceId: true, workspace: { select: { editionKey: true } } },
     orderBy: { joinedAt: "asc" },
   });
   if (!membership) {
     return NextResponse.redirect(new URL("/login", req.url));
+  }
+  if (membership.workspace.editionKey !== "workspace") {
+    return NextResponse.redirect(new URL("/integrations?error=not_available", req.url));
   }
 
   try {

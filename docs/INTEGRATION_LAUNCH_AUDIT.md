@@ -14,6 +14,8 @@ This file distinguishes working connector code from catalog plans and external a
 | Canvas | School URL plus personal token | Calendar assignments, grades/GPA, Documents, Knowledge | Durable customer token | Local removal | Some schools disable personal API tokens |
 | Wild Apricot | Customer API key | CRM contacts | Fresh short-lived API token per sync | Local removal | Customer must create an API key |
 | Basecamp | OAuth | Projects | Refresh-token rotation | Local removal | Founder must register the OAuth app and configure credentials |
+| Monday.com | OAuth | Projects and AI context | Durable customer token | Local token removal | Customer must authorize the 3Stone One Monday app |
+| Salesforce | OAuth | CRM accounts, contacts, opportunities, and AI context | Refresh-token rotation | Local token removal | Customer must authorize the 3Stone One Salesforce app |
 | OpenAI API | Customer API key | 3Stone AI provider routing | Key reused while connected | Local removal | Customer API billing must be enabled |
 | Anthropic API | Customer API key | 3Stone AI provider routing | Key reused while connected | Local removal | Customer API billing must be enabled |
 
@@ -36,11 +38,9 @@ These catalog entries do not have a customer connect/callback/data-sync path in 
 | Housecall Pro | Planned; partner access and sync are not implemented |
 | ServiceTitan | Vendor approval and connector implementation required |
 | HubSpot | Planned; OAuth and CRM sync are not implemented |
-| Salesforce | Planned; OAuth and CRM sync are not implemented |
 | Mailchimp | Planned; OAuth/API audience sync is not implemented |
 | DocuSign | Planned; OAuth and envelope-status sync are not implemented |
 | Dropbox Sign | Planned; OAuth and signature-status sync are not implemented |
-| Monday.com | Planned; OAuth and board sync are not implemented |
 | Asana | Planned; OAuth and project/task sync are not implemented |
 | Notion | Planned; OAuth and page/database sync are not implemented |
 | Acuity Scheduling | Planned; OAuth and appointment sync are not implemented |
