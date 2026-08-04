@@ -161,6 +161,30 @@ function IntegrationCard({
   );
 }
 
+function JobTrackingCard({ name, blurb, approvalRequired = false }: { name: string; blurb: string; approvalRequired?: boolean }) {
+  return (
+    <Card className="p-5">
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex items-start gap-3">
+          <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-[10px] bg-surface-raised">
+            <Plug size={18} className="text-ink-2" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <p className="text-[14.5px] font-semibold text-ink-1">{name}</p>
+              <Badge tone={approvalRequired ? "neutral" : "good"}>{approvalRequired ? "Manual tracking available" : "Available now"}</Badge>
+            </div>
+            <p className="mt-1 text-[13px] text-ink-2">{blurb}</p>
+          </div>
+        </div>
+        <a href="/job-tracker">
+          <Button type="button" variant="primary">Track application</Button>
+        </a>
+      </div>
+    </Card>
+  );
+}
+
 export function RealIntegrationsClient({
   googleConfigured,
   googleStatus,
@@ -287,6 +311,14 @@ export function RealIntegrationsClient({
           events={editionKey === "student" ? null : microsoftEvents}
           eventsLabel="Next on your Outlook Calendar"
         />
+        {editionKey === "student" ? (
+          <>
+            <JobTrackingCard name="LinkedIn Jobs" blurb="Save a LinkedIn job or internship link and track it through Saved, Applied, Interviewing, Offer or Rejected." />
+            <JobTrackingCard name="Indeed" blurb="Save an Indeed listing and manage the application in your Internship & Job Tracker." />
+            <JobTrackingCard name="Handshake" approvalRequired blurb="Track Handshake listings now. Automatic school data sync requires institution-approved API access." />
+            <JobTrackingCard name="12twenty Law Careers" approvalRequired blurb="Track 12twenty listings now. Automatic law-school data sync requires institution-issued API access." />
+          </>
+        ) : null}
         {catalog.some((item) => item.key === "slack") ? (
           <IntegrationCard
             name="Slack"
