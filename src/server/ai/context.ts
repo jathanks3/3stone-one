@@ -17,6 +17,7 @@ import { listActivity } from "@/server/services/activityService";
 import { db } from "@/server/db";
 import { integrationsForEdition } from "@/lib/integrationCatalog";
 import { getRecentGoogleDriveFiles } from "@/server/services/googleIntegrationService";
+import { listMondayBoards } from "@/server/services/mondayIntegrationService";
 
 // Real, current data from this workspace, assembled fresh on every
 // message so the assistant can actually answer "what's on my calendar"
@@ -91,6 +92,12 @@ export async function buildWorkspaceContext(workspaceId: string, editionKey: str
         });
         sections.push(`Projects and open tasks:\n${lines.join("\n")}`);
       })
+    );
+    tasks.push(
+      listMondayBoards(workspaceId).then((boards) => {
+        if (!boards.length) return;
+        sections.push(`Monday.com boards (read-only):\n${boards.slice(0, 30).map((board) => `- ${board.name}${board.workspaceName ? ` (${board.workspaceName})` : ""}${board.description ? `: ${board.description.slice(0, 180).replace(/\\s+/g, " ")}` : ""}`).join("\n")}`);
+      }).catch(() => undefined)
     );
   }
 

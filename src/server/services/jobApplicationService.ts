@@ -25,7 +25,7 @@ export async function createJobApplication(workspaceId: string, studentId: strin
   const trimmedCompany = company.trim();
   const trimmedRole = role.trim();
   if (!trimmedCompany || !trimmedRole) throw new Error("Company and role are required.");
-  const normalizedSource = ["manual", "linkedin", "handshake", "12twenty", "company_site", "other"].includes(source) ? source : "other";
+  const normalizedSource = ["manual", "linkedin", "indeed", "handshake", "12twenty", "company_site", "other"].includes(source) ? source : "other";
   const normalizedUrl = sourceUrl.trim();
   if (normalizedUrl && !/^https?:\/\//i.test(normalizedUrl)) throw new Error("The job link must start with http:// or https://.");
   const application = await db.jobApplication.create({

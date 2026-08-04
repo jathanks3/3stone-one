@@ -10,6 +10,7 @@ import { isSlackIntegrationConfigured, listSlackChannels } from "@/server/servic
 import { isBasecampIntegrationConfigured, listBasecampProjects } from "@/server/services/basecampIntegrationService";
 import { listCanvasAssignments } from "@/server/services/canvasIntegrationService";
 import { listWildApricotContacts } from "@/server/services/wildApricotIntegrationService";
+import { isMondayIntegrationConfigured, listMondayBoards } from "@/server/services/mondayIntegrationService";
 
 export const metadata: Metadata = { title: "Integrations — 3Stone One" };
 
@@ -24,24 +25,26 @@ export default async function IntegrationsPage() {
     return <IntegrationsClient />;
   }
 
-  const [google, microsoft, slack, canvas, wildApricot, basecamp, openai, anthropic] = await Promise.all([
+  const [google, microsoft, slack, canvas, wildApricot, basecamp, monday, openai, anthropic] = await Promise.all([
     db.integration.findUnique({ where: { workspaceId_provider: { workspaceId, provider: "google" } } }),
     db.integration.findUnique({ where: { workspaceId_provider: { workspaceId, provider: "microsoft" } } }),
     db.integration.findUnique({ where: { workspaceId_provider: { workspaceId, provider: "slack" } } }),
     db.integration.findUnique({ where: { workspaceId_provider: { workspaceId, provider: "canvas" } } }),
     db.integration.findUnique({ where: { workspaceId_provider: { workspaceId, provider: "wildapricot" } } }),
     db.integration.findUnique({ where: { workspaceId_provider: { workspaceId, provider: "basecamp" } } }),
+    db.integration.findUnique({ where: { workspaceId_provider: { workspaceId, provider: "monday" } } }),
     db.integration.findUnique({ where: { workspaceId_provider: { workspaceId, provider: "ai_openai" } } }),
     db.integration.findUnique({ where: { workspaceId_provider: { workspaceId, provider: "ai_anthropic" } } }),
   ]);
   const workspace = await db.workspace.findUnique({ where: { id: workspaceId }, select: { editionKey: true } });
-  const [googleEvents, microsoftEvents, slackProbe, canvasProbe, wildApricotProbe, basecampProbe] = await Promise.all([
+  const [googleEvents, microsoftEvents, slackProbe, canvasProbe, wildApricotProbe, basecampProbe, mondayProbe] = await Promise.all([
     google?.status === "connected" ? getUpcomingGoogleCalendarEvents(workspaceId).catch(() => null) : Promise.resolve(null),
     microsoft?.status === "connected" ? getUpcomingOutlookEvents(workspaceId).catch(() => null) : Promise.resolve(null),
     slack?.status === "connected" ? listSlackChannels(workspaceId).then(() => true).catch(() => false) : Promise.resolve(null),
     canvas?.status === "connected" ? listCanvasAssignments(workspaceId).then(() => true).catch(() => false) : Promise.resolve(null),
     wildApricot?.status === "connected" ? listWildApricotContacts(workspaceId).then(() => true).catch(() => false) : Promise.resolve(null),
     basecamp?.status === "connected" ? listBasecampProjects(workspaceId).then(() => true).catch(() => false) : Promise.resolve(null),
+    monday?.status === "connected" ? listMondayBoards(workspaceId).then(() => true).catch(() => false) : Promise.resolve(null),
   ]);
 
   return (
@@ -65,6 +68,9 @@ export default async function IntegrationsPage() {
       basecampConfigured={isBasecampIntegrationConfigured()}
       basecampStatus={basecamp?.status === "connected" && basecampProbe === false ? "error" : basecamp?.status ?? "not_connected"}
       basecampConnectedAt={basecamp?.connectedAt?.toISOString() ?? null}
+      mondayConfigured={isMondayIntegrationConfigured()}
+      mondayStatus={monday?.status === "connected" && mondayProbe === false ? "error" : monday?.status ?? "not_connected"}
+      mondayConnectedAt={monday?.connectedAt?.toISOString() ?? null}
       openaiStatus={openai?.status ?? "not_connected"}
       openaiConnectedAt={openai?.connectedAt?.toISOString() ?? null}
       anthropicStatus={anthropic?.status ?? "not_connected"}

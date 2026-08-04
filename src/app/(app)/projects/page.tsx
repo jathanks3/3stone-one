@@ -7,6 +7,7 @@ import { listProjects } from "@/server/services/projectService";
 import { db } from "@/server/db";
 import { listBasecampProjects } from "@/server/services/basecampIntegrationService";
 import { listCanvasAssignments } from "@/server/services/canvasIntegrationService";
+import { listMondayBoards } from "@/server/services/mondayIntegrationService";
 
 export const metadata: Metadata = { title: "Projects — 3Stone One" };
 export const dynamic = "force-dynamic";
@@ -16,14 +17,17 @@ export default async function ProjectsPage() {
   if (session && !session.isDemo) {
     const workspaceId = await getActiveWorkspaceIdForUser(session.userId);
     const projects = workspaceId ? await listProjects(workspaceId) : [];
-    const [basecamp, canvas] = workspaceId ? await Promise.all([
+    const [basecamp, canvas, monday] = workspaceId ? await Promise.all([
       db.integration.findUnique({ where: { workspaceId_provider: { workspaceId, provider: "basecamp" } } }),
       db.integration.findUnique({ where: { workspaceId_provider: { workspaceId, provider: "canvas" } } }),
-    ]) : [null, null];
+      db.integration.findUnique({ where: { workspaceId_provider: { workspaceId, provider: "monday" } } }),
+    ]) : [null, null, null];
     const basecampProjects =
       workspaceId && basecamp?.status === "connected" ? await listBasecampProjects(workspaceId).catch(() => []) : [];
     const canvasAssignments =
       workspaceId && canvas?.status === "connected" ? await listCanvasAssignments(workspaceId).catch(() => []) : [];
+    const mondayBoards =
+      workspaceId && monday?.status === "connected" ? await listMondayBoards(workspaceId).catch(() => []) : [];
     return (
       <RealProjectsClient
         initialProjects={projects}
@@ -31,6 +35,8 @@ export default async function ProjectsPage() {
         basecampProjects={basecampProjects}
         canvasConnected={canvas?.status === "connected"}
         canvasAssignments={canvasAssignments}
+        mondayConnected={monday?.status === "connected"}
+        mondayBoards={mondayBoards}
       />
     );
   }

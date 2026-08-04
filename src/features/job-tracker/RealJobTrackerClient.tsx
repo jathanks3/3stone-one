@@ -125,6 +125,7 @@ export function RealJobTrackerClient({ initialApplications }: { initialApplicati
               <select name="source" value={source} onChange={(e) => setSource(e.target.value)} className="mt-1 h-9 w-full rounded-[8px] border border-line-strong bg-bg px-3 text-[13.5px] text-ink-1 outline-none focus:border-accent">
                 <option value="manual">Manual</option>
                 <option value="linkedin">LinkedIn</option>
+                <option value="indeed">Indeed</option>
                 <option value="handshake">Handshake</option>
                 <option value="12twenty">12twenty (law careers)</option>
                 <option value="company_site">Company site</option>

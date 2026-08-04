@@ -25,6 +25,7 @@ import {
 } from "@/app/(app)/projects/actions";
 import type { ProjectRow, ProjectStatusKey } from "@/server/services/projectService";
 import type { CanvasAssignment } from "@/server/services/canvasIntegrationService";
+import type { MondayBoard } from "@/server/services/mondayIntegrationService";
 
 // Duplicated from projectService.ts (not re-imported) - that file also
 // pulls in the Prisma/pg client, which would otherwise leak an
@@ -47,12 +48,16 @@ export function RealProjectsClient({
   basecampProjects = [],
   canvasConnected = false,
   canvasAssignments = [],
+  mondayConnected = false,
+  mondayBoards = [],
 }: {
   initialProjects: ProjectRow[];
   basecampConnected?: boolean;
   basecampProjects?: BasecampProject[];
   canvasConnected?: boolean;
   canvasAssignments?: CanvasAssignment[];
+  mondayConnected?: boolean;
+  mondayBoards?: MondayBoard[];
 }) {
   const { profile } = useIndustry();
   const [projects, setProjects] = useState<ProjectRow[]>(initialProjects);
@@ -199,6 +204,28 @@ export function RealProjectsClient({
             </div>
           )}
         </div>
+      ) : null}
+
+      {mondayConnected ? (
+        <section className="mt-8">
+          <div className="mb-3">
+            <h2 className="text-[16px] font-semibold text-ink-1">Monday.com boards</h2>
+            <p className="mt-0.5 text-[12.5px] text-ink-3">Boards load live from Monday and stay read-only in 3Stone One.</p>
+          </div>
+          {mondayBoards.length === 0 ? (
+            <div className="rounded-[12px] border border-line bg-surface p-4 text-[13px] text-ink-3">Monday.com is connected, but no accessible boards were returned.</div>
+          ) : (
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              {mondayBoards.map((board) => (
+                <div key={board.id} className="rounded-xl border border-line bg-surface p-3">
+                  <div className="flex items-start justify-between gap-3"><p className="text-[13.5px] font-semibold text-ink-1">{board.name}</p><Badge tone="accent">Monday</Badge></div>
+                  {board.workspaceName ? <p className="mt-1 text-[11.5px] text-ink-3">{board.workspaceName}</p> : null}
+                  {board.description ? <p className="mt-2 line-clamp-3 text-[12px] text-ink-2">{board.description}</p> : null}
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
       ) : null}
 
       <DetailPanel open={creating} onClose={() => setCreating(false)} title={`New ${profile.terms.project.toLowerCase()}`}>

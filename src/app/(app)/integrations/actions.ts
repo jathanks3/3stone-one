@@ -10,6 +10,7 @@ import { disconnectSlack } from "@/server/services/slackIntegrationService";
 import { connectCanvas, disconnectCanvas } from "@/server/services/canvasIntegrationService";
 import { connectWildApricot, disconnectWildApricot } from "@/server/services/wildApricotIntegrationService";
 import { disconnectBasecamp } from "@/server/services/basecampIntegrationService";
+import { disconnectMonday } from "@/server/services/mondayIntegrationService";
 import { connectCustomerAiProvider, disconnectCustomerAiProvider, type CustomerAiProviderName } from "@/server/services/customerAiProviderService";
 
 export interface ActionState {
@@ -155,5 +156,18 @@ export async function disconnectBasecampAction(_prev: ActionState, _formData: Fo
     return { success: "Basecamp disconnected." };
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Couldn't disconnect Basecamp." };
+  }
+}
+
+export async function disconnectMondayAction(_prev: ActionState, _formData: FormData): Promise<ActionState> {
+  try {
+    const { userId, workspaceId } = await currentWorkspaceId();
+    await requireTeamManager(userId, workspaceId);
+    await disconnectMonday(workspaceId);
+    revalidatePath("/integrations");
+    revalidatePath("/projects");
+    return { success: "Monday.com disconnected." };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Couldn't disconnect Monday.com." };
   }
 }

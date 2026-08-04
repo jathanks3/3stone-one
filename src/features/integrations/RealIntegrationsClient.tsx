@@ -16,6 +16,7 @@ import {
   connectWildApricotAction,
   disconnectWildApricotAction,
   disconnectBasecampAction,
+  disconnectMondayAction,
   connectCustomerAiAction,
   disconnectCustomerAiAction,
   type ActionState,
@@ -179,6 +180,9 @@ export function RealIntegrationsClient({
   basecampConfigured,
   basecampStatus,
   basecampConnectedAt,
+  mondayConfigured,
+  mondayStatus,
+  mondayConnectedAt,
   openaiStatus,
   openaiConnectedAt,
   anthropicStatus,
@@ -203,6 +207,9 @@ export function RealIntegrationsClient({
   basecampConfigured: boolean;
   basecampStatus: Status;
   basecampConnectedAt: string | null;
+  mondayConfigured: boolean;
+  mondayStatus: Status;
+  mondayConnectedAt: string | null;
   openaiStatus: Status;
   openaiConnectedAt: string | null;
   anthropicStatus: Status;
@@ -231,6 +238,8 @@ export function RealIntegrationsClient({
       showToast({ title: "Slack connected", description: "Your Slack workspace is now linked." });
     } else if (connected === "basecamp") {
       showToast({ title: "Basecamp connected", description: "Your Basecamp projects are now linked." });
+    } else if (connected === "monday") {
+      showToast({ title: "Monday.com connected", description: "Your Monday boards now populate Projects and can ground AI answers." });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -295,6 +304,19 @@ export function RealIntegrationsClient({
             configured={basecampConfigured}
             connectHref="/api/integrations/basecamp/connect"
             disconnectAction={disconnectBasecampAction}
+            events={null}
+            eventsLabel=""
+          />
+        ) : null}
+        {catalog.some((item) => item.key === "monday") ? (
+          <IntegrationCard
+            name="Monday.com"
+            blurb="Read-only Monday boards populate Projects and give the AI assistant current board context. Changes remain controlled in Monday."
+            status={mondayStatus}
+            connectedAt={mondayConnectedAt}
+            configured={mondayConfigured}
+            connectHref="/api/integrations/monday/connect"
+            disconnectAction={disconnectMondayAction}
             events={null}
             eventsLabel=""
           />
