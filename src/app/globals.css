@@ -473,6 +473,65 @@ html[data-reduced-motion="true"] *::after {
   filter: blur(6px);
 }
 
+@keyframes ai-codex-turn {
+  0%, 100% { transform: rotate(0deg) scale(1); }
+  50% { transform: rotate(60deg) scale(1.06); }
+}
+
+@keyframes ai-codex-weave {
+  0%, 100% { stroke-dashoffset: 0; opacity: 0.9; }
+  50% { stroke-dashoffset: 18; opacity: 1; }
+}
+
+.ai-codex-emblem {
+  overflow: visible;
+  filter: drop-shadow(0 0 7px color-mix(in srgb, currentColor 45%, transparent));
+  animation: ai-codex-turn 9s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.ai-codex-emblem-core {
+  transform-origin: center;
+  stroke-dasharray: 28 8;
+  animation: ai-codex-weave 4.5s ease-in-out infinite;
+}
+
+@keyframes ai-companion-float {
+  0%, 100% { transform: translateY(0) rotate(-1deg); }
+  50% { transform: translateY(-8px) rotate(1.5deg); }
+}
+
+@keyframes ai-companion-listen {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-3px) scale(1.035); }
+}
+
+.ai-companion-float {
+  animation: ai-companion-float 3.2s ease-in-out infinite;
+}
+
+.ai-companion-listening {
+  animation: ai-companion-listen 1.8s ease-in-out infinite;
+}
+
+@keyframes ai-companion-wink {
+  0%, 42%, 49%, 100% { opacity: 0; }
+  44%, 47% { opacity: 1; }
+}
+
+.ai-companion-wink-frame {
+  opacity: 0;
+  animation: ai-companion-wink 9s steps(1, end) infinite;
+}
+
+@keyframes ai-tip-arrive {
+  from { opacity: 0; transform: translateY(8px) scale(0.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.ai-tip-bubble {
+  animation: ai-tip-arrive 220ms ease-out both;
+}
+
 /* Both eyes blink together at the top of every 8s cycle (an ordinary
    blink), then at the midpoint only the left eye closes while the right
    stays open - that's the wink. transform-box/transform-origin are

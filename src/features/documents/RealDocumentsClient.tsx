@@ -12,6 +12,7 @@ import { Button } from "@/ui/Button";
 import { Card } from "@/ui/Card";
 import { useToast } from "@/lib/toast";
 import { createDocumentAction, deleteDocumentAction, setDocumentVisibilityAction, getOneDrivePreviewUrlAction } from "@/app/(app)/documents/actions";
+import { askAssistant } from "@/lib/assistantBus";
 import type { DocumentRow } from "@/server/services/documentService";
 import type { OneDriveFile } from "@/server/services/microsoftIntegrationService";
 import type { GoogleDriveFile } from "@/server/services/googleIntegrationService";
@@ -54,6 +55,10 @@ export function RealDocumentsClient({
   // of edition.
   const sharedLabel = `Shared with ${profile.terms.customer}`;
   const shareActionLabel = `Share with ${profile.terms.customer}`;
+
+  function askAboutFile(name: string) {
+    askAssistant(`Help me work with the file "${name}". Use any file metadata or content available to you. If you cannot read the file body, tell me clearly and ask me to open it or paste the relevant text instead of guessing.`);
+  }
 
   // In-app preview for read-only integration files (OneDrive/Drive/Canvas)
   // - these were previously only ever a plain "opens a new tab" link.
@@ -331,6 +336,9 @@ export function RealDocumentsClient({
               <Button variant="secondary" disabled={isPending} onClick={() => handleDelete(selected)}>
                 Delete
               </Button>
+              <Button variant="secondary" onClick={() => askAboutFile(selected.name)}>
+                Ask 3Stone AI
+              </Button>
             </div>
           </div>
         ) : null}
@@ -345,6 +353,9 @@ export function RealDocumentsClient({
             <a href={previewFile.externalUrl} target="_blank" rel="noreferrer" className="w-fit text-[12.5px] font-medium text-accent hover:underline">
               Open in the original app instead
             </a>
+            <Button variant="secondary" onClick={() => askAboutFile(previewFile.name)} className="w-fit">
+              Ask 3Stone AI about this file
+            </Button>
           </div>
         ) : null}
       </DetailPanel>

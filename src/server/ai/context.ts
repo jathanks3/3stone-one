@@ -15,6 +15,7 @@ import { listInboxMessages } from "@/server/services/inboxService";
 import { listDirectory } from "@/server/services/peopleService";
 import { listActivity } from "@/server/services/activityService";
 import { db } from "@/server/db";
+import { integrationsForEdition } from "@/lib/integrationCatalog";
 
 // Real, current data from this workspace, assembled fresh on every
 // message so the assistant can actually answer "what's on my calendar"
@@ -47,6 +48,14 @@ export async function buildWorkspaceContext(workspaceId: string, editionKey: str
   const sections: string[] = [];
   const now = new Date();
   sections.push(`Today is ${now.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}.`);
+  const integrationOptions = integrationsForEdition(editionKey);
+  if (integrationOptions.length) {
+    sections.push(
+      `Integration options for this edition (respect readiness; never claim an unfinished connector is live):\n${integrationOptions
+        .map((item) => `- ${item.name} [${item.readiness}] → ${item.destinations.map((destination) => destination.label).join(", ")}`)
+        .join("\n")}`
+    );
+  }
 
   const tasks: Promise<void>[] = [];
 
@@ -113,14 +122,14 @@ export async function buildWorkspaceContext(workspaceId: string, editionKey: str
     tasks.push(
       Promise.all([listDocuments(workspaceId), listCanvasCourseMaterials(workspaceId).catch(() => [])]).then(([docs, canvasMaterials]) => {
         const lines: string[] = [];
-        if (docs.length) lines.push(...docs.slice(0, 20).map((d) => `- ${d.name}`));
+        if (docs.length) lines.push(...docs.slice(0, 20).map((d) => `- ${d.name} (${d.mimeType}, ${d.sizeBytes} bytes) [workspace upload]`));
         if (canvasMaterials.length) {
           lines.push(
             ...canvasMaterials.slice(0, 20).map((m) => `- ${m.displayName} (${m.courseName}) [from Canvas]`)
           );
         }
         if (!lines.length) return;
-        sections.push(`Documents and course materials on file (names only):\n${lines.join("\n")}`);
+        sections.push(`Documents and course materials available. Metadata is included; if the file body is not present in this snapshot, ask the user to open it or paste the relevant text rather than inventing its contents:\n${lines.join("\n")}`);
       })
     );
   }

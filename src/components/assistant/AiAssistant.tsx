@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { usePathname } from "next/navigation";
+import Image from "next/image";
 import { Sparkles, X, ArrowUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useIndustry } from "@/lib/industry";
@@ -94,17 +95,94 @@ function realSessionHint(editionKey: string): string {
 // Appearance). Icon/face size scales with the button so it never looks
 // like a tiny icon adrift in a big circle.
 const BUTTON_SIZE: Record<"large" | "compact", number> = { large: 84, compact: 52 };
-const ICON_SIZE: Record<"large" | "compact", number> = { large: 34, compact: 22 };
-const FACE_SIZE: Record<"large" | "compact", number> = { large: 42, compact: 27 };
+
+const PROACTIVE_TIPS: Record<string, string[]> = {
+  student: [
+    "Study for your next exam with one focused 25-minute session.",
+    "Check what is due this week before starting something new.",
+    "Upload your class notes and ask me to turn them into a study guide.",
+    "Pick your hardest assignment and break it into three small steps.",
+  ],
+  workspace: [
+    "Review your next deadline before starting a new task.",
+    "Upload a file and ask me for a quick summary.",
+    "Turn your next meeting into a short agenda before it starts.",
+    "Check which project needs a follow-up today.",
+  ],
+  business: [
+    "Check overdue invoices before the day gets busy.",
+    "Review today's calendar and flag anything that needs preparation.",
+    "Ask me which project or customer needs attention first.",
+    "Upload a document and let me pull out the next actions.",
+  ],
+};
 
 export function AiAssistant() {
   const [open, setOpen] = useState(false);
   const [pendingPrompt, setPendingPrompt] = useState<string | null>(null);
-  const { isDemo } = useIndustry();
+  const [proactiveTip, setProactiveTip] = useState<string | null>(null);
+  const { editionKey } = useIndustry();
   const { assistantSize } = useAssistantSize();
   const buttonSize = BUTTON_SIZE[assistantSize];
-  const iconSize = ICON_SIZE[assistantSize];
-  const faceSize = FACE_SIZE[assistantSize];
+  const [position, setPosition] = useState<{ x: number; y: number } | null>(null);
+  const dragRef = useRef<{ pointerId: number; startX: number; startY: number; offsetX: number; offsetY: number; moved: boolean } | null>(null);
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      const saved = window.localStorage.getItem("3stone-ai-position");
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved) as { x: number; y: number };
+          setPosition({
+            x: Math.max(8, Math.min(window.innerWidth - buttonSize - 8, parsed.x)),
+            y: Math.max(8, Math.min(window.innerHeight - buttonSize - 8, parsed.y)),
+          });
+          return;
+        } catch {
+          // Fall through to the edition-safe bottom-right default.
+        }
+      }
+      setPosition({ x: window.innerWidth - buttonSize - 24, y: window.innerHeight - buttonSize - 24 });
+    }, 0);
+    return () => window.clearTimeout(timeoutId);
+  }, [buttonSize]);
+
+  function beginDrag(event: ReactPointerEvent<HTMLDivElement>) {
+    if (!position) return;
+    dragRef.current = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      offsetX: event.clientX - position.x,
+      offsetY: event.clientY - position.y,
+      moved: false,
+    };
+    event.currentTarget.setPointerCapture(event.pointerId);
+  }
+
+  function moveDrag(event: ReactPointerEvent<HTMLDivElement>) {
+    const drag = dragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    const x = Math.max(8, Math.min(window.innerWidth - buttonSize - 8, event.clientX - drag.offsetX));
+    const y = Math.max(8, Math.min(window.innerHeight - buttonSize - 8, event.clientY - drag.offsetY));
+    if (Math.hypot(event.clientX - drag.startX, event.clientY - drag.startY) > 8) drag.moved = true;
+    setPosition({ x, y });
+  }
+
+  function endDrag(event: ReactPointerEvent<HTMLDivElement>) {
+    const drag = dragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    event.currentTarget.releasePointerCapture(event.pointerId);
+    if (position) window.localStorage.setItem("3stone-ai-position", JSON.stringify(position));
+    dragRef.current = null;
+    if (!drag.moved) setOpen((current) => !current);
+  }
+
+  function cancelDrag(event: ReactPointerEvent<HTMLDivElement>) {
+    const drag = dragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    dragRef.current = null;
+  }
 
   // Lets a page (e.g. the Dashboard's daily debrief card) open this panel
   // with a question already queued up, instead of the user having to
@@ -112,9 +190,34 @@ export function AiAssistant() {
   useEffect(() => {
     return onAskAssistant(({ prompt }) => {
       setPendingPrompt(prompt);
+      setProactiveTip(null);
       setOpen(true);
     });
   }, []);
+
+  useEffect(() => {
+    if (open) return;
+
+    const tips = PROACTIVE_TIPS[editionKey] ?? PROACTIVE_TIPS.business;
+    let hideTimer: number | undefined;
+    const showNextTip = () => {
+      const storageKey = `3stone-ai-tip-index-${editionKey}`;
+      const previous = Number(window.localStorage.getItem(storageKey) ?? "-1");
+      const next = (previous + 1) % tips.length;
+      window.localStorage.setItem(storageKey, String(next));
+      setProactiveTip(tips[next]);
+      if (hideTimer) window.clearTimeout(hideTimer);
+      hideTimer = window.setTimeout(() => setProactiveTip(null), 14_000);
+    };
+
+    const firstTimer = window.setTimeout(showNextTip, 18_000);
+    const interval = window.setInterval(showNextTip, 3 * 60_000);
+    return () => {
+      window.clearTimeout(firstTimer);
+      window.clearInterval(interval);
+      if (hideTimer) window.clearTimeout(hideTimer);
+    };
+  }, [editionKey, open]);
 
   // Real bug found during an earlier AI audit: this widget used to answer
   // every question from DEMO_VENDORS / getIndustryDataset(profile.key) —
@@ -129,75 +232,59 @@ export function AiAssistant() {
   return (
     <>
       <div
-        className={cn(
-          "fixed bottom-5 left-1/2 z-[105] -translate-x-1/2",
-          "lg:bottom-6 lg:left-auto lg:right-6 lg:translate-x-0"
-        )}
+        className="fixed z-[105] touch-none cursor-grab active:cursor-grabbing"
+        style={position ? { left: position.x, top: position.y } : { right: 24, bottom: 24 }}
+        onPointerDown={beginDrag}
+        onPointerMove={moveDrag}
+        onPointerUp={endDrag}
+        onPointerCancel={cancelDrag}
       >
-        {/* A friendly little monster, not a robot or a generic icon -
-            permanent smile, periodic blink, and an occasional wink (see
-            the ai-face and ai-bot keyframes in globals.css, unchanged by
-            this redesign - only the SVG shapes wearing those animation
-            classes changed) so it reads as alive and inviting rather than
-            just another button. The halo keys off var(--accent), so it
-            already matches whichever edition/accent color is live with no
-            extra work here. Calmed down to a plain X while the panel is
-            open since the "come chat with me" invitation has been
-            accepted at that point. */}
-        {/* A rounded-square "squircle," not a circle - matches the
-            monster's own round-ish body shape below so the button reads
-            as one consistent character silhouette rather than a generic
-            round icon button. */}
+        {proactiveTip && !open ? (
+          <button
+            type="button"
+            onPointerDown={(event) => event.stopPropagation()}
+            onClick={() => {
+              setPendingPrompt(`Help me act on this suggestion: ${proactiveTip}`);
+              setProactiveTip(null);
+              setOpen(true);
+            }}
+            className="ai-tip-bubble absolute bottom-[82%] right-[78%] w-56 rounded-2xl border border-accent/20 bg-surface px-4 py-3 text-left text-sm font-medium leading-snug text-foreground shadow-xl"
+          >
+            <span className="mb-1 block text-[10px] font-bold uppercase tracking-[0.16em] text-accent">Quick tip</span>
+            {proactiveTip}
+          </button>
+        ) : null}
         {!open ? (
           <span
             aria-hidden
-            className="ai-orb-glow pointer-events-none absolute rounded-[30%]"
+            className="ai-orb-glow pointer-events-none absolute rounded-full"
             style={{ inset: -Math.round(buttonSize * 0.11) }}
           />
         ) : null}
         <button
           type="button"
-          onClick={() => setOpen((o) => !o)}
           aria-label={open ? "Close AI assistant" : "Open AI assistant"}
-          className="relative flex items-center justify-center rounded-[30%] bg-accent text-on-accent shadow-[var(--shadow)] transition-transform hover:scale-105 active:scale-95"
+          className="relative flex items-center justify-center overflow-visible bg-transparent text-accent transition-transform hover:scale-105 active:scale-95"
           style={{ width: buttonSize, height: buttonSize }}
         >
-          {open ? (
-            <X size={iconSize} />
-          ) : (
-            <svg width={faceSize} height={faceSize * 1.15} viewBox="0 0 32 37" fill="none" aria-hidden="true" className="ai-bot-bob">
-              {/* Two small horns instead of a robot antenna */}
-              <path d="M10 6.5 L7.5 1.5 L12 5.5 Z" fill="currentColor" />
-              <path d="M22 6.5 L24.5 1.5 L20 5.5 Z" fill="currentColor" />
-              {/* Body - a round-ish blob, not a rectangular robot chassis -
-                  drawn before limbs so they attach cleanly to its edge */}
-              <rect x="4" y="6" width="24" height="19" rx="10.5" stroke="currentColor" strokeWidth="1.6" fill="currentColor" fillOpacity="0.08" />
-              {/* Texture spots, a monster touch a plain robot wouldn't have */}
-              <circle cx="8" cy="19.5" r="1" fill="currentColor" fillOpacity="0.35" />
-              <circle cx="24.5" cy="10.5" r="1.2" fill="currentColor" fillOpacity="0.35" />
-              {/* Arms - the right one waves at the same moment the right eye winks below */}
-              <path className="ai-bot-arm-left" d="M6.5 16c-2.5 1-4 2.8-4.5 5.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-              <path className="ai-bot-arm-right" d="M25.5 16c2.5 1 4 2.8 4.5 5.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-              {/* Stubby legs/feet */}
-              <line x1="11.5" y1="25" x2="11.5" y2="30.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-              <line x1="20.5" y1="25" x2="20.5" y2="30.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-              <line x1="8.5" y1="31.2" x2="14.5" y2="31.2" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-              <line x1="17.5" y1="31.2" x2="23.5" y2="31.2" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-              <ellipse className="ai-face-eye-left" cx="12" cy="14.7" rx="2.3" ry="2.8" fill="currentColor" />
-              <ellipse className="ai-face-eye-right" cx="20" cy="14.7" rx="2.3" ry="2.8" fill="currentColor" />
-              <path
-                className="ai-face-mouth"
-                d="M10.8 19.8c1.9 2.2 9.5 2.2 11.4 0"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-                fill="none"
-              />
-              {/* Two small fangs, hung off the same mouth line */}
-              <path d="M13 20.6 L13.6 22.4 L14.2 20.6 Z" fill="currentColor" />
-              <path d="M17.8 20.6 L18.4 22.4 L19 20.6 Z" fill="currentColor" />
-            </svg>
-          )}
+          <span className={cn("relative block", open ? "ai-companion-listening" : "ai-companion-float")} style={{ width: Math.round(buttonSize * 1.55), height: Math.round(buttonSize * 1.55) }}>
+            <Image
+              src="/branding/ai-companion.png"
+              alt=""
+              fill
+              sizes={`${Math.round(buttonSize * 1.55)}px`}
+              className="pointer-events-none select-none object-contain drop-shadow-[0_12px_16px_rgba(0,0,0,0.35)]"
+              priority
+            />
+            <Image
+              src="/branding/ai-companion-wink.png"
+              alt=""
+              fill
+              sizes={`${Math.round(buttonSize * 1.55)}px`}
+              className="ai-companion-wink-frame pointer-events-none select-none object-contain drop-shadow-[0_12px_16px_rgba(0,0,0,0.35)]"
+              priority
+            />
+          </span>
         </button>
       </div>
       {open ? (
@@ -261,7 +348,6 @@ function AssistantPanel({
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isDemo]);
 
   useEffect(() => {
@@ -332,7 +418,7 @@ function AssistantPanel({
 
   return (
     <div className="fixed inset-x-0 bottom-0 z-[110] flex justify-center lg:inset-x-auto lg:bottom-24 lg:right-6 lg:justify-end">
-      <div className="flex h-[80vh] w-full flex-col overflow-hidden rounded-t-2xl border border-line bg-surface shadow-[var(--shadow)] lg:h-[560px] lg:w-[400px] lg:rounded-2xl">
+      <div className="flex h-[80vh] w-full flex-col overflow-hidden rounded-t-2xl border border-line bg-surface shadow-[var(--shadow)] lg:h-[560px] lg:w-[400px] lg:min-h-[360px] lg:min-w-[320px] lg:max-h-[80vh] lg:max-w-[80vw] lg:resize lg:rounded-2xl">
         <div className="flex flex-shrink-0 items-center justify-between border-b border-line px-4 py-3.5">
           <div>
             <p className="text-[14px] font-bold text-ink-1">3Stone AI</p>

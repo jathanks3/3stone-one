@@ -7,10 +7,17 @@
 // are a billing distinction, not a feature one), so Workspace/Student
 // stay consistent with that rather than inventing new rigor.
 //
-// `null` means unrestricted (every module) - Business edition's default.
-
 export const EDITION_MODULES: Record<string, string[] | null> = {
-  business: null,
+  // Business is broad, but not a dumping ground for student-only or
+  // duplicate surfaces. Communications already owns connected email;
+  // GPA, Grades and Job Tracker belong to Student; customer/guest portal
+  // and the raw Activity Log are not part of the standard Business app.
+  business: [
+    "portfolio", "dashboard", "crm", "projects", "people",
+    "communications", "meetings", "calendar", "documents", "notes",
+    "knowledge", "finance", "inventory", "automation", "analytics",
+    "integrations", "settings",
+  ],
   // Day-to-day workers, CEOs, and managers - no finance/accounting,
   // inventory, automation, or analytics. Calendar/Notes added alongside
   // Meetings/Documents - a real add/delete calendar and a lightweight
@@ -35,8 +42,6 @@ export const EDITION_MODULES: Record<string, string[] | null> = {
     "time-off",
     "knowledge",
     "integrations",
-    "client-portal",
-    "activity",
     "settings",
   ],
   // Same philosophy as Workspace, lighter still - no CRM, people, or

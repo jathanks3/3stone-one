@@ -350,7 +350,7 @@ export function RealIntegrationsClient({
       <p className="mt-8 mb-2 text-[12px] font-semibold uppercase tracking-wide text-ink-3">Available for this edition</p>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         {catalog.map((item) => (
-          <Card key={item.key} className="p-4">
+          <Card key={`${item.key}-${item.name}`} className="p-4">
             <div className="flex items-start justify-between gap-3">
               <p className="text-[13.5px] font-semibold text-ink-1">{item.name}</p>
               <Badge tone={item.readiness === "live" ? "good" : item.readiness === "configured" ? "accent" : "neutral"}>{readinessLabel(item.readiness)}</Badge>
