@@ -53,10 +53,27 @@ async function mondayQuery<T>(workspaceId: string, query: string): Promise<T> {
 }
 
 export interface MondayBoard { id: string; name: string; description: string | null; workspaceName: string | null }
+export interface MondayItem { id: string; name: string; boardId: string; boardName: string; groupName: string | null; status: string | null; dueDate: string | null; assignees: string[] }
 
 export async function listMondayBoards(workspaceId: string): Promise<MondayBoard[]> {
   const data = await mondayQuery<{ boards?: Array<{ id?: string; name?: string; description?: string; workspace?: { name?: string } }> }>(workspaceId, `query { boards(limit: 100) { id name description workspace { name } } }`);
   return (data.boards ?? []).map((board) => ({ id: String(board.id ?? ""), name: board.name ?? "Untitled board", description: board.description || null, workspaceName: board.workspace?.name ?? null })).filter((board) => board.id);
+}
+
+export async function listMondayItems(workspaceId: string): Promise<MondayItem[]> {
+  const data = await mondayQuery<{ boards?: Array<{ id?: string; name?: string; items_page?: { items?: Array<{ id?: string; name?: string; group?: { title?: string }; column_values?: Array<{ type?: string; text?: string }> }> } }> }>(workspaceId, `query { boards(limit: 50) { id name items_page(limit: 100) { items { id name group { title } column_values { type text } } } } }`);
+  const rows: MondayItem[] = [];
+  for (const board of data.boards ?? []) {
+    for (const item of board.items_page?.items ?? []) {
+      const columns = item.column_values ?? [];
+      const dateText = columns.find((column) => column.type === "date")?.text?.trim() ?? "";
+      const peopleText = columns.filter((column) => column.type === "people").map((column) => column.text?.trim()).filter((value): value is string => Boolean(value));
+      const statusText = columns.find((column) => column.type === "status")?.text?.trim() ?? "";
+      if (!item.id || !item.name || !board.id) continue;
+      rows.push({ id: item.id, name: item.name, boardId: board.id, boardName: board.name ?? "Monday board", groupName: item.group?.title ?? null, status: statusText || null, dueDate: /^\d{4}-\d{2}-\d{2}$/.test(dateText) ? dateText : null, assignees: peopleText });
+    }
+  }
+  return rows;
 }
 
 export async function disconnectMonday(workspaceId: string): Promise<void> {

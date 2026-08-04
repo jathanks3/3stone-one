@@ -11,6 +11,7 @@ import { connectCanvas, disconnectCanvas } from "@/server/services/canvasIntegra
 import { connectWildApricot, disconnectWildApricot } from "@/server/services/wildApricotIntegrationService";
 import { disconnectBasecamp } from "@/server/services/basecampIntegrationService";
 import { disconnectMonday } from "@/server/services/mondayIntegrationService";
+import { disconnectSalesforce } from "@/server/services/salesforceIntegrationService";
 import { connectCustomerAiProvider, disconnectCustomerAiProvider, type CustomerAiProviderName } from "@/server/services/customerAiProviderService";
 
 export interface ActionState {
@@ -170,4 +171,9 @@ export async function disconnectMondayAction(_prev: ActionState, _formData: Form
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Couldn't disconnect Monday.com." };
   }
+}
+
+export async function disconnectSalesforceAction(_prev: ActionState, _formData: FormData): Promise<ActionState> {
+  try { const { userId, workspaceId } = await currentWorkspaceId(); await requireTeamManager(userId, workspaceId); await disconnectSalesforce(workspaceId); revalidatePath("/integrations"); revalidatePath("/crm"); return { success: "Salesforce disconnected." }; }
+  catch (e) { return { error: e instanceof Error ? e.message : "Couldn't disconnect Salesforce." }; }
 }

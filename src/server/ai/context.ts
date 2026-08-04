@@ -17,7 +17,9 @@ import { listActivity } from "@/server/services/activityService";
 import { db } from "@/server/db";
 import { integrationsForEdition } from "@/lib/integrationCatalog";
 import { getRecentGoogleDriveFiles } from "@/server/services/googleIntegrationService";
-import { listMondayBoards } from "@/server/services/mondayIntegrationService";
+import { listMondayBoards, listMondayItems } from "@/server/services/mondayIntegrationService";
+import { listSlackChannels, listSlackMessages } from "@/server/services/slackIntegrationService";
+import { listSalesforceAccounts, listSalesforceContacts, listSalesforceOpportunities } from "@/server/services/salesforceIntegrationService";
 
 // Real, current data from this workspace, assembled fresh on every
 // message so the assistant can actually answer "what's on my calendar"
@@ -94,9 +96,12 @@ export async function buildWorkspaceContext(workspaceId: string, editionKey: str
       })
     );
     tasks.push(
-      listMondayBoards(workspaceId).then((boards) => {
+      Promise.all([listMondayBoards(workspaceId), listMondayItems(workspaceId)]).then(([boards, items]) => {
         if (!boards.length) return;
-        sections.push(`Monday.com boards (read-only):\n${boards.slice(0, 30).map((board) => `- ${board.name}${board.workspaceName ? ` (${board.workspaceName})` : ""}${board.description ? `: ${board.description.slice(0, 180).replace(/\\s+/g, " ")}` : ""}`).join("\n")}`);
+        sections.push(`Monday.com boards and items (read-only):\n${boards.slice(0, 30).map((board) => {
+          const boardItems = items.filter((item) => item.boardId === board.id).slice(0, 20).map((item) => `    - ${item.name}${item.status ? ` [${item.status}]` : ""}${item.dueDate ? ` due ${item.dueDate}` : ""}`).join("\n");
+          return `- ${board.name}${board.workspaceName ? ` (${board.workspaceName})` : ""}${boardItems ? `\n${boardItems}` : ""}`;
+        }).join("\n")}`);
       }).catch(() => undefined)
     );
   }
@@ -165,7 +170,7 @@ export async function buildWorkspaceContext(workspaceId: string, editionKey: str
 
   if (allowed(modules, "grades")) {
     tasks.push(
-      listAllGrades(workspaceId).then((grades) => {
+      listAllGrades(workspaceId, userId).then((grades) => {
         if (!grades.length) return;
         const lines = grades.slice(0, 30).map((g) => `- ${g.courseName}: ${g.currentGrade ?? (g.currentScore !== null ? `${Math.round(g.currentScore)}%` : "not yet computed")}`);
         sections.push(`Grades (from Canvas):\n${lines.join("\n")}`);
@@ -190,6 +195,12 @@ export async function buildWorkspaceContext(workspaceId: string, editionKey: str
           );
         }
       })
+    );
+    tasks.push(
+      Promise.all([listSalesforceAccounts(workspaceId), listSalesforceContacts(workspaceId), listSalesforceOpportunities(workspaceId)]).then(([accounts, contacts, opportunities]) => {
+        if (!accounts.length && !contacts.length && !opportunities.length) return;
+        sections.push(`Salesforce CRM (read-only):\n${accounts.slice(0, 20).map((row) => `- Account: ${row.Name}`).concat(contacts.slice(0, 20).map((row) => `- Contact: ${row.Name}${row.Account?.Name ? ` at ${row.Account.Name}` : ""}`), opportunities.slice(0, 20).map((row) => `- Opportunity: ${row.Name} [${row.StageName}]${row.Amount != null ? ` $${row.Amount}` : ""}`)).join("\n")}`);
+      }).catch(() => undefined)
     );
   }
 
@@ -220,6 +231,14 @@ export async function buildWorkspaceContext(workspaceId: string, editionKey: str
         const lines = integrations.map((integration) => `- ${integration.provider}: ${integration.status}`);
         sections.push(`Connected app status:\n${lines.join("\n")}`);
       })
+    );
+    tasks.push(
+      listSlackChannels(workspaceId).then(async (channels) => {
+        const selected = channels.slice(0, 10);
+        const messages = (await Promise.all(selected.map((channel) => listSlackMessages(workspaceId, channel.id).catch(() => [])))).flat().slice(0, 40);
+        if (!messages.length) return;
+        sections.push(`Recent Slack messages (read-only unless the user explicitly asks to send):\n${messages.map((message) => `- #${selected.find((channel) => channel.id === message.channelId)?.name ?? "channel"} ${message.author}: ${message.body.slice(0, 220).replace(/\\s+/g, " ")}`).join("\n")}`);
+      }).catch(() => undefined)
     );
   }
 

@@ -25,7 +25,7 @@ import {
 } from "@/app/(app)/projects/actions";
 import type { ProjectRow, ProjectStatusKey } from "@/server/services/projectService";
 import type { CanvasAssignment } from "@/server/services/canvasIntegrationService";
-import type { MondayBoard } from "@/server/services/mondayIntegrationService";
+import type { MondayBoard, MondayItem } from "@/server/services/mondayIntegrationService";
 
 // Duplicated from projectService.ts (not re-imported) - that file also
 // pulls in the Prisma/pg client, which would otherwise leak an
@@ -50,6 +50,7 @@ export function RealProjectsClient({
   canvasAssignments = [],
   mondayConnected = false,
   mondayBoards = [],
+  mondayItems = [],
 }: {
   initialProjects: ProjectRow[];
   basecampConnected?: boolean;
@@ -58,6 +59,7 @@ export function RealProjectsClient({
   canvasAssignments?: CanvasAssignment[];
   mondayConnected?: boolean;
   mondayBoards?: MondayBoard[];
+  mondayItems?: MondayItem[];
 }) {
   const { profile } = useIndustry();
   const [projects, setProjects] = useState<ProjectRow[]>(initialProjects);
@@ -221,6 +223,12 @@ export function RealProjectsClient({
                   <div className="flex items-start justify-between gap-3"><p className="text-[13.5px] font-semibold text-ink-1">{board.name}</p><Badge tone="accent">Monday</Badge></div>
                   {board.workspaceName ? <p className="mt-1 text-[11.5px] text-ink-3">{board.workspaceName}</p> : null}
                   {board.description ? <p className="mt-2 line-clamp-3 text-[12px] text-ink-2">{board.description}</p> : null}
+                  {mondayItems.filter((item) => item.boardId === board.id).slice(0, 8).map((item) => (
+                    <div key={item.id} className="mt-2 rounded-lg bg-surface-raised px-2.5 py-2">
+                      <div className="flex items-start justify-between gap-2"><p className="text-[12px] font-medium text-ink-1">{item.name}</p>{item.status ? <span className="text-[10px] text-ink-3">{item.status}</span> : null}</div>
+                      {(item.dueDate || item.groupName) ? <p className="mt-1 text-[10.5px] text-ink-3">{[item.groupName, item.dueDate ? `Due ${item.dueDate}` : null].filter(Boolean).join(" · ")}</p> : null}
+                    </div>
+                  ))}
                 </div>
               ))}
             </div>

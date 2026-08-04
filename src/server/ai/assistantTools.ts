@@ -3,7 +3,7 @@ import { getAllowedModuleKeys } from "@/lib/editionModules";
 import { createNote, deleteNote } from "@/server/services/noteService";
 import { createProject, createTask, deleteProject, deleteTask } from "@/server/services/projectService";
 import { createCalendarEvent, deleteCalendarEvent } from "@/server/services/calendarService";
-import { createGpaCourse, deleteGpaCourse, type DisplayLetterGrade } from "@/server/services/gpaService";
+import { createGpaCourse, deleteGpaCourse, upsertTranscriptCourses, type DisplayLetterGrade } from "@/server/services/gpaService";
 import { createJobApplication, deleteJobApplication } from "@/server/services/jobApplicationService";
 import { createTimeOffRequest, deleteTimeOffRequest } from "@/server/services/timeOffService";
 import { createOrganization, createPerson, deleteDeal, deleteOrganization, deletePerson } from "@/server/services/crmService";
@@ -84,6 +84,31 @@ const TOOL_DEFINITIONS: { moduleKey: string; tool: AiTool }[] = [
           grade: { type: "string", enum: ["A+", "A", "A-", "B+", "B", "B-", "C+", "C", "C-", "D+", "D", "D-", "F"] },
         },
         required: ["name", "credits", "grade"],
+      },
+    },
+  },
+  {
+    moduleKey: "gpa",
+    tool: {
+      name: "import_transcript_courses",
+      description: "Import all clearly readable completed courses from a transcript into both Grades and the GPA Calculator. Use only when the user explicitly asks to import/populate/save transcript grades. Preserve course names, credit hours, and final letter grades exactly; skip withdrawn, transferred-without-grade, pass/fail, in-progress, or ambiguous rows rather than guessing.",
+      input_schema: {
+        type: "object",
+        properties: {
+          courses: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                name: { type: "string" },
+                credits: { type: "number" },
+                grade: { type: "string", enum: ["A+", "A", "A-", "B+", "B", "B-", "C+", "C", "C-", "D+", "D", "D-", "F"] },
+              },
+              required: ["name", "credits", "grade"],
+            },
+          },
+        },
+        required: ["courses"],
       },
     },
   },
@@ -270,6 +295,19 @@ export function buildToolExecutor(workspaceId: string, userId: string): AiToolEx
         const grade = (typeof input.grade === "string" ? input.grade : "C") as DisplayLetterGrade;
         await createGpaCourse(workspaceId, userId, name, credits, grade);
         return "Added to GPA Calculator.";
+      }
+      case "import_transcript_courses": {
+        const rawCourses = Array.isArray(input.courses) ? input.courses : [];
+        const courses = rawCourses.flatMap((value) => {
+          if (!value || typeof value !== "object") return [];
+          const row = value as Record<string, unknown>;
+          const name = typeof row.name === "string" ? row.name : "";
+          const credits = typeof row.credits === "number" ? row.credits : Number(row.credits);
+          const grade = typeof row.grade === "string" ? row.grade as DisplayLetterGrade : "" as DisplayLetterGrade;
+          return name && Number.isFinite(credits) ? [{ name, credits, grade }] : [];
+        });
+        const imported = await upsertTranscriptCourses(workspaceId, userId, courses);
+        return imported ? `Imported ${imported} transcript course${imported === 1 ? "" : "s"} into Grades and the GPA Calculator.` : "No complete transcript courses could be imported without guessing.";
       }
       case "create_job_application": {
         const company = typeof input.company === "string" ? input.company : "";

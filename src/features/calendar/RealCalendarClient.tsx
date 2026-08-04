@@ -77,6 +77,8 @@ const SOURCE_LABEL: Record<Exclude<NonNullable<CalendarEventRow["source"]>, "int
   google: "Google Calendar",
   outlook: "Outlook",
   canvas: "Canvas",
+  monday: "Monday.com",
+  job: "Job tracker",
   meeting: "Meetings",
   project: "Projects",
   task: "Tasks",

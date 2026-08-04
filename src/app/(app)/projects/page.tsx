@@ -7,7 +7,7 @@ import { listProjects } from "@/server/services/projectService";
 import { db } from "@/server/db";
 import { listBasecampProjects } from "@/server/services/basecampIntegrationService";
 import { listCanvasAssignments } from "@/server/services/canvasIntegrationService";
-import { listMondayBoards } from "@/server/services/mondayIntegrationService";
+import { listMondayBoards, listMondayItems } from "@/server/services/mondayIntegrationService";
 
 export const metadata: Metadata = { title: "Projects — 3Stone One" };
 export const dynamic = "force-dynamic";
@@ -28,6 +28,8 @@ export default async function ProjectsPage() {
       workspaceId && canvas?.status === "connected" ? await listCanvasAssignments(workspaceId).catch(() => []) : [];
     const mondayBoards =
       workspaceId && monday?.status === "connected" ? await listMondayBoards(workspaceId).catch(() => []) : [];
+    const mondayItems =
+      workspaceId && monday?.status === "connected" ? await listMondayItems(workspaceId).catch(() => []) : [];
     return (
       <RealProjectsClient
         initialProjects={projects}
@@ -37,6 +39,7 @@ export default async function ProjectsPage() {
         canvasAssignments={canvasAssignments}
         mondayConnected={monday?.status === "connected"}
         mondayBoards={mondayBoards}
+        mondayItems={mondayItems}
       />
     );
   }

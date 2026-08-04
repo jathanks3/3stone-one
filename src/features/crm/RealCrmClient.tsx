@@ -12,9 +12,11 @@ import { EmptyState } from "@/ui/EmptyState";
 import { Avatar } from "@/ui/Avatar";
 import { Badge } from "@/ui/Badge";
 import { Button } from "@/ui/Button";
+import { Card } from "@/ui/Card";
 import { formatCurrency } from "@/lib/utils";
 import { useToast } from "@/lib/toast";
 import type { WildApricotContact } from "@/server/services/wildApricotIntegrationService";
+import type { SalesforceAccount, SalesforceContact, SalesforceOpportunity } from "@/server/services/salesforceIntegrationService";
 import {
   createDealAction,
   createOrganizationAction,
@@ -41,12 +43,20 @@ export function RealCrmClient({
   initialDeals,
   wildApricotConnected = false,
   wildApricotContacts = [],
+  salesforceConnected = false,
+  salesforceAccounts = [],
+  salesforceContacts = [],
+  salesforceOpportunities = [],
 }: {
   initialOrganizations: OrganizationRow[];
   initialPeople: PersonRow[];
   initialDeals: DealRow[];
   wildApricotConnected?: boolean;
   wildApricotContacts?: WildApricotContact[];
+  salesforceConnected?: boolean;
+  salesforceAccounts?: SalesforceAccount[];
+  salesforceContacts?: SalesforceContact[];
+  salesforceOpportunities?: SalesforceOpportunity[];
 }) {
   const { profile } = useIndustry();
   const [organizations, setOrganizations] = useState(initialOrganizations);
@@ -109,6 +119,17 @@ export function RealCrmClient({
             </div>
           )}
         </div>
+      ) : null}
+
+      {salesforceConnected ? (
+        <section className="mt-8">
+          <div className="mb-3"><h2 className="text-[16px] font-semibold text-ink-1">Salesforce</h2><p className="mt-0.5 text-[12.5px] text-ink-3">Live, read-only CRM records; make source changes in Salesforce.</p></div>
+          <div className="grid gap-3 md:grid-cols-3">
+            <Card className="p-4"><p className="text-[12px] font-semibold uppercase text-ink-3">Accounts</p>{salesforceAccounts.slice(0, 20).map((row) => <p key={row.Id} className="mt-2 text-[12.5px] font-medium text-ink-1">{row.Name}</p>)}</Card>
+            <Card className="p-4"><p className="text-[12px] font-semibold uppercase text-ink-3">Contacts</p>{salesforceContacts.slice(0, 20).map((row) => <div key={row.Id} className="mt-2"><p className="text-[12.5px] font-medium text-ink-1">{row.Name}</p><p className="text-[10.5px] text-ink-3">{row.Account?.Name ?? row.Email ?? ""}</p></div>)}</Card>
+            <Card className="p-4"><p className="text-[12px] font-semibold uppercase text-ink-3">Opportunities</p>{salesforceOpportunities.slice(0, 20).map((row) => <div key={row.Id} className="mt-2"><p className="text-[12.5px] font-medium text-ink-1">{row.Name}</p><p className="text-[10.5px] text-ink-3">{row.StageName}{row.Amount != null ? ` · ${formatCurrency(row.Amount)}` : ""}</p></div>)}</Card>
+          </div>
+        </section>
       ) : null}
 
       <DetailPanel

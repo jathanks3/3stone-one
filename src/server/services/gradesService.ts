@@ -1,4 +1,5 @@
 import { listCanvasGrades, type CanvasCourseGrade } from "@/server/services/canvasIntegrationService";
+import { listGpaCourses } from "@/server/services/gpaService";
 
 // Read-through merge, same philosophy as calendarService.ts's synced
 // events - live-fetched on every load, never stored here. Canvas is the
@@ -10,13 +11,18 @@ export interface GradeRow {
   courseName: string;
   currentScore: number | null;
   currentGrade: string | null;
-  source: "canvas";
+  source: "canvas" | "transcript";
 }
 
-export async function listAllGrades(workspaceId: string): Promise<GradeRow[]> {
-  const canvasGrades = await listCanvasGrades(workspaceId).catch((err) => {
+export async function listAllGrades(workspaceId: string, studentId?: string): Promise<GradeRow[]> {
+  const [canvasGrades, transcriptCourses] = await Promise.all([listCanvasGrades(workspaceId).catch((err) => {
     console.error("[gradesService] Canvas grades fetch failed:", err instanceof Error ? err.message : err);
     return [] as CanvasCourseGrade[];
-  });
-  return canvasGrades.map((g) => ({ ...g, source: "canvas" as const }));
+  }), studentId ? listGpaCourses(workspaceId, studentId) : Promise.resolve([])]);
+  const canvasRows = canvasGrades.map((g) => ({ ...g, source: "canvas" as const }));
+  const canvasNames = new Set(canvasRows.map((row) => row.courseName.trim().toLocaleLowerCase()));
+  const transcriptRows: GradeRow[] = transcriptCourses
+    .filter((course) => !canvasNames.has(course.name.trim().toLocaleLowerCase()))
+    .map((course) => ({ courseId: course.id, courseName: course.name, currentScore: null, currentGrade: course.grade, source: "transcript" }));
+  return [...canvasRows, ...transcriptRows];
 }

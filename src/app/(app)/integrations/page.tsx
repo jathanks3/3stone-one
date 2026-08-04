@@ -11,6 +11,7 @@ import { isBasecampIntegrationConfigured, listBasecampProjects } from "@/server/
 import { listCanvasAssignments } from "@/server/services/canvasIntegrationService";
 import { listWildApricotContacts } from "@/server/services/wildApricotIntegrationService";
 import { isMondayIntegrationConfigured, listMondayBoards } from "@/server/services/mondayIntegrationService";
+import { isSalesforceIntegrationConfigured, listSalesforceAccounts } from "@/server/services/salesforceIntegrationService";
 
 export const metadata: Metadata = { title: "Integrations — 3Stone One" };
 
@@ -25,7 +26,7 @@ export default async function IntegrationsPage() {
     return <IntegrationsClient />;
   }
 
-  const [google, microsoft, slack, canvas, wildApricot, basecamp, monday, openai, anthropic] = await Promise.all([
+  const [google, microsoft, slack, canvas, wildApricot, basecamp, monday, salesforce, openai, anthropic] = await Promise.all([
     db.integration.findUnique({ where: { workspaceId_provider: { workspaceId, provider: "google" } } }),
     db.integration.findUnique({ where: { workspaceId_provider: { workspaceId, provider: "microsoft" } } }),
     db.integration.findUnique({ where: { workspaceId_provider: { workspaceId, provider: "slack" } } }),
@@ -33,11 +34,12 @@ export default async function IntegrationsPage() {
     db.integration.findUnique({ where: { workspaceId_provider: { workspaceId, provider: "wildapricot" } } }),
     db.integration.findUnique({ where: { workspaceId_provider: { workspaceId, provider: "basecamp" } } }),
     db.integration.findUnique({ where: { workspaceId_provider: { workspaceId, provider: "monday" } } }),
+    db.integration.findUnique({ where: { workspaceId_provider: { workspaceId, provider: "salesforce" } } }),
     db.integration.findUnique({ where: { workspaceId_provider: { workspaceId, provider: "ai_openai" } } }),
     db.integration.findUnique({ where: { workspaceId_provider: { workspaceId, provider: "ai_anthropic" } } }),
   ]);
   const workspace = await db.workspace.findUnique({ where: { id: workspaceId }, select: { editionKey: true } });
-  const [googleEvents, microsoftEvents, slackProbe, canvasProbe, wildApricotProbe, basecampProbe, mondayProbe] = await Promise.all([
+  const [googleEvents, microsoftEvents, slackProbe, canvasProbe, wildApricotProbe, basecampProbe, mondayProbe, salesforceProbe] = await Promise.all([
     google?.status === "connected" ? getUpcomingGoogleCalendarEvents(workspaceId).catch(() => null) : Promise.resolve(null),
     microsoft?.status === "connected" ? getUpcomingOutlookEvents(workspaceId).catch(() => null) : Promise.resolve(null),
     slack?.status === "connected" ? listSlackChannels(workspaceId).then(() => true).catch(() => false) : Promise.resolve(null),
@@ -45,6 +47,7 @@ export default async function IntegrationsPage() {
     wildApricot?.status === "connected" ? listWildApricotContacts(workspaceId).then(() => true).catch(() => false) : Promise.resolve(null),
     basecamp?.status === "connected" ? listBasecampProjects(workspaceId).then(() => true).catch(() => false) : Promise.resolve(null),
     monday?.status === "connected" ? listMondayBoards(workspaceId).then(() => true).catch(() => false) : Promise.resolve(null),
+    salesforce?.status === "connected" ? listSalesforceAccounts(workspaceId).then(() => true).catch(() => false) : Promise.resolve(null),
   ]);
 
   return (
@@ -71,6 +74,9 @@ export default async function IntegrationsPage() {
       mondayConfigured={isMondayIntegrationConfigured()}
       mondayStatus={monday?.status === "connected" && mondayProbe === false ? "error" : monday?.status ?? "not_connected"}
       mondayConnectedAt={monday?.connectedAt?.toISOString() ?? null}
+      salesforceConfigured={isSalesforceIntegrationConfigured()}
+      salesforceStatus={salesforce?.status === "connected" && salesforceProbe === false ? "error" : salesforce?.status ?? "not_connected"}
+      salesforceConnectedAt={salesforce?.connectedAt?.toISOString() ?? null}
       openaiStatus={openai?.status ?? "not_connected"}
       openaiConnectedAt={openai?.connectedAt?.toISOString() ?? null}
       anthropicStatus={anthropic?.status ?? "not_connected"}

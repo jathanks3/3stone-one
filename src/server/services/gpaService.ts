@@ -46,6 +46,27 @@ export async function createGpaCourse(workspaceId: string, studentId: string, na
   return { id: course.id, name: course.name, credits: course.credits, grade };
 }
 
+export async function upsertTranscriptCourses(
+  workspaceId: string,
+  studentId: string,
+  courses: Array<{ name: string; credits: number; grade: DisplayLetterGrade }>
+): Promise<number> {
+  let imported = 0;
+  for (const course of courses.slice(0, 100)) {
+    const name = course.name.trim();
+    if (!name || !(course.grade in TO_PRISMA_GRADE) || !Number.isFinite(course.credits) || course.credits <= 0) continue;
+    const existing = await db.gpaCourse.findFirst({ where: { workspaceId, studentId, name: { equals: name, mode: "insensitive" } } });
+    if (existing) {
+      await db.gpaCourse.update({ where: { id: existing.id }, data: { name, credits: course.credits, grade: TO_PRISMA_GRADE[course.grade] } });
+    } else {
+      await db.gpaCourse.create({ data: { workspaceId, studentId, name, credits: course.credits, grade: TO_PRISMA_GRADE[course.grade] } });
+    }
+    imported += 1;
+  }
+  if (imported) await logActivity(workspaceId, studentId, "imported_transcript_courses", "GpaCourse", studentId, { count: imported });
+  return imported;
+}
+
 export async function updateGpaCourse(
   workspaceId: string,
   studentId: string,

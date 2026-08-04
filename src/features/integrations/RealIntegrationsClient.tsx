@@ -17,6 +17,7 @@ import {
   disconnectWildApricotAction,
   disconnectBasecampAction,
   disconnectMondayAction,
+  disconnectSalesforceAction,
   connectCustomerAiAction,
   disconnectCustomerAiAction,
   type ActionState,
@@ -183,6 +184,9 @@ export function RealIntegrationsClient({
   mondayConfigured,
   mondayStatus,
   mondayConnectedAt,
+  salesforceConfigured,
+  salesforceStatus,
+  salesforceConnectedAt,
   openaiStatus,
   openaiConnectedAt,
   anthropicStatus,
@@ -210,6 +214,9 @@ export function RealIntegrationsClient({
   mondayConfigured: boolean;
   mondayStatus: Status;
   mondayConnectedAt: string | null;
+  salesforceConfigured: boolean;
+  salesforceStatus: Status;
+  salesforceConnectedAt: string | null;
   openaiStatus: Status;
   openaiConnectedAt: string | null;
   anthropicStatus: Status;
@@ -240,6 +247,8 @@ export function RealIntegrationsClient({
       showToast({ title: "Basecamp connected", description: "Your Basecamp projects are now linked." });
     } else if (connected === "monday") {
       showToast({ title: "Monday.com connected", description: "Your Monday boards now populate Projects and can ground AI answers." });
+    } else if (connected === "salesforce") {
+      showToast({ title: "Salesforce connected", description: "Accounts, contacts, and opportunities now populate CRM and AI context." });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -320,6 +329,9 @@ export function RealIntegrationsClient({
             events={null}
             eventsLabel=""
           />
+        ) : null}
+        {catalog.some((item) => item.key === "salesforce") ? (
+          <IntegrationCard name="Salesforce" blurb="Read-only accounts, contacts, and opportunities populate CRM and ground AI answers." status={salesforceStatus} connectedAt={salesforceConnectedAt} configured={salesforceConfigured} connectHref="/api/integrations/salesforce/connect" disconnectAction={disconnectSalesforceAction} events={null} eventsLabel="" />
         ) : null}
         {catalog.some((item) => item.key === "canvas") ? (
           <Card className="p-5">

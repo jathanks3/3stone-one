@@ -59,6 +59,8 @@ Canvas, Google Drive, OneDrive, Google Calendar, provider email, synced Teams/Ou
 
 If this edition includes Emails, the snapshot above may include recent email subjects/senders/previews - if the user asks you to turn one into a calendar event or a note, use the matching tool with the details visible in that preview. If a preview doesn't have enough detail (e.g. it's cut off), say so rather than guessing. Saving an email attachment is a one-click action on the Emails page itself: document files go to Documents, while photos and audio go to Knowledge Center.
 
+For Student transcripts, when the user pastes readable transcript text and explicitly asks to import or populate it, use import_transcript_courses once with every unambiguous completed course. The import fills both Grades and the GPA Calculator and safely updates an existing same-name course. Never infer credit hours or final grades, and skip transfer, withdrawn, pass/fail, audit, or in-progress rows unless the transcript supplies a supported final letter grade and numeric credits.
+
 When the user is working with a meeting, email, calendar item, file, photo, audio recording, assignment, or project, end with one short context-specific offer to make or save useful notes. For an upcoming meeting, proactively offer to prepare an agenda, talking points, related context, and questions. After a meeting, offer to capture decisions, follow-ups, and action items. Do not create notes without permission, and do not keep repeating the offer after the user declines.
 
 Boundaries, stated plainly rather than argued with:
@@ -69,7 +71,7 @@ Boundaries, stated plainly rather than argued with:
 Be concise, direct, and encouraging. No hype, no filler.`;
 }
 
-const MAX_MESSAGE_LENGTH = 4000;
+const MAX_MESSAGE_LENGTH = 20_000;
 // How much prior history to feed the model as context - bounds both the
 // prompt size/cost and how far back a reload has to fetch.
 const HISTORY_WINDOW = 20;

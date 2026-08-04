@@ -6,6 +6,7 @@ import { getActiveWorkspaceIdForUser } from "@/server/services/onboardingService
 import { listDeals, listOrganizations, listPeople } from "@/server/services/crmService";
 import { db } from "@/server/db";
 import { listWildApricotContacts } from "@/server/services/wildApricotIntegrationService";
+import { listSalesforceAccounts, listSalesforceContacts, listSalesforceOpportunities } from "@/server/services/salesforceIntegrationService";
 
 export const metadata: Metadata = { title: "CRM — 3Stone One" };
 export const dynamic = "force-dynamic";
@@ -22,6 +23,9 @@ export default async function CrmPage() {
       : null;
     const wildApricotContacts =
       workspaceId && wildApricot?.status === "connected" ? await listWildApricotContacts(workspaceId).catch(() => []) : [];
+    const salesforce = workspaceId ? await db.integration.findUnique({ where: { workspaceId_provider: { workspaceId, provider: "salesforce" } } }) : null;
+    const [salesforceAccounts, salesforceContacts, salesforceOpportunities] = workspaceId && salesforce?.status === "connected"
+      ? await Promise.all([listSalesforceAccounts(workspaceId).catch(() => []), listSalesforceContacts(workspaceId).catch(() => []), listSalesforceOpportunities(workspaceId).catch(() => [])]) : [[], [], []];
     return (
       <RealCrmClient
         initialOrganizations={organizations}
@@ -29,6 +33,10 @@ export default async function CrmPage() {
         initialDeals={deals}
         wildApricotConnected={wildApricot?.status === "connected"}
         wildApricotContacts={wildApricotContacts}
+        salesforceConnected={salesforce?.status === "connected"}
+        salesforceAccounts={salesforceAccounts}
+        salesforceContacts={salesforceContacts}
+        salesforceOpportunities={salesforceOpportunities}
       />
     );
   }

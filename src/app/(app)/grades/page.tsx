@@ -21,7 +21,7 @@ export default async function GradesPage() {
   const session = await getSession();
   if (session && !session.isDemo) {
     const workspaceId = await getActiveWorkspaceIdForUser(session.userId);
-    const grades = workspaceId ? await listAllGrades(workspaceId) : [];
+    const grades = workspaceId ? await listAllGrades(workspaceId, session.userId) : [];
     return <GradesClient grades={grades} />;
   }
   return <GradesClient grades={DEMO_GRADES} />;

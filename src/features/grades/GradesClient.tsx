@@ -7,6 +7,7 @@ import type { GradeRow } from "@/server/services/gradesService";
 
 const SOURCE_LABEL: Record<GradeRow["source"], string> = {
   canvas: "Canvas",
+  transcript: "Transcript / GPA",
 };
 
 export function GradesClient({ grades }: { grades: GradeRow[] }) {
@@ -15,7 +16,7 @@ export function GradesClient({ grades }: { grades: GradeRow[] }) {
       <div>
         <h1 className="text-[22px] font-bold text-ink-1">Grades</h1>
         <p className="mt-1 text-[14px] text-ink-2">
-          Pulled live from your connected school systems - this also keeps your GPA Calculator in sync automatically.
+          Canvas grades and transcript courses imported by 3Stone AI stay aligned with your GPA Calculator.
         </p>
       </div>
 
@@ -24,7 +25,7 @@ export function GradesClient({ grades }: { grades: GradeRow[] }) {
           <EmptyState
             icon={GraduationCap}
             title="No grades yet"
-            description="Connect Canvas from Integrations to see your real course grades here."
+            description="Connect Canvas or ask 3Stone AI to import the completed courses from your transcript."
           />
         ) : (
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">

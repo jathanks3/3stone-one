@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { usePathname } from "next/navigation";
 import Image from "next/image";
-import { Sparkles, X, ArrowUp } from "lucide-react";
+import { Sparkles, X, ArrowUp, Paperclip } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useIndustry } from "@/lib/industry";
 import { useAssistantSize } from "@/lib/assistantSize";
@@ -318,6 +318,49 @@ function AssistantPanel({
   const [usage, setUsage] = useState<{ used: number; total: number; isPaid: boolean } | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const nextId = useRef(0);
+  const attachmentInputRef = useRef<HTMLInputElement>(null);
+  const [readingAttachment, setReadingAttachment] = useState(false);
+
+  async function attachReadableFile(file: File) {
+    if (file.size > 12 * 1024 * 1024) {
+      setMessages((m) => [...m, { id: `a_${nextId.current++}`, role: "assistant", text: "That file is over 12 MB. Upload a smaller transcript or paste its course rows." }]);
+      return;
+    }
+    setReadingAttachment(true);
+    try {
+      let text = "";
+      const lower = file.name.toLowerCase();
+      if (file.type === "application/pdf" || lower.endsWith(".pdf")) {
+        const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
+        const pdf = await pdfjs.getDocument({ data: new Uint8Array(await file.arrayBuffer()) }).promise;
+        const pages: string[] = [];
+        for (let pageNumber = 1; pageNumber <= Math.min(pdf.numPages, 30); pageNumber += 1) {
+          const page = await pdf.getPage(pageNumber);
+          const content = await page.getTextContent();
+          pages.push(content.items.map((item) => ("str" in item ? item.str : "")).join(" "));
+        }
+        text = pages.join("\n");
+      } else if (lower.endsWith(".docx")) {
+        const mammoth = await import("mammoth");
+        text = (await mammoth.extractRawText({ arrayBuffer: await file.arrayBuffer() })).value;
+      } else if (file.type.startsWith("image/")) {
+        const tesseract = await import("tesseract.js");
+        const worker = await tesseract.createWorker("eng");
+        try { text = (await worker.recognize(file)).data.text; } finally { await worker.terminate(); }
+      } else {
+        text = await file.text();
+      }
+      const cleaned = text.replace(/\u0000/g, "").replace(/[ \t]+/g, " ").trim();
+      if (!cleaned) throw new Error("I couldn't read text from that file.");
+      const clipped = cleaned.slice(0, 18000);
+      setInput(`I attached ${file.name}. ${editionKey === "student" ? "Read this transcript and, if the course names, numeric credits, and final letter grades are clear, import every completed graded course into Grades and my GPA Calculator. Skip anything ambiguous; do not guess." : "Use the readable file text below to help with my request."}\n\nFILE TEXT:\n${clipped}`);
+    } catch (error) {
+      setMessages((m) => [...m, { id: `a_${nextId.current++}`, role: "assistant", text: error instanceof Error ? error.message : "I couldn't read that attachment." }]);
+    } finally {
+      setReadingAttachment(false);
+      if (attachmentInputRef.current) attachmentInputRef.current.value = "";
+    }
+  }
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -514,6 +557,10 @@ function AssistantPanel({
           }}
           className="flex flex-shrink-0 items-center gap-2 border-t border-line p-3"
         >
+          <input ref={attachmentInputRef} type="file" className="hidden" accept=".pdf,.docx,.txt,.csv,image/*" onChange={(event) => { const file = event.target.files?.[0]; if (file) void attachReadableFile(file); }} />
+          <button type="button" onClick={() => attachmentInputRef.current?.click()} disabled={loading || readingAttachment || isDemo} aria-label="Attach a readable file" title={isDemo ? "File import is available after sign in" : "Attach PDF, Word, text, or image"} className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-[10px] border border-line text-ink-2 hover:bg-surface-raised disabled:opacity-40">
+            {readingAttachment ? <Sparkles size={15} className="animate-pulse" /> : <Paperclip size={15} />}
+          </button>
           <input
             value={input}
             onChange={(e) => setInput(e.target.value)}

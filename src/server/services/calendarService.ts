@@ -3,6 +3,7 @@ import { logActivity } from "@/server/services/activityService";
 import { getGoogleCalendarEventsInRange } from "@/server/services/googleIntegrationService";
 import { getOutlookEventsInRange, deleteOutlookEvent } from "@/server/services/microsoftIntegrationService";
 import { listCanvasAssignments } from "@/server/services/canvasIntegrationService";
+import { listMondayItems } from "@/server/services/mondayIntegrationService";
 
 export interface CalendarEventRow {
   id: string;
@@ -12,7 +13,7 @@ export interface CalendarEventRow {
   // Absent/"internal" = a real row this workspace owns (editable/deletable).
   // "google"/"outlook" = read-only, synced live from that provider each
   // page load — there is no local row to edit or delete.
-  source?: "internal" | "google" | "outlook" | "canvas" | "meeting" | "project" | "task" | "milestone" | "meeting_task";
+  source?: "internal" | "google" | "outlook" | "canvas" | "monday" | "job" | "meeting" | "project" | "task" | "milestone" | "meeting_task";
   allDay?: boolean;
 }
 
@@ -42,20 +43,22 @@ function splitIsoStart(iso: string): { date: string; time: string; allDay: boole
 // connected — nothing here is stored locally, so a disconnect or a change
 // made in Google/Outlook shows up immediately on next page load.
 export async function listSyncedCalendarEvents(workspaceId: string): Promise<CalendarEventRow[]> {
-  const [google, microsoft, canvas] = await Promise.all([
+  const [google, microsoft, canvas, monday] = await Promise.all([
     db.integration.findUnique({ where: { workspaceId_provider: { workspaceId, provider: "google" } } }),
     db.integration.findUnique({ where: { workspaceId_provider: { workspaceId, provider: "microsoft" } } }),
     db.integration.findUnique({ where: { workspaceId_provider: { workspaceId, provider: "canvas" } } }),
+    db.integration.findUnique({ where: { workspaceId_provider: { workspaceId, provider: "monday" } } }),
   ]);
 
   const rangeStart = new Date();
   rangeStart.setFullYear(rangeStart.getFullYear() - 2);
   const rangeEnd = new Date();
   rangeEnd.setFullYear(rangeEnd.getFullYear() + 2);
-  const [googleEvents, microsoftEvents, canvasAssignments] = await Promise.all([
+  const [googleEvents, microsoftEvents, canvasAssignments, mondayItems] = await Promise.all([
     google?.status === "connected" ? getGoogleCalendarEventsInRange(workspaceId, rangeStart, rangeEnd, 250).catch(() => []) : Promise.resolve([]),
     microsoft?.status === "connected" ? getOutlookEventsInRange(workspaceId, rangeStart, rangeEnd, 250).catch(() => []) : Promise.resolve([]),
     canvas?.status === "connected" ? listCanvasAssignments(workspaceId).catch(() => []) : Promise.resolve([]),
+    monday?.status === "connected" ? listMondayItems(workspaceId).catch(() => []) : Promise.resolve([]),
   ]);
 
   const rows: CalendarEventRow[] = [];
@@ -77,6 +80,10 @@ export async function listSyncedCalendarEvents(workspaceId: string): Promise<Cal
     if (!date) return;
     rows.push({ id: `canvas:${assignment.id}`, title: assignment.title, date, time, allDay, source: "canvas" });
   });
+  mondayItems.forEach((item) => {
+    if (!item.dueDate) return;
+    rows.push({ id: `monday:${item.id}`, title: `${item.name} — ${item.boardName}`, date: item.dueDate, time: "00:00", allDay: true, source: "monday" });
+  });
   return rows;
 }
 
@@ -94,7 +101,7 @@ export async function deleteSyncedCalendarEvent(workspaceId: string, rowId: stri
 // What the Calendar module page actually renders — this workspace's own
 // events plus a live merge of every connected provider's upcoming events.
 export async function listAllCalendarEvents(workspaceId: string): Promise<CalendarEventRow[]> {
-  const [internal, synced, meetings, projects, tasks, milestones, meetingTasks] = await Promise.all([
+  const [internal, synced, meetings, projects, tasks, milestones, meetingTasks, jobApplications] = await Promise.all([
     listCalendarEvents(workspaceId),
     listSyncedCalendarEvents(workspaceId),
     db.meeting.findMany({ where: { workspaceId }, orderBy: { scheduledAt: "asc" }, select: { id: true, title: true, scheduledAt: true } }),
@@ -102,6 +109,7 @@ export async function listAllCalendarEvents(workspaceId: string): Promise<Calend
     db.task.findMany({ where: { workspaceId, dueDate: { not: null } }, select: { id: true, title: true, dueDate: true, status: true } }),
     db.projectMilestone.findMany({ where: { project: { workspaceId }, dueDate: { not: null } }, select: { id: true, title: true, dueDate: true, status: true } }),
     db.meetingActionItem.findMany({ where: { meeting: { workspaceId }, dueDate: { not: null } }, select: { id: true, title: true, dueDate: true, status: true } }),
+    db.jobApplication.findMany({ where: { workspaceId, appliedDate: { not: null } }, select: { id: true, company: true, role: true, appliedDate: true, status: true, source: true } }),
   ]);
   const meetingRows: CalendarEventRow[] = meetings.map((meeting) => {
     const local = meeting.scheduledAt;
@@ -125,7 +133,8 @@ export async function listAllCalendarEvents(workspaceId: string): Promise<Calend
   const taskRows = tasks.map((task) => dueRow(`task:${task.id}`, `${task.title}${task.status === "done" ? " (completed)" : " due"}`, task.dueDate as Date, "task"));
   const milestoneRows = milestones.map((milestone) => dueRow(`milestone:${milestone.id}`, `${milestone.title}${milestone.status === "approved" ? " (completed)" : " due"}`, milestone.dueDate as Date, "milestone"));
   const meetingTaskRows = meetingTasks.map((task) => dueRow(`meeting-task:${task.id}`, `${task.title}${task.status === "done" ? " (completed)" : " due"}`, task.dueDate as Date, "meeting_task"));
-  return [...internal.map((e) => ({ ...e, source: "internal" as const })), ...synced, ...meetingRows, ...projectRows, ...taskRows, ...milestoneRows, ...meetingTaskRows];
+  const jobRows = jobApplications.map((application) => dueRow(`job:${application.id}`, `${application.company} — ${application.role} (${application.status}${application.source === "indeed" ? ", Indeed" : ""})`, application.appliedDate as Date, "job"));
+  return [...internal.map((e) => ({ ...e, source: "internal" as const })), ...synced, ...meetingRows, ...projectRows, ...taskRows, ...milestoneRows, ...meetingTaskRows, ...jobRows];
 }
 
 export async function createCalendarEvent(workspaceId: string, createdById: string, title: string, date: string, time: string): Promise<CalendarEventRow> {
