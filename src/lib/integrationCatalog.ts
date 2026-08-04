@@ -1,5 +1,5 @@
 export type IntegrationEdition = "business" | "workspace" | "student";
-export type IntegrationReadiness = "live" | "configured" | "buildable" | "approval_required";
+export type IntegrationReadiness = "live" | "manual" | "configured" | "buildable" | "approval_required";
 
 export interface IntegrationCatalogItem {
   key: string;
@@ -43,10 +43,10 @@ export const INTEGRATION_CATALOG: IntegrationCatalogItem[] = [
   { key: "canvas", name: "Canvas", summary: "Student connection using the school's Canvas URL and personal access token; assignments and course files populate student tools.", editions: ["student"], readiness: "live", destinations: [{ label: "Calendar", href: "/calendar" }, { label: "Projects", href: "/projects" }, { label: "Documents", href: "/documents" }, { label: "Knowledge Center", href: "/knowledge" }] },
   { key: "wildapricot", name: "Wild Apricot", summary: "Nonprofit membership management - connect with your account's own API key (no approval needed); members populate CRM.", editions: ["workspace"], readiness: "live", destinations: [{ label: "CRM", href: "/crm" }] },
   { key: "basecamp", name: "Basecamp", summary: "Real-time project sync is built and ready - needs the founder to register a Basecamp OAuth app (client ID/secret) before anyone can connect.", editions: ["workspace"], readiness: "buildable", destinations: [{ label: "Projects", href: "/projects" }] },
-  { key: "linkedin", name: "LinkedIn Jobs", summary: "Live link tracking is available in the Internship & Job Tracker; LinkedIn does not expose a personal application-history API.", editions: ["student"], readiness: "live", destinations: [{ label: "Track an application", href: "/job-tracker" }] },
-  { key: "indeed", name: "Indeed", summary: "Live link and application tracking is available in the Internship & Job Tracker. Indeed does not provide a general student application-history connection.", editions: ["student"], readiness: "live", destinations: [{ label: "Track an application", href: "/job-tracker" }] },
-  { key: "handshake", name: "Handshake", summary: "Manual listing tracking is available now; automatic institution data requires Handshake-approved API access.", editions: ["student"], readiness: "approval_required", destinations: [{ label: "Track an application", href: "/job-tracker" }, { label: "Calendar", href: "/calendar" }] },
-  { key: "12twenty", name: "12twenty Law Careers", summary: "Manual listing tracking is available now; automatic law-school data requires institution-issued API access.", editions: ["student"], readiness: "approval_required", destinations: [{ label: "Track an application", href: "/job-tracker" }, { label: "Calendar", href: "/calendar" }] },
+  { key: "linkedin", name: "LinkedIn Jobs", summary: "Manually save and track LinkedIn job links in the Internship & Job Tracker; automatic application-history sync is not available.", editions: ["student"], readiness: "manual", destinations: [{ label: "Track an application", href: "/job-tracker" }] },
+  { key: "indeed", name: "Indeed", summary: "Manually save and track Indeed listing links in the Internship & Job Tracker; automatic application-history sync is not available.", editions: ["student"], readiness: "manual", destinations: [{ label: "Track an application", href: "/job-tracker" }] },
+  { key: "handshake", name: "Handshake", summary: "Manually save and track Handshake listings; automatic institution data requires Handshake-approved API access.", editions: ["student"], readiness: "manual", destinations: [{ label: "Track an application", href: "/job-tracker" }, { label: "Calendar", href: "/calendar" }] },
+  { key: "12twenty", name: "12twenty Law Careers", summary: "Manually save and track 12twenty listings; automatic law-school data requires institution-issued API access.", editions: ["student"], readiness: "manual", destinations: [{ label: "Track an application", href: "/job-tracker" }, { label: "Calendar", href: "/calendar" }] },
 ];
 
 export function integrationsForEdition(editionKey: string): IntegrationCatalogItem[] {
