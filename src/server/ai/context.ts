@@ -16,6 +16,7 @@ import { listDirectory } from "@/server/services/peopleService";
 import { listActivity } from "@/server/services/activityService";
 import { db } from "@/server/db";
 import { integrationsForEdition } from "@/lib/integrationCatalog";
+import { getRecentGoogleDriveFiles } from "@/server/services/googleIntegrationService";
 
 // Real, current data from this workspace, assembled fresh on every
 // message so the assistant can actually answer "what's on my calendar"
@@ -120,7 +121,7 @@ export async function buildWorkspaceContext(workspaceId: string, editionKey: str
 
   if (allowed(modules, "documents")) {
     tasks.push(
-      Promise.all([listDocuments(workspaceId), listCanvasCourseMaterials(workspaceId).catch(() => [])]).then(([docs, canvasMaterials]) => {
+      Promise.all([listDocuments(workspaceId), listCanvasCourseMaterials(workspaceId).catch(() => []), getRecentGoogleDriveFiles(workspaceId, 20).catch(() => [])]).then(([docs, canvasMaterials, googleDriveFiles]) => {
         const lines: string[] = [];
         if (docs.length) lines.push(...docs.slice(0, 20).map((d) => `- ${d.name} (${d.mimeType}, ${d.sizeBytes} bytes) [workspace upload]`));
         if (canvasMaterials.length) {
@@ -128,6 +129,7 @@ export async function buildWorkspaceContext(workspaceId: string, editionKey: str
             ...canvasMaterials.slice(0, 20).map((m) => `- ${m.displayName} (${m.courseName}) [from Canvas]`)
           );
         }
+        if (googleDriveFiles.length) lines.push(...googleDriveFiles.map((file) => `- ${file.name} (${file.mimeType}) [user-selected Google Drive file]`));
         if (!lines.length) return;
         sections.push(`Documents and course materials available. Metadata is included; if the file body is not present in this snapshot, ask the user to open it or paste the relevant text rather than inventing its contents:\n${lines.join("\n")}`);
       })

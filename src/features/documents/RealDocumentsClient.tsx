@@ -17,6 +17,7 @@ import type { DocumentRow } from "@/server/services/documentService";
 import type { OneDriveFile } from "@/server/services/microsoftIntegrationService";
 import type { GoogleDriveFile } from "@/server/services/googleIntegrationService";
 import type { CanvasCourseMaterial } from "@/server/services/canvasIntegrationService";
+import { GoogleDrivePickerButton } from "@/features/documents/GoogleDrivePickerButton";
 
 function formatSize(bytes: number) {
   if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
@@ -29,6 +30,7 @@ export function RealDocumentsClient({
   oneDriveFiles = [],
   googleDriveConnected = false,
   googleDriveFiles = [],
+  googlePickerConfig = null,
   canvasConnected = false,
   canvasMaterials = [],
 }: {
@@ -37,6 +39,7 @@ export function RealDocumentsClient({
   oneDriveFiles?: OneDriveFile[] | null;
   googleDriveConnected?: boolean;
   googleDriveFiles?: GoogleDriveFile[] | null;
+  googlePickerConfig?: { clientId: string; apiKey: string; appId: string } | null;
   canvasConnected?: boolean;
   canvasMaterials?: CanvasCourseMaterial[];
 }) {
@@ -272,8 +275,8 @@ export function RealDocumentsClient({
 
       {googleDriveConnected ? (
         <div className="mt-8">
-          <div className="mb-3"><h2 className="text-[16px] font-semibold text-ink-1">Google Drive</h2><p className="mt-0.5 text-[12.5px] text-ink-3">Files stay in Drive and open there; 3Stone One does not duplicate their contents.</p></div>
-          {googleDriveFiles === null ? <Card className="p-4 text-[13px] text-ink-2">Reconnect Google in Integrations to approve Drive access.</Card> : googleDriveFiles.length === 0 ? <Card className="p-4 text-[13px] text-ink-3">No accessible Google Drive files found.</Card> : <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">{googleDriveFiles.map((file) => <button key={file.id} onClick={() => previewGoogleDriveFile(file)} className="rounded-xl border border-line bg-surface p-3 text-left hover:bg-surface-raised"><p className="truncate text-[13.5px] font-semibold text-ink-1">{file.name}</p><p className="mt-1 text-[11.5px] text-ink-3">{file.sizeBytes ? formatSize(file.sizeBytes) : file.mimeType}{file.modifiedAt ? ` · Updated ${new Date(file.modifiedAt).toLocaleDateString()}` : ""}</p></button>)}</div>}
+          <div className="mb-3 flex flex-wrap items-start justify-between gap-3"><div><h2 className="text-[16px] font-semibold text-ink-1">Google Drive</h2><p className="mt-0.5 text-[12.5px] text-ink-3">Choose only the files you want to share with 3Stone One. They stay in Drive and open there.</p></div>{googlePickerConfig ? <GoogleDrivePickerButton {...googlePickerConfig} /> : null}</div>
+          {googleDriveFiles === null ? <Card className="p-4 text-[13px] text-ink-2">Reconnect Google in Integrations to approve selected-file access.</Card> : googleDriveFiles.length === 0 ? <Card className="p-4 text-[13px] text-ink-3">No Drive files selected yet.{googlePickerConfig ? " Choose files above to add them securely." : " Google Picker configuration is not available in this environment."}</Card> : <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">{googleDriveFiles.map((file) => <button key={file.id} onClick={() => previewGoogleDriveFile(file)} className="rounded-xl border border-line bg-surface p-3 text-left hover:bg-surface-raised"><p className="truncate text-[13.5px] font-semibold text-ink-1">{file.name}</p><p className="mt-1 text-[11.5px] text-ink-3">{file.sizeBytes ? formatSize(file.sizeBytes) : file.mimeType}{file.modifiedAt ? ` · Updated ${new Date(file.modifiedAt).toLocaleDateString()}` : ""}</p></button>)}</div>}
         </div>
       ) : null}
 

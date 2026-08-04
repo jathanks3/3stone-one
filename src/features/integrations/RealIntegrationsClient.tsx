@@ -246,7 +246,7 @@ export function RealIntegrationsClient({
         {catalog.some((item) => item.key === "claude") ? <CustomerAiCard provider="anthropic" status={anthropicStatus} connectedAt={anthropicConnectedAt} /> : null}
         <IntegrationCard
           name={editionKey === "student" ? "Google Drive" : "Google Workspace"}
-          blurb={editionKey === "student" ? "Student connection requests Drive read access only." : "Gmail and Calendar populate Communications and Calendar; Business also enables Drive and Sheets."}
+          blurb={editionKey === "student" ? "Connect Gmail and choose only the Drive files you want to share with 3Stone One." : "Gmail and Calendar populate Communications and Calendar; Drive files are added only when a user selects them, and Business can create requested Sheets exports."}
           status={googleStatus}
           connectedAt={googleConnectedAt}
           configured={googleConfigured}

@@ -30,6 +30,11 @@ export default async function DocumentsPage() {
         oneDriveFiles={oneDriveFiles}
         googleDriveConnected={google?.status === "connected"}
         googleDriveFiles={googleDriveFiles}
+        googlePickerConfig={process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_PICKER_API_KEY && process.env.GOOGLE_CLOUD_PROJECT_NUMBER ? {
+          clientId: process.env.GOOGLE_CLIENT_ID,
+          apiKey: process.env.GOOGLE_PICKER_API_KEY,
+          appId: process.env.GOOGLE_CLOUD_PROJECT_NUMBER,
+        } : null}
         canvasConnected={canvas?.status === "connected"}
         canvasMaterials={canvasMaterials}
       />

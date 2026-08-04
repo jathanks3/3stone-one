@@ -13,7 +13,7 @@ function googleScopesForEdition(editionKey: string): string {
   const identity = ["openid", "email"];
   if (editionKey === "student")
     return [
-      "https://www.googleapis.com/auth/drive.readonly",
+      "https://www.googleapis.com/auth/drive.file",
       // Read-only is enough for the Emails module (read-through inbox +
       // letting the assistant see/summarize messages) - Student has no
       // send-as-yourself use case the way Workspace's Communications does.
@@ -30,8 +30,7 @@ function googleScopesForEdition(editionKey: string): string {
     "https://www.googleapis.com/auth/calendar.readonly",
     "https://www.googleapis.com/auth/gmail.readonly",
     "https://www.googleapis.com/auth/gmail.send",
-    "https://www.googleapis.com/auth/drive.readonly",
-    "https://www.googleapis.com/auth/spreadsheets",
+    "https://www.googleapis.com/auth/drive.file",
     ...identity,
   ].join(" ");
 }
@@ -226,6 +225,7 @@ export async function disconnectGoogle(workspaceId: string): Promise<void> {
       refreshTokenEncrypted: null,
       tokenExpiresAt: null,
       scope: null,
+      config: {},
     },
     create: { workspaceId, provider: "google", status: "not_connected" },
   });
@@ -308,13 +308,43 @@ export async function sendGmail(workspaceId: string, input: { to: string; subjec
 }
 
 export interface GoogleDriveFile { id: string; name: string; mimeType: string; modifiedAt: string; webViewLink: string; sizeBytes: number }
-export async function getRecentGoogleDriveFiles(workspaceId: string, limit = 50): Promise<GoogleDriveFile[]> {
+
+type GoogleIntegrationConfig = { selectedFileIds?: string[] };
+
+async function getGoogleDriveFilesByIds(workspaceId: string, fileIds: string[]): Promise<GoogleDriveFile[]> {
+  if (!fileIds.length) return [];
   const accessToken = await getValidGoogleAccessToken(workspaceId);
-  const params = new URLSearchParams({ pageSize: String(limit), orderBy: "modifiedTime desc", q: "trashed = false", fields: "files(id,name,mimeType,modifiedTime,webViewLink,size)" });
-  const res = await fetch(`https://www.googleapis.com/drive/v3/files?${params.toString()}`, { headers: { Authorization: `Bearer ${accessToken}` }, cache: "no-store" });
-  if (!res.ok) throw new Error(`Google Drive request failed: ${res.status} ${await res.text().catch(() => "")}`);
-  const data = await res.json();
-  return (Array.isArray(data.files) ? data.files : []).map((file: { id?: string; name?: string; mimeType?: string; modifiedTime?: string; webViewLink?: string; size?: string }) => ({ id: file.id ?? "", name: file.name ?? "Untitled", mimeType: file.mimeType ?? "application/octet-stream", modifiedAt: file.modifiedTime ?? "", webViewLink: file.webViewLink ?? "", sizeBytes: Number(file.size ?? 0) })).filter((file: GoogleDriveFile) => file.id && file.webViewLink);
+  const files = await Promise.all(fileIds.slice(0, 100).map(async (fileId) => {
+    const fields = "id,name,mimeType,modifiedTime,webViewLink,size";
+    const res = await fetch(`https://www.googleapis.com/drive/v3/files/${encodeURIComponent(fileId)}?fields=${encodeURIComponent(fields)}`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+      cache: "no-store",
+    });
+    if (!res.ok) return null;
+    const file = await res.json() as { id?: string; name?: string; mimeType?: string; modifiedTime?: string; webViewLink?: string; size?: string };
+    if (!file.id || !file.webViewLink) return null;
+    return { id: file.id, name: file.name ?? "Untitled", mimeType: file.mimeType ?? "application/octet-stream", modifiedAt: file.modifiedTime ?? "", webViewLink: file.webViewLink, sizeBytes: Number(file.size ?? 0) } satisfies GoogleDriveFile;
+  }));
+  return files.filter((file): file is GoogleDriveFile => Boolean(file));
+}
+
+export async function getRecentGoogleDriveFiles(workspaceId: string, limit = 50): Promise<GoogleDriveFile[]> {
+  const integration = await db.integration.findUnique({ where: { workspaceId_provider: { workspaceId, provider: "google" } } });
+  const config = (integration?.config ?? {}) as GoogleIntegrationConfig;
+  return getGoogleDriveFilesByIds(workspaceId, (config.selectedFileIds ?? []).slice(0, limit));
+}
+
+export async function saveSelectedGoogleDriveFiles(workspaceId: string, fileIdsInput: string[]): Promise<GoogleDriveFile[]> {
+  const fileIds = [...new Set(fileIdsInput.map((id) => id.trim()).filter(Boolean))].slice(0, 100);
+  const files = await getGoogleDriveFilesByIds(workspaceId, fileIds);
+  const integration = await db.integration.findUnique({ where: { workspaceId_provider: { workspaceId, provider: "google" } } });
+  if (!integration || integration.status !== "connected") throw new Error("Google isn't connected for this workspace.");
+  const config = (integration.config ?? {}) as GoogleIntegrationConfig;
+  await db.integration.update({
+    where: { workspaceId_provider: { workspaceId, provider: "google" } },
+    data: { config: { ...config, selectedFileIds: files.map((file) => file.id) } },
+  });
+  return files;
 }
 
 export interface GmailAttachment {
