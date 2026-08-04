@@ -37,8 +37,7 @@ const EDITION_GREETING_SUBTITLE: Record<string, string> = {
 // score/status/attention-items this page already leads with, which read
 // as two dashboards stacked instead of one.
 export function RealDashboard({ data }: { data: RealDashboardData }) {
-  const hasAnyActivity =
-    data.openProjectCount > 0 || data.unpaidInvoiceCount > 0 || data.recentActivity.length > 0;
+  const hasAnyActivity = data.unpaidInvoiceCount > 0 || data.recentActivity.length > 0;
 
   // Real bug: every edition saw "Team members" and "Unpaid invoices"
   // regardless of whether People or Finance are even part of that
@@ -127,12 +126,6 @@ export function RealDashboard({ data }: { data: RealDashboardData }) {
         {showTeamMembers ? (
           <KpiTile label="Team members" value={String(data.memberCount)} />
         ) : null}
-        <KpiTile
-          label="Open projects"
-          value={String(data.openProjectCount)}
-          deltaLabel={data.overdueProjectCount > 0 ? `${data.overdueProjectCount} overdue` : "On track"}
-          tone={data.overdueProjectCount > 0 ? "negative" : "positive"}
-        />
         {showInvoices ? (
           <KpiTile
             label="Unpaid invoices"

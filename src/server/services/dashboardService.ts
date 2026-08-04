@@ -6,8 +6,6 @@ export interface RealDashboardData {
   userName: string;
   editionKey: string;
   memberCount: number;
-  openProjectCount: number;
-  overdueProjectCount: number;
   unpaidInvoiceCount: number;
   recentActivity: { action: string; createdAt: Date }[];
   debrief: DailyDebrief;
@@ -27,13 +25,11 @@ export interface RealDashboardData {
 // whether People or Finance are even in that edition's module list (see
 // editionModules.ts - Student has neither, Workspace has no Finance).
 export async function getDashboardData(workspaceId: string, userId: string): Promise<RealDashboardData> {
-  const [workspace, user, memberCount, openProjectCount, overdueProjectCount, unpaidInvoiceCount, recentActivity] =
+  const [workspace, user, memberCount, unpaidInvoiceCount, recentActivity] =
     await Promise.all([
       db.workspace.findUniqueOrThrow({ where: { id: workspaceId }, select: { name: true, editionKey: true } }),
       db.user.findUnique({ where: { id: userId }, select: { name: true } }),
       db.workspaceMember.count({ where: { workspaceId, status: "active" } }),
-      db.project.count({ where: { workspaceId, statusKey: { not: "done" } } }),
-      db.project.count({ where: { workspaceId, statusKey: { not: "done" }, dueDate: { lt: new Date() } } }),
       db.invoice.count({ where: { workspaceId, status: { in: ["sent", "overdue"] } } }),
       db.activityLogEntry.findMany({
         where: { workspaceId },
@@ -50,21 +46,16 @@ export async function getDashboardData(workspaceId: string, userId: string): Pro
   // mock dataset - deliberately doesn't fabricate a "% up this month"
   // figure the schema can't back (Task has no completedAt to trend
   // against), so it leads with what's actually true right now instead.
-  const projectWord = openProjectCount === 1 ? "project" : "projects";
-  const openSentence = `You have ${openProjectCount} open ${projectWord}${overdueProjectCount > 0 ? `, ${overdueProjectCount} overdue` : ""}.`;
-  const attentionSentence =
+  const briefingSummary =
     debrief.attentionItems.length > 0
-      ? ` ${debrief.attentionItems.length} item${debrief.attentionItems.length === 1 ? " needs" : "s need"} your attention.`
-      : " Nothing is behind schedule right now.";
-  const briefingSummary = `${openSentence}${attentionSentence}`;
+      ? `${debrief.attentionItems.length} item${debrief.attentionItems.length === 1 ? " needs" : "s need"} your attention.`
+      : "You're all caught up. Nothing needs your attention right now.";
 
   return {
     workspaceName: workspace.name,
     userName: user?.name ?? workspace.name,
     editionKey: workspace.editionKey,
     memberCount,
-    openProjectCount,
-    overdueProjectCount,
     unpaidInvoiceCount,
     recentActivity,
     debrief,
