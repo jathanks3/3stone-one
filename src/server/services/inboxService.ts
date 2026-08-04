@@ -3,10 +3,8 @@ import { logActivity } from "@/server/services/activityService";
 import { uploadBufferAndRecord } from "@/server/services/storageService";
 import { createDocument } from "@/server/services/documentService";
 import {
-  getRecentGmailMessages,
   getGmailMessageDetail,
   getGmailAttachmentBytes,
-  type GmailMessage,
 } from "@/server/services/googleIntegrationService";
 import {
   getRecentOutlookMessages,
@@ -31,37 +29,24 @@ export interface InboxMessageRow {
   preview: string;
 }
 
-export interface ConnectedInboxProviders {
-  google: boolean;
-  microsoft: boolean;
-}
+export interface ConnectedInboxProviders { microsoft: boolean; }
 
 export async function getConnectedInboxProviders(workspaceId: string): Promise<ConnectedInboxProviders> {
-  const [google, microsoft] = await Promise.all([
-    db.integration.findUnique({ where: { workspaceId_provider: { workspaceId, provider: "google" } } }),
-    db.integration.findUnique({ where: { workspaceId_provider: { workspaceId, provider: "microsoft" } } }),
-  ]);
-  return { google: google?.status === "connected", microsoft: microsoft?.status === "connected" };
-}
-
-function fromGmail(m: GmailMessage): InboxMessageRow {
-  return { id: m.id, provider: "google", subject: m.subject, from: m.from, receivedAt: m.receivedAt, preview: m.preview };
+  const microsoft = await db.integration.findUnique({ where: { workspaceId_provider: { workspaceId, provider: "microsoft" } } });
+  return { microsoft: microsoft?.status === "connected" };
 }
 
 function fromOutlook(m: OutlookMessage): InboxMessageRow {
   return { id: m.id, provider: "microsoft", subject: m.subject, from: m.senderName, receivedAt: m.receivedAt, preview: m.preview };
 }
 
-/** Merged, most-recent-first inbox across whichever provider(s) are
- * connected. Returns [] rather than throwing when nothing is connected -
+/** Most-recent-first Outlook inbox. Google is deliberately excluded because
+ * 3Stone One no longer requests Gmail inbox access. Returns [] rather than throwing when nothing is connected -
  * this feeds a page/AI context, not an action a user is blocked on. */
 export async function listInboxMessages(workspaceId: string, limit = 25): Promise<InboxMessageRow[]> {
   const connected = await getConnectedInboxProviders(workspaceId);
-  const [gmail, outlook] = await Promise.all([
-    connected.google ? getRecentGmailMessages(workspaceId, limit).catch(() => []) : Promise.resolve([]),
-    connected.microsoft ? getRecentOutlookMessages(workspaceId, limit).catch(() => []) : Promise.resolve([]),
-  ]);
-  return [...gmail.map(fromGmail), ...outlook.map(fromOutlook)]
+  const outlook = connected.microsoft ? await getRecentOutlookMessages(workspaceId, limit).catch(() => []) : [];
+  return outlook.map(fromOutlook)
     .sort((a, b) => (b.receivedAt || "").localeCompare(a.receivedAt || ""))
     .slice(0, limit);
 }

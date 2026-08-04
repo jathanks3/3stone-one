@@ -27,6 +27,10 @@ export async function GET(req: Request) {
     return NextResponse.redirect(new URL("/login", req.url));
   }
 
+  if (membership.workspace.editionKey !== "business") {
+    return NextResponse.redirect(new URL("/integrations?error=not_available", req.url));
+  }
+
   try {
     await requireTeamManager(session.userId, membership.workspaceId);
   } catch {

@@ -23,8 +23,7 @@ const FULL_MICROSOFT_SCOPES = [
 ].join(" ");
 function microsoftScopesForEdition(editionKey: string): string {
   // Mail.Read (not the write/send scopes above) is enough for Student's
-  // read-through Emails module - same reasoning as Gmail's read-only
-  // scope right above in googleIntegrationService.ts.
+  // read-through Emails module without Calendar, Teams, or send access.
   if (editionKey === "student") return ["Files.Read", "Mail.Read", "User.Read", "offline_access", "openid", "email"].join(" ");
   return FULL_MICROSOFT_SCOPES;
 }

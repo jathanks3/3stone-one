@@ -15,22 +15,18 @@ import type { CallNoteRow } from "@/server/services/communicationsService";
 import type { PersonRow } from "@/server/services/crmService";
 import type { OutlookMessage } from "@/server/services/microsoftIntegrationService";
 import type { SlackChannel, SlackMessage } from "@/server/services/slackIntegrationService";
-import type { GmailMessage } from "@/server/services/googleIntegrationService";
 
 // Slack and Call Notes are Workspace/Business-only: Slack channels aren't
 // offered to Student in Integrations (integrationCatalog.ts), and Call
 // Notes logs against a CRM contact - Student has no CRM module at all
 // (editionModules.ts), so there's never a contact to pick. Rather than
-// ship a tab that can never work, Student gets the same Outlook Mail/Gmail
-// tabs (via the shared MailTab - see MailTab.tsx) without those two.
+// ship a tab that can never work, Student gets Outlook Mail without those two.
 export function RealCommunicationsClient({
   editionKey,
   initialCallNotes,
   people,
   outlookConnected,
   outlookMessages,
-  gmailConnected,
-  gmailMessages,
   slackConnected,
   slackChannels,
   slackMessages,
@@ -40,8 +36,6 @@ export function RealCommunicationsClient({
   people: PersonRow[];
   outlookConnected: boolean;
   outlookMessages: OutlookMessage[] | null;
-  gmailConnected: boolean;
-  gmailMessages: GmailMessage[] | null;
   slackConnected: boolean;
   slackChannels: SlackChannel[] | null;
   slackMessages: SlackMessage[] | null;
@@ -53,15 +47,14 @@ export function RealCommunicationsClient({
       <h1 className="text-[22px] font-bold text-ink-1">📧 Communications</h1>
       <p className="mt-1 text-[14px] text-ink-2">
         {isStudent
-          ? "Your connected inbox, read live from Gmail and Outlook - nothing here is copied or stored unless you save an attachment."
-          : "Outlook email, Gmail, Slack, and call notes — one searchable hub."}
+          ? "Your connected Outlook inbox, read live from Microsoft — nothing here is copied or stored unless you save an attachment."
+          : "Outlook email, Slack, and call notes — one searchable hub."}
       </p>
 
       <div className="mt-6">
         <Tabs
           tabs={[
             { key: "email", label: "Outlook Mail", content: <MailTab provider="microsoft" connected={outlookConnected} messages={outlookMessages} /> },
-            { key: "gmail", label: "Gmail", content: <MailTab provider="google" connected={gmailConnected} messages={gmailMessages} /> },
             ...(isStudent
               ? []
               : [

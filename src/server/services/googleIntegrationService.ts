@@ -6,9 +6,9 @@ import { encryptToken, decryptToken } from "@/lib/tokenEncryption";
 // OAuth client covers every 3Stone One edition (they're all the same
 // app/domain) - see the founder's own setup notes.
 //
-// Every requested scope below is backed by a real destination in the
-// product: Calendar, Gmail in Communications, Drive in Documents, and
-// Sheets exports from Analytics. Gmail/Drive scopes require Google review.
+// Google is Business-only. It can add Calendar context, send a message the
+// user explicitly authors, and work with files the user selects. We do not
+// request Gmail inbox access or broad Drive access.
 function googleScopesForEdition(editionKey: string): string {
   const identity = ["openid", "email"];
   // The isolated Google verification project intentionally exercises only
@@ -17,24 +17,11 @@ function googleScopesForEdition(editionKey: string): string {
   if (process.env.GOOGLE_DRIVE_PICKER_TEST_MODE === "true") {
     return ["https://www.googleapis.com/auth/drive.file", ...identity].join(" ");
   }
-  if (editionKey === "student")
-    return [
-      "https://www.googleapis.com/auth/drive.file",
-      // Read-only is enough for the Emails module (read-through inbox +
-      // letting the assistant see/summarize messages) - Student has no
-      // send-as-yourself use case the way Workspace's Communications does.
-      "https://www.googleapis.com/auth/gmail.readonly",
-      ...identity,
-    ].join(" ");
-  if (editionKey === "workspace") return [
-    "https://www.googleapis.com/auth/calendar.readonly",
-    "https://www.googleapis.com/auth/gmail.readonly",
-    "https://www.googleapis.com/auth/gmail.send",
-    ...identity,
-  ].join(" ");
+  // The connect route rejects non-Business editions. Keep the defensive
+  // fallback identity-only if this helper is called from another path.
+  if (editionKey !== "business") return identity.join(" ");
   return [
     "https://www.googleapis.com/auth/calendar.readonly",
-    "https://www.googleapis.com/auth/gmail.readonly",
     "https://www.googleapis.com/auth/gmail.send",
     "https://www.googleapis.com/auth/drive.file",
     ...identity,

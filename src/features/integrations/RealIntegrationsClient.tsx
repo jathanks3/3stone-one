@@ -27,6 +27,7 @@ const emptyState: ActionState = {};
 const ERROR_MESSAGES: Record<string, string> = {
   not_authorized: "Only the workspace owner or an admin can connect integrations.",
   not_configured: "That integration isn't configured yet.",
+  not_available: "That integration isn't offered for this edition.",
   access_denied: "Connection was cancelled.",
   missing_code: "Something went wrong starting the connection. Try again.",
   session_mismatch: "That connection link was for a different session. Try connecting again.",
@@ -223,7 +224,7 @@ export function RealIntegrationsClient({
     if (error) {
       showToast({ title: "Couldn't connect", description: ERROR_MESSAGES[error] ?? "Something went wrong." });
     } else if (connected === "google") {
-      showToast({ title: "Google connected", description: "Your Google Calendar is now linked." });
+      showToast({ title: "Google connected", description: "Google Calendar, sending, and selected files are now linked." });
     } else if (connected === "microsoft") {
       showToast({ title: "Microsoft connected", description: "Your Outlook Calendar and Mail are now linked." });
     } else if (connected === "slack") {
@@ -244,20 +245,22 @@ export function RealIntegrationsClient({
       <div className="mt-6 flex flex-col gap-4">
         {catalog.some((item) => item.key === "chatgpt") ? <CustomerAiCard provider="openai" status={openaiStatus} connectedAt={openaiConnectedAt} /> : null}
         {catalog.some((item) => item.key === "claude") ? <CustomerAiCard provider="anthropic" status={anthropicStatus} connectedAt={anthropicConnectedAt} /> : null}
+        {catalog.some((item) => item.key === "google") ? (
+          <IntegrationCard
+            name="Google Workspace"
+            blurb="Business can sync Google Calendar, send messages a user explicitly authors, select individual Drive files, and create Sheets reports. 3Stone One does not read the Gmail inbox."
+            status={googleStatus}
+            connectedAt={googleConnectedAt}
+            configured={googleConfigured}
+            connectHref="/api/integrations/google/connect"
+            disconnectAction={disconnectGoogleAction}
+            events={googleEvents}
+            eventsLabel="Next on your Google Calendar"
+          />
+        ) : null}
         <IntegrationCard
-          name={editionKey === "student" ? "Google Drive" : "Google Workspace"}
-          blurb={editionKey === "student" ? "Connect Gmail and choose only the Drive files you want to share with 3Stone One." : "Gmail and Calendar populate Communications and Calendar; Drive files are added only when a user selects them, and Business can create requested Sheets exports."}
-          status={googleStatus}
-          connectedAt={googleConnectedAt}
-          configured={googleConfigured}
-          connectHref="/api/integrations/google/connect"
-          disconnectAction={disconnectGoogleAction}
-          events={editionKey === "student" ? null : googleEvents}
-          eventsLabel="Next on your Google Calendar"
-        />
-        <IntegrationCard
-          name={editionKey === "student" ? "Microsoft OneDrive" : "Microsoft 365"}
-          blurb={editionKey === "student" ? "Student connection requests OneDrive file access only." : "Outlook Mail, Calendar, OneDrive and Teams populate their Workplace destinations."}
+          name={editionKey === "student" ? "Microsoft 365 for Students" : "Microsoft 365"}
+          blurb={editionKey === "student" ? "Connect Outlook Mail and OneDrive files without requesting Calendar or Teams permissions." : "Outlook Mail, Calendar, OneDrive and Teams populate their Workplace destinations."}
           status={microsoftStatus}
           connectedAt={microsoftConnectedAt}
           configured={microsoftConfigured}

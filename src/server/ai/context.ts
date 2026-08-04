@@ -139,7 +139,7 @@ export async function buildWorkspaceContext(workspaceId: string, editionKey: str
   // "emails" (Student edition's old key, still Business's via its
   // unrestricted module list) or "communications" (Workspace/Student's
   // real key as of editionModules.ts's Student conversion) - both read
-  // the same merged Gmail/Outlook inbox via listInboxMessages below, this
+  // the same Outlook inbox via listInboxMessages below, this
   // just needs either module to actually be reachable for this workspace.
   if (allowed(modules, "emails") || allowed(modules, "communications")) {
     tasks.push(
