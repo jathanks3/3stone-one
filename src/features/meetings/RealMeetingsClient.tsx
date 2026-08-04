@@ -18,6 +18,8 @@ import {
 } from "@/app/(app)/meetings/actions";
 import type { MeetingRow } from "@/server/services/meetingService";
 import { askAssistant } from "@/lib/assistantBus";
+import { MeetingRecorder } from "@/components/shared/VoiceCapture";
+import { createNoteAction } from "@/app/(app)/notes/actions";
 
 function formatWhen(d: Date): string {
   return new Date(d).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
@@ -171,6 +173,15 @@ function MeetingDetail({ meeting, onChange, onDelete }: { meeting: MeetingRow; o
   const [isPending, startTransition] = useTransition();
   const { showToast } = useToast();
 
+  async function saveTranscript(transcript: string) {
+    const form = new FormData();
+    form.set("title", `${meeting.title} — meeting transcript`);
+    form.set("body", `Meeting: ${meeting.title}\nDate: ${formatWhen(meeting.scheduledAt)}${meeting.attendees.length ? `\nAttendees: ${meeting.attendees.join(", ")}` : ""}\n\nTranscript\n${transcript}`);
+    const result = await createNoteAction({}, form);
+    if (result.error) return showToast({ title: "Couldn't save transcript", description: result.error });
+    showToast({ title: "Meeting transcript saved", description: "The transcript is now available in Notes and to 3Stone AI." });
+  }
+
   function toggleAction(actionItemId: string) {
     startTransition(async () => {
       const fd = new FormData();
@@ -219,6 +230,7 @@ function MeetingDetail({ meeting, onChange, onDelete }: { meeting: MeetingRow; o
         <Button variant="secondary" onClick={() => askAssistant(`Help me prepare for the meeting "${meeting.title}" at ${formatWhen(meeting.scheduledAt)}. Use its agenda, attendees, related emails, calendar context, and available files. Ask me what outcome I want if it is not clear.`)}>Prep with 3Stone AI</Button>
         <Button variant="secondary" onClick={() => askAssistant(`Help me make notes for "${meeting.title}". Start a clean meeting-note structure for agenda notes, decisions, follow-ups, and action items, then ask me what I want to capture.`)}>Make meeting notes</Button>
       </div>
+      <MeetingRecorder onSave={saveTranscript} />
       {meeting.attendees.length > 0 ? (
         <div>
           <p className="mb-2 text-[12px] font-semibold uppercase tracking-wide text-ink-3">Attendees</p>

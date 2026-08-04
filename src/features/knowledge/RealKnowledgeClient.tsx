@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { AudioLines, BookOpen, FileText, ImageIcon, Library, Plus, Upload } from "lucide-react";
 import { SearchInput } from "@/ui/SearchInput";
 import { Card } from "@/ui/Card";
@@ -45,6 +45,7 @@ type KnowledgeAsset = {
   preview: "direct" | "onedrive" | "google" | "canvas";
   url: string;
   itemId?: string;
+  searchableUrl?: string;
 };
 
 function assetKind(mimeType: string): AssetKind {
@@ -75,6 +76,10 @@ export function RealKnowledgeClient({
   const [previewSrc, setPreviewSrc] = useState("");
   const [previewLoading, setPreviewLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [indexedText, setIndexedText] = useState<Record<string, string>>({});
+  const [searchStatus, setSearchStatus] = useState("");
+  const indexingRef = useRef(false);
+  const attemptedIndexRef = useRef(new Set<string>());
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selected, setSelected] = useState<KnowledgeArticleRow | null>(null);
   const [editing, setEditing] = useState<"new" | KnowledgeArticleRow | null>(null);
@@ -91,13 +96,62 @@ export function RealKnowledgeClient({
   );
 
   const assets = useMemo<KnowledgeAsset[]>(() => [
-    ...libraryDocuments.map((file) => ({ id: `upload:${file.id}`, name: file.name, mimeType: file.mimeType, detail: `${Math.max(1, Math.round(file.sizeBytes / 1024))} KB`, source: "3Stone Knowledge", kind: assetKind(file.mimeType), preview: "direct" as const, url: `/api/uploads/${file.uploadedFileId}/download` })),
+    ...libraryDocuments.map((file) => ({ id: `upload:${file.id}`, name: file.name, mimeType: file.mimeType, detail: `${Math.max(1, Math.round(file.sizeBytes / 1024))} KB`, source: "3Stone Knowledge", kind: assetKind(file.mimeType), preview: "direct" as const, url: `/api/uploads/${file.uploadedFileId}/download`, searchableUrl: `/api/uploads/${file.uploadedFileId}/download` })),
     ...oneDriveFiles.map((file) => ({ id: `onedrive:${file.id}`, name: file.name, mimeType: file.mimeType, detail: file.modifiedAt ? `Updated ${new Date(file.modifiedAt).toLocaleDateString()}` : "Microsoft file", source: "Microsoft OneDrive", kind: assetKind(file.mimeType), preview: "onedrive" as const, url: file.webUrl, itemId: file.id })),
     ...googleDriveFiles.map((file) => ({ id: `google:${file.id}`, name: file.name, mimeType: file.mimeType, detail: file.modifiedAt ? `Updated ${new Date(file.modifiedAt).toLocaleDateString()}` : "Selected Google file", source: "Google Drive", kind: assetKind(file.mimeType), preview: "google" as const, url: `https://drive.google.com/file/d/${file.id}/preview` })),
-    ...canvasMaterials.map((file) => ({ id: `canvas:${file.courseId}:${file.fileId}`, name: file.displayName, mimeType: file.contentType, detail: file.courseName, source: "Canvas", kind: assetKind(file.contentType), preview: "canvas" as const, url: `/api/integrations/canvas/files/${file.fileId}` })),
+    ...canvasMaterials.map((file) => ({ id: `canvas:${file.courseId}:${file.fileId}`, name: file.displayName, mimeType: file.contentType, detail: file.courseName, source: "Canvas", kind: assetKind(file.contentType), preview: "canvas" as const, url: `/api/integrations/canvas/files/${file.fileId}`, searchableUrl: `/api/integrations/canvas/files/${file.fileId}` })),
   ], [libraryDocuments, oneDriveFiles, googleDriveFiles, canvasMaterials]);
 
-  const filteredAssets = useMemo(() => assets.filter((asset) => (assetFilter === "all" || asset.kind === assetFilter) && `${asset.name} ${asset.source} ${asset.detail}`.toLowerCase().includes(query.toLowerCase())), [assets, assetFilter, query]);
+  const filteredAssets = useMemo(() => assets.filter((asset) => (assetFilter === "all" || asset.kind === assetFilter) && `${asset.name} ${asset.source} ${asset.detail} ${indexedText[asset.id] ?? ""}`.toLowerCase().includes(query.toLowerCase())), [assets, assetFilter, indexedText, query]);
+
+  useEffect(() => {
+    const normalizedQuery = query.trim();
+    if (normalizedQuery.length < 2 || indexingRef.current) return;
+    const candidates = assets.filter((asset) => asset.searchableUrl && !attemptedIndexRef.current.has(asset.id) && (asset.mimeType.startsWith("image/") || asset.mimeType.startsWith("text/") || asset.name.toLowerCase().endsWith(".docx"))).slice(0, 20);
+    if (!candidates.length) return;
+    candidates.forEach((asset) => attemptedIndexRef.current.add(asset.id));
+    indexingRef.current = true;
+    let cancelled = false;
+    setSearchStatus(`Searching inside ${candidates.length} accessible file${candidates.length === 1 ? "" : "s"}…`);
+    void (async () => {
+      let worker: Awaited<ReturnType<(typeof import("tesseract.js"))["createWorker"]>> | null = null;
+      try {
+        for (const asset of candidates) {
+          if (cancelled) break;
+          let text = "";
+          try {
+            const response = await fetch(asset.searchableUrl!);
+            if (!response.ok) throw new Error("File unavailable");
+            const buffer = await response.arrayBuffer();
+            if (asset.mimeType.startsWith("image/")) {
+              const tesseract = await import("tesseract.js");
+              worker ??= await tesseract.createWorker("eng");
+              const objectUrl = URL.createObjectURL(new Blob([buffer], { type: asset.mimeType }));
+              try {
+                const result = await worker.recognize(objectUrl);
+                text = result.data.text;
+              } finally {
+                URL.revokeObjectURL(objectUrl);
+              }
+            } else if (asset.name.toLowerCase().endsWith(".docx")) {
+              const mammoth = await import("mammoth");
+              text = (await mammoth.extractRawText({ arrayBuffer: buffer })).value;
+            } else {
+              text = new TextDecoder().decode(buffer);
+            }
+          } catch {
+            text = "";
+          }
+          if (!cancelled) setIndexedText((current) => ({ ...current, [asset.id]: text }));
+        }
+      } finally {
+        await worker?.terminate();
+        indexingRef.current = false;
+        if (!cancelled) setSearchStatus("Content search ready for accessible images, Word documents, and text files.");
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [assets, query]);
 
   function openAsset(asset: KnowledgeAsset) {
     setAssetPreview(asset);
@@ -220,6 +274,11 @@ export function RealKnowledgeClient({
                 <p className="mt-0.5 text-[12.5px] text-ink-3">Preview workspace uploads, OneDrive, selected Google Drive files, and Canvas materials here without being sent to a separate app.</p>
               </div>
             </div>
+            <div className="mt-4 max-w-xl">
+              <SearchInput value={query} onChange={setQuery} placeholder="Search file names or text inside files…" />
+              <p className="mt-1.5 text-[11.5px] text-ink-3">Searches names immediately. For files 3Stone can securely access, it also reads text in images, Word documents, and text files in your browser.</p>
+              {searchStatus ? <p className="mt-1 text-[11.5px] font-medium text-accent" aria-live="polite">{searchStatus}</p> : null}
+            </div>
             <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
               <div className="flex flex-wrap gap-1.5">
                 {ASSET_FILTERS.map((filter) => <button key={filter} onClick={() => setAssetFilter(filter)} className={cn("rounded-full border px-3 py-1.5 text-[12.5px] font-medium capitalize", assetFilter === filter ? "border-accent bg-accent text-on-accent" : "border-line bg-bg text-ink-2 hover:bg-surface-raised")}>{filter === "all" ? "Everything" : filter}</button>)}
@@ -242,7 +301,7 @@ export function RealKnowledgeClient({
               </button>
             ))}
           </div>
-          <SearchInput value={query} onChange={setQuery} placeholder="Search knowledge and files…" />
+          <SearchInput value={query} onChange={setQuery} placeholder="Search articles…" />
         </div>
 
         {filtered.length === 0 ? (

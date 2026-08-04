@@ -16,6 +16,7 @@ import {
   updateNoteAction,
 } from "@/app/(app)/notes/actions";
 import type { NoteRow } from "@/server/services/noteService";
+import { VoiceCaptureButton } from "@/components/shared/VoiceCapture";
 
 function exportNoteAsText(note: NoteRow) {
   downloadTextFile(`${note.title.replace(/[^\w-]+/g, "_") || "note"}.txt`, `${note.title}\n\n${note.body}`, "text/plain");
@@ -183,6 +184,7 @@ export function RealNotesClient({ initialNotes }: { initialNotes: NoteRow[] }) {
               className="mt-1 w-full resize-none rounded-[9px] border border-line-strong bg-bg px-3 py-2 text-[13.5px] leading-relaxed text-ink-1 outline-none focus:border-accent"
             />
           </label>
+          <VoiceCaptureButton label="Dictate note" onTranscript={(text) => setBody((current) => [current.trim(), text].filter(Boolean).join(current.trim() ? "\n\n" : ""))} className="w-fit" />
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2">
               <button

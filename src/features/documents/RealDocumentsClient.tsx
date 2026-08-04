@@ -18,6 +18,7 @@ import type { OneDriveFile } from "@/server/services/microsoftIntegrationService
 import type { GoogleDriveFile } from "@/server/services/googleIntegrationService";
 import type { CanvasCourseMaterial } from "@/server/services/canvasIntegrationService";
 import { GoogleDrivePickerButton } from "@/features/documents/GoogleDrivePickerButton";
+import { DownloadPermissionDialog, DOWNLOAD_PERMISSION_KEY, downloadsAllowedToday, startBrowserDownload, type PendingDownload } from "@/components/shared/DownloadPermissionDialog";
 
 function formatSize(bytes: number) {
   if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
@@ -68,19 +69,59 @@ export function RealDocumentsClient({
   // Google's /preview URL pattern and Canvas's own file URL are both
   // embeddable directly; OneDrive has no equivalent public URL scheme, so
   // that one goes through getOneDrivePreviewUrlAction first (see below).
-  const [previewFile, setPreviewFile] = useState<{ name: string; src: string; externalUrl: string; externalLabel: string; externalNewTab?: boolean } | null>(null);
+  const [previewFile, setPreviewFile] = useState<{ name: string; src: string; externalUrl: string; externalLabel: string; externalNewTab?: boolean; textContent?: string; unsupported?: boolean } | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
+  const [pendingDownload, setPendingDownload] = useState<PendingDownload | null>(null);
+
+  function requestDownload(download: PendingDownload) {
+    if (downloadsAllowedToday()) startBrowserDownload(download);
+    else setPendingDownload(download);
+  }
+
+  function allowDownload(duration: "once" | "today") {
+    if (!pendingDownload) return;
+    if (duration === "today") {
+      const endOfToday = new Date();
+      endOfToday.setHours(23, 59, 59, 999);
+      window.localStorage.setItem(DOWNLOAD_PERMISSION_KEY, String(endOfToday.getTime()));
+    }
+    startBrowserDownload(pendingDownload);
+    setPendingDownload(null);
+  }
+
+  async function previewAccessibleFile(input: { name: string; mimeType: string; src: string; externalUrl: string; externalLabel: string; externalNewTab?: boolean }) {
+    const isDocx = input.mimeType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" || input.name.toLowerCase().endsWith(".docx");
+    const inline = input.mimeType === "application/pdf" || input.mimeType.startsWith("text/") || input.mimeType.startsWith("image/") || input.mimeType.startsWith("audio/") || input.mimeType.startsWith("video/");
+    if (!isDocx) {
+      setPreviewFile({ ...input, unsupported: !inline });
+      return;
+    }
+    setPreviewLoading(true);
+    setPreviewFile({ ...input, src: "" });
+    try {
+      const response = await fetch(input.src);
+      if (!response.ok) throw new Error("The document could not be loaded.");
+      const mammoth = await import("mammoth");
+      const result = await mammoth.extractRawText({ arrayBuffer: await response.arrayBuffer() });
+      setPreviewFile({ ...input, src: "", textContent: result.value.trim() || "This Word document does not contain readable text." });
+    } catch (error) {
+      showToast({ title: "Couldn't preview this Word document", description: error instanceof Error ? error.message : "Preview unavailable." });
+      setPreviewFile({ ...input, src: "", unsupported: true });
+    } finally {
+      setPreviewLoading(false);
+    }
+  }
 
   function previewGoogleDriveFile(file: GoogleDriveFile) {
     setPreviewFile({ name: file.name, src: `https://drive.google.com/file/d/${file.id}/preview`, externalUrl: file.webViewLink, externalLabel: "Open in Google Drive", externalNewTab: true });
   }
 
   function previewCanvasFile(file: CanvasCourseMaterial) {
-    setPreviewFile({ name: file.displayName, src: `/api/integrations/canvas/files/${file.fileId}`, externalUrl: file.url, externalLabel: "Open in Canvas", externalNewTab: true });
+    void previewAccessibleFile({ name: file.displayName, mimeType: file.contentType, src: `/api/integrations/canvas/files/${file.fileId}`, externalUrl: file.url, externalLabel: "Open in Canvas", externalNewTab: true });
   }
 
   function previewUploadedFile(file: DocumentRow) {
-    setPreviewFile({ name: file.name, src: `/api/uploads/${file.uploadedFileId}/download`, externalUrl: `/api/uploads/${file.uploadedFileId}/download?download=1`, externalLabel: "Download a copy" });
+    void previewAccessibleFile({ name: file.name, mimeType: file.mimeType, src: `/api/uploads/${file.uploadedFileId}/download`, externalUrl: `/api/uploads/${file.uploadedFileId}/download?download=1`, externalLabel: "Download a copy" });
   }
 
   function previewOneDriveFile(file: OneDriveFile) {
@@ -337,7 +378,7 @@ export function RealDocumentsClient({
             </div>
             <div className="flex flex-wrap gap-2">
               <Button variant="secondary" onClick={() => { previewUploadedFile(selected); setSelected(null); }}>Preview</Button>
-              <a href={`/api/uploads/${selected.uploadedFileId}/download?download=1`} className="inline-flex h-9 items-center rounded-[10px] border border-line-strong px-3.5 text-[13px] font-semibold text-ink-1 hover:bg-surface-raised">Download copy</a>
+              <Button variant="secondary" onClick={() => requestDownload({ url: `/api/uploads/${selected.uploadedFileId}/download?download=1`, filename: selected.name })}>Download copy</Button>
               <Button variant="secondary" disabled={isPending} onClick={() => toggleVisibility(selected)}>
                 {selected.visibility === "shared_with_client" ? "Make internal" : shareActionLabel}
               </Button>
@@ -355,16 +396,17 @@ export function RealDocumentsClient({
       <DetailPanel open={!!previewFile} onClose={() => setPreviewFile(null)} title={previewFile?.name ?? ""}>
         {previewLoading ? (
           <p className="text-[13.5px] text-ink-3">Loading preview…</p>
-        ) : previewFile?.src ? (
+        ) : previewFile ? (
           <div className="flex flex-col gap-3">
-            <iframe src={previewFile.src} title={previewFile.name} className="h-[70vh] w-full rounded-[10px] border border-line" />
-            <a href={previewFile.externalUrl} target={previewFile.externalNewTab ? "_blank" : undefined} rel={previewFile.externalNewTab ? "noreferrer" : undefined} className="w-fit text-[12.5px] font-medium text-accent hover:underline">{previewFile.externalLabel}</a>
+            {previewFile.textContent ? <div className="max-h-[70vh] overflow-auto whitespace-pre-wrap rounded-xl border border-line bg-surface p-5 text-[13.5px] leading-relaxed text-ink-2">{previewFile.textContent}</div> : previewFile.unsupported ? <div className="rounded-xl border border-line bg-surface p-5"><p className="text-[14px] font-semibold text-ink-1">This file type cannot be displayed safely in the browser.</p><p className="mt-1 text-[13px] text-ink-3">You can download a copy after choosing download permission below.</p></div> : <iframe src={previewFile.src} title={previewFile.name} className="h-[70vh] w-full rounded-[10px] border border-line" />}
+            {previewFile.externalNewTab ? <a href={previewFile.externalUrl} target="_blank" rel="noreferrer" className="w-fit text-[12.5px] font-medium text-accent hover:underline">{previewFile.externalLabel}</a> : <Button variant="secondary" className="w-fit" onClick={() => requestDownload({ url: previewFile.externalUrl, filename: previewFile.name })}>{previewFile.externalLabel}</Button>}
             <Button variant="secondary" onClick={() => askAboutFile(previewFile.name)} className="w-fit">
               Ask 3Stone AI about this file
             </Button>
           </div>
         ) : null}
       </DetailPanel>
+      <DownloadPermissionDialog pending={pendingDownload} onClose={() => setPendingDownload(null)} onAllow={allowDownload} />
     </div>
   );
 }

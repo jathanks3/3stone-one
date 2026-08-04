@@ -13,6 +13,7 @@ import { generateAttendanceForEmployees } from "@/server/mock-data/attendance";
 import { DEMO_VENDORS } from "@/server/mock-data";
 import { DEMO_BUSINESSES, getBusinessName } from "@/server/mock-data/businesses";
 import { answerQuestion, answerExecutiveQuestion, type ExecutiveBusiness } from "@/server/ai/assistant";
+import { VoiceCaptureButton } from "@/components/shared/VoiceCapture";
 
 interface ChatMessage {
   id: string;
@@ -519,6 +520,7 @@ function AssistantPanel({
             placeholder={!isDemo ? "Ask anything…" : editionKey === "student" ? "Ask about your coursework…" : "Ask about your business…"}
             className="flex-1 rounded-[10px] border border-line bg-bg px-3 py-2 text-[13.5px] text-ink-1 outline-none placeholder:text-ink-3 focus:border-line-strong"
           />
+          <VoiceCaptureButton label="Speak to AI" onTranscript={(text) => setInput((current) => [current.trim(), text].filter(Boolean).join(current.trim() ? " " : ""))} className="px-2.5" />
           <button
             type="submit"
             disabled={loading || !input.trim()}
