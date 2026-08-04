@@ -12,7 +12,7 @@ export interface CalendarEventRow {
   // Absent/"internal" = a real row this workspace owns (editable/deletable).
   // "google"/"outlook" = read-only, synced live from that provider each
   // page load — there is no local row to edit or delete.
-  source?: "internal" | "google" | "outlook" | "canvas";
+  source?: "internal" | "google" | "outlook" | "canvas" | "meeting";
   allDay?: boolean;
 }
 
@@ -90,11 +90,22 @@ export async function deleteSyncedCalendarEvent(workspaceId: string, rowId: stri
 // What the Calendar module page actually renders — this workspace's own
 // events plus a live merge of every connected provider's upcoming events.
 export async function listAllCalendarEvents(workspaceId: string): Promise<CalendarEventRow[]> {
-  const [internal, synced] = await Promise.all([
+  const [internal, synced, meetings] = await Promise.all([
     listCalendarEvents(workspaceId),
     listSyncedCalendarEvents(workspaceId),
+    db.meeting.findMany({ where: { workspaceId }, orderBy: { scheduledAt: "asc" }, select: { id: true, title: true, scheduledAt: true } }),
   ]);
-  return [...internal.map((e) => ({ ...e, source: "internal" as const })), ...synced];
+  const meetingRows: CalendarEventRow[] = meetings.map((meeting) => {
+    const local = meeting.scheduledAt;
+    return {
+      id: `meeting:${meeting.id}`,
+      title: meeting.title,
+      date: `${local.getFullYear()}-${String(local.getMonth() + 1).padStart(2, "0")}-${String(local.getDate()).padStart(2, "0")}`,
+      time: `${String(local.getHours()).padStart(2, "0")}:${String(local.getMinutes()).padStart(2, "0")}`,
+      source: "meeting",
+    };
+  });
+  return [...internal.map((e) => ({ ...e, source: "internal" as const })), ...synced, ...meetingRows];
 }
 
 export async function createCalendarEvent(workspaceId: string, createdById: string, title: string, date: string, time: string): Promise<CalendarEventRow> {

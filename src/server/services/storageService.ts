@@ -179,6 +179,18 @@ export async function createSignedDownloadUrl(fileId: string, workspaceId: strin
   return data.signedUrl;
 }
 
+// Used by the authenticated in-app preview route. Returning the bytes through
+// 3Stone One lets us control Content-Disposition instead of inheriting a
+// storage-provider header that turns every preview click into a download.
+export async function downloadPrivateFile(fileId: string, workspaceId: string): Promise<{ bytes: Uint8Array; mimeType: string; filename: string }> {
+  const file = await db.uploadedFile.findFirst({ where: { id: fileId, workspaceId } });
+  if (!file) throw new Error("File not found.");
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase.storage.from(bucketFor(file.kind)).download(file.storagePath);
+  if (error || !data) throw error ?? new Error("File data was not returned.");
+  return { bytes: new Uint8Array(await data.arrayBuffer()), mimeType: file.mimeType || "application/octet-stream", filename: file.originalFilename };
+}
+
 export async function deleteUpload(fileId: string, workspaceId: string, actorUserId: string): Promise<void> {
   const file = await db.uploadedFile.findFirst({ where: { id: fileId, workspaceId } });
   if (!file) throw new Error("File not found.");

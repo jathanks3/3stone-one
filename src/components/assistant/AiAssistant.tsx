@@ -98,22 +98,22 @@ const BUTTON_SIZE: Record<"large" | "compact", number> = { large: 84, compact: 5
 
 const PROACTIVE_TIPS: Record<string, string[]> = {
   student: [
-    "Study for your next exam with one focused 25-minute session.",
-    "Check what is due this week before starting something new.",
-    "Upload your class notes and ask me to turn them into a study guide.",
-    "Pick your hardest assignment and break it into three small steps.",
+    "Study for your next exam with one focused 25-minute session, then let me make notes from what you learned.",
+    "Check your next Outlook or Canvas date and let me help you prepare for it.",
+    "Upload class notes, photos, or audio in Knowledge and ask me to turn them into a study guide and saved notes.",
+    "Pick your hardest assignment, break it into three steps, and let me make a note you can return to.",
   ],
   workspace: [
-    "Review your next deadline before starting a new task.",
-    "Upload a file and ask me for a quick summary.",
-    "Turn your next meeting into a short agenda before it starts.",
-    "Check which project needs a follow-up today.",
+    "Review your next Outlook or Teams meeting and let me prepare an agenda with you.",
+    "Preview a file in Knowledge, then let me summarize it and make notes.",
+    "After your next meeting, let me capture decisions, follow-ups, and action items as notes.",
+    "Check which project needs a follow-up today, then let me save the plan as a note.",
   ],
   business: [
-    "Check overdue invoices before the day gets busy.",
-    "Review today's calendar and flag anything that needs preparation.",
-    "Ask me which project or customer needs attention first.",
-    "Upload a document and let me pull out the next actions.",
+    "Review today's Outlook or Teams meetings and let me prepare talking points.",
+    "After a meeting or important email, let me make notes with decisions and next actions.",
+    "Ask me which project or customer needs attention first, then let me save the plan as a note.",
+    "Preview a document, photo, or audio file in Knowledge and let me pull out notes and next actions.",
   ],
 };
 

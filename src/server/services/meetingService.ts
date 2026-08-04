@@ -1,6 +1,7 @@
 import { db } from "@/server/db";
 import { logActivity } from "@/server/services/activityService";
 import type { MeetingActionItemStatus } from "../../../generated/prisma/client";
+import { getUpcomingOutlookEvents } from "@/server/services/microsoftIntegrationService";
 
 export interface MeetingActionItemRow {
   id: string;
@@ -25,6 +26,7 @@ export interface MeetingRow {
   isPast: boolean;
   externalProvider: string | null;
   externalJoinUrl: string | null;
+  isSynced?: boolean;
 }
 
 function toRow(m: {
@@ -60,6 +62,28 @@ export async function listMeetings(workspaceId: string): Promise<MeetingRow[]> {
     include: { actionItems: true, decisions: true },
   });
   return meetings.map(toRow);
+}
+
+// Outlook/Teams meetings remain owned by Microsoft and are read live. They
+// appear beside native 3Stone meetings without duplicating or drifting from
+// the user's calendar.
+export async function listMicrosoftMeetings(workspaceId: string): Promise<MeetingRow[]> {
+  const events = await getUpcomingOutlookEvents(workspaceId, 50);
+  return events
+    .filter((event) => event.id && event.start)
+    .map((event) => ({
+      id: `outlook:${event.id}`,
+      title: event.summary,
+      scheduledAt: new Date(event.start),
+      attendees: event.attendees,
+      agenda: event.preview ? [event.preview] : [],
+      actionItems: [],
+      decisions: [],
+      isPast: new Date(event.end || event.start).getTime() < Date.now(),
+      externalProvider: event.joinUrl ? "microsoft_teams" : "microsoft_outlook",
+      externalJoinUrl: event.joinUrl,
+      isSynced: true,
+    }));
 }
 
 export interface CreateMeetingInput {

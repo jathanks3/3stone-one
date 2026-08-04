@@ -63,7 +63,7 @@ async function exchangeCodeForTokens(code: string, redirectUri: string): Promise
   return res.json();
 }
 
-async function refreshAccessToken(refreshTokenPlain: string): Promise<{ accessToken: string; expiresAt: Date }> {
+async function refreshAccessToken(refreshTokenPlain: string): Promise<{ accessToken: string; refreshToken: string | null; expiresAt: Date }> {
   const { clientId, clientSecret } = requireConfig();
   const params = new URLSearchParams({
     type: "refresh",
@@ -77,7 +77,7 @@ async function refreshAccessToken(refreshTokenPlain: string): Promise<{ accessTo
     throw new Error(`Basecamp token refresh failed: ${res.status} ${body}`);
   }
   const data: BasecampTokenResponse = await res.json();
-  return { accessToken: data.access_token, expiresAt: new Date(Date.now() + data.expires_in * 1000) };
+  return { accessToken: data.access_token, refreshToken: data.refresh_token ?? null, expiresAt: new Date(Date.now() + data.expires_in * 1000) };
 }
 
 /** Consumes a state token (single-use) - throws if missing/expired/already used. */
@@ -145,10 +145,10 @@ async function getValidAccessToken(workspaceId: string): Promise<{ accessToken: 
     return { accessToken: decryptToken(integration.accessTokenEncrypted), accountId: config.accountId };
   }
   if (!integration.refreshTokenEncrypted) return null;
-  const { accessToken, expiresAt } = await refreshAccessToken(decryptToken(integration.refreshTokenEncrypted));
+  const { accessToken, refreshToken, expiresAt } = await refreshAccessToken(decryptToken(integration.refreshTokenEncrypted));
   await db.integration.update({
     where: { workspaceId_provider: { workspaceId, provider: "basecamp" } },
-    data: { accessTokenEncrypted: encryptToken(accessToken), tokenExpiresAt: expiresAt },
+    data: { accessTokenEncrypted: encryptToken(accessToken), tokenExpiresAt: expiresAt, ...(refreshToken ? { refreshTokenEncrypted: encryptToken(refreshToken) } : {}) },
   });
   return { accessToken, accountId: config.accountId };
 }
@@ -170,11 +170,11 @@ export interface BasecampProject {
 
 export async function listBasecampProjects(workspaceId: string): Promise<BasecampProject[]> {
   const auth = await getValidAccessToken(workspaceId);
-  if (!auth) return [];
+  if (!auth) throw new Error("Basecamp needs to be reconnected.");
   const res = await fetch(`https://3.basecampapi.com/${auth.accountId}/projects.json`, {
     headers: { Authorization: `Bearer ${auth.accessToken}` },
   });
-  if (!res.ok) return [];
+  if (!res.ok) throw new Error(`Basecamp project sync failed (${res.status}).`);
   const projects = await res.json();
   if (!Array.isArray(projects)) return [];
   return projects.map((p: Record<string, unknown>) => ({

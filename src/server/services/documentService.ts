@@ -5,6 +5,7 @@ import type { DocumentVisibility } from "../../../generated/prisma/client";
 
 export interface DocumentRow {
   id: string;
+  uploadedFileId: string;
   name: string;
   mimeType: string;
   sizeBytes: number;
@@ -26,6 +27,7 @@ export async function listDocuments(workspaceId: string): Promise<DocumentRow[]>
   const nameById = new Map(uploaders.map((u) => [u.id, u.name]));
   return docs.map((d) => ({
     id: d.id,
+    uploadedFileId: d.storageKey,
     name: d.name,
     mimeType: d.mimeType,
     sizeBytes: d.sizeBytes,
@@ -66,7 +68,7 @@ export async function createDocument(workspaceId: string, uploadedById: string, 
     },
   });
   await logActivity(workspaceId, uploadedById, "uploaded_document", "Document", doc.id, { name });
-  return { ...doc, uploadedByName: null };
+  return { ...doc, uploadedFileId: doc.storageKey, uploadedByName: null };
 }
 
 export async function setDocumentVisibility(workspaceId: string, documentId: string, actorId: string, visibility: DocumentVisibility): Promise<void> {

@@ -73,10 +73,11 @@ function getMonthMatrix(monthCursor: Date): Date[] {
   });
 }
 
-const SOURCE_LABEL: Record<"google" | "outlook" | "canvas", string> = {
+const SOURCE_LABEL: Record<"google" | "outlook" | "canvas" | "meeting", string> = {
   google: "Google Calendar",
   outlook: "Outlook",
   canvas: "Canvas",
+  meeting: "Meetings",
 };
 
 function EventRow({ event, onDelete, disabled }: { event: CalendarEventRow; onDelete: (id: string) => void; disabled: boolean }) {
@@ -85,13 +86,13 @@ function EventRow({ event, onDelete, disabled }: { event: CalendarEventRow; onDe
   useOnClickOutside(ref, () => setMenuOpen(false));
   useEscapeKey(menuOpen, () => setMenuOpen(false));
   const badge = dayBadge(event.date);
-  const isSynced = event.source === "google" || event.source === "outlook" || event.source === "canvas";
+  const isSynced = event.source === "google" || event.source === "outlook" || event.source === "canvas" || event.source === "meeting";
   // Outlook is granted Calendars.ReadWrite, so deleting it here really
   // deletes it in Outlook too. Google is intentionally still
   // calendar.readonly (see googleIntegrationService.ts) - there is no
   // write scope to delete through yet, so a Google-sourced event stays
   // view-only until that changes.
-  const canDelete = event.source !== "google" && event.source !== "canvas";
+  const canDelete = event.source !== "google" && event.source !== "canvas" && event.source !== "meeting";
 
   return (
     <Card className="group flex items-center gap-3.5 p-3.5">
@@ -103,7 +104,7 @@ function EventRow({ event, onDelete, disabled }: { event: CalendarEventRow; onDe
         <p className="truncate text-[14px] font-semibold text-ink-1">{event.title}</p>
         <p className="truncate text-[12.5px] text-ink-3">
           {event.allDay ? "All day" : formatTime12h(event.time)}
-          {isSynced ? ` · Synced from ${SOURCE_LABEL[event.source as "google" | "outlook" | "canvas"]}` : ""}
+          {isSynced ? ` · Synced from ${SOURCE_LABEL[event.source as "google" | "outlook" | "canvas" | "meeting"]}` : ""}
         </p>
       </div>
       <div className="relative flex flex-shrink-0 items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100" ref={ref}>

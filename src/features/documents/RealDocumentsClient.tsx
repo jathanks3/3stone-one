@@ -68,20 +68,24 @@ export function RealDocumentsClient({
   // Google's /preview URL pattern and Canvas's own file URL are both
   // embeddable directly; OneDrive has no equivalent public URL scheme, so
   // that one goes through getOneDrivePreviewUrlAction first (see below).
-  const [previewFile, setPreviewFile] = useState<{ name: string; src: string; externalUrl: string } | null>(null);
+  const [previewFile, setPreviewFile] = useState<{ name: string; src: string; externalUrl: string; externalLabel: string; externalNewTab?: boolean } | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
 
   function previewGoogleDriveFile(file: GoogleDriveFile) {
-    setPreviewFile({ name: file.name, src: `https://drive.google.com/file/d/${file.id}/preview`, externalUrl: file.webViewLink });
+    setPreviewFile({ name: file.name, src: `https://drive.google.com/file/d/${file.id}/preview`, externalUrl: file.webViewLink, externalLabel: "Open in Google Drive", externalNewTab: true });
   }
 
   function previewCanvasFile(file: CanvasCourseMaterial) {
-    setPreviewFile({ name: file.displayName, src: file.url, externalUrl: file.url });
+    setPreviewFile({ name: file.displayName, src: file.url, externalUrl: file.url, externalLabel: "Open in Canvas", externalNewTab: true });
+  }
+
+  function previewUploadedFile(file: DocumentRow) {
+    setPreviewFile({ name: file.name, src: `/api/uploads/${file.uploadedFileId}/download`, externalUrl: `/api/uploads/${file.uploadedFileId}/download?download=1`, externalLabel: "Download a copy" });
   }
 
   function previewOneDriveFile(file: OneDriveFile) {
     setPreviewLoading(true);
-    setPreviewFile({ name: file.name, src: "", externalUrl: file.webUrl });
+    setPreviewFile({ name: file.name, src: "", externalUrl: file.webUrl, externalLabel: "Open in OneDrive", externalNewTab: true });
     startTransition(async () => {
       const form = new FormData();
       form.set("itemId", file.id);
@@ -92,7 +96,7 @@ export function RealDocumentsClient({
         setPreviewFile(null);
         return;
       }
-      setPreviewFile({ name: file.name, src: result.url, externalUrl: file.webUrl });
+      setPreviewFile({ name: file.name, src: result.url, externalUrl: file.webUrl, externalLabel: "Open in OneDrive", externalNewTab: true });
     });
   }
 
@@ -112,6 +116,10 @@ export function RealDocumentsClient({
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
+    if (file.type.startsWith("image/") || file.type.startsWith("audio/") || file.type.startsWith("video/")) {
+      showToast({ title: "Add this in Knowledge Center", description: "Documents is for document files only. Knowledge Center stores and previews photos and audio." });
+      return;
+    }
     setUploading(true);
     try {
       const signRes = await fetch("/api/uploads/sign", {
@@ -151,6 +159,7 @@ export function RealDocumentsClient({
       setDocs((prev) => [
         {
           id: result.id!,
+          uploadedFileId: confirmed.id,
           name: file.name,
           mimeType: file.type || "application/octet-stream",
           sizeBytes: file.size,
@@ -235,7 +244,7 @@ export function RealDocumentsClient({
         <Button variant="primary" disabled={uploading} onClick={() => fileInputRef.current?.click()}>
           <Upload size={14} /> {uploading ? "Uploading…" : "Upload"}
         </Button>
-        <input ref={fileInputRef} type="file" className="hidden" onChange={handleFileChosen} />
+        <input ref={fileInputRef} type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.rtf,.csv,.md,application/pdf,text/*" className="hidden" onChange={handleFileChosen} />
       </div>
 
       <div className="mt-6 flex flex-col gap-4">
@@ -327,12 +336,8 @@ export function RealDocumentsClient({
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
-              <a
-                href={`/api/uploads/${selected.id}/download`}
-                className="inline-flex h-9 items-center rounded-[10px] border border-line-strong px-3.5 text-[13px] font-semibold text-ink-1 hover:bg-surface-raised"
-              >
-                Download
-              </a>
+              <Button variant="secondary" onClick={() => { previewUploadedFile(selected); setSelected(null); }}>Preview</Button>
+              <a href={`/api/uploads/${selected.uploadedFileId}/download?download=1`} className="inline-flex h-9 items-center rounded-[10px] border border-line-strong px-3.5 text-[13px] font-semibold text-ink-1 hover:bg-surface-raised">Download copy</a>
               <Button variant="secondary" disabled={isPending} onClick={() => toggleVisibility(selected)}>
                 {selected.visibility === "shared_with_client" ? "Make internal" : shareActionLabel}
               </Button>
@@ -353,9 +358,7 @@ export function RealDocumentsClient({
         ) : previewFile?.src ? (
           <div className="flex flex-col gap-3">
             <iframe src={previewFile.src} title={previewFile.name} className="h-[70vh] w-full rounded-[10px] border border-line" />
-            <a href={previewFile.externalUrl} target="_blank" rel="noreferrer" className="w-fit text-[12.5px] font-medium text-accent hover:underline">
-              Open in the original app instead
-            </a>
+            <a href={previewFile.externalUrl} target={previewFile.externalNewTab ? "_blank" : undefined} rel={previewFile.externalNewTab ? "noreferrer" : undefined} className="w-fit text-[12.5px] font-medium text-accent hover:underline">{previewFile.externalLabel}</a>
             <Button variant="secondary" onClick={() => askAboutFile(previewFile.name)} className="w-fit">
               Ask 3Stone AI about this file
             </Button>

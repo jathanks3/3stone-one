@@ -69,6 +69,7 @@ export interface InboxMessageDetail {
   from: string;
   receivedAt: string;
   bodyText: string;
+  bodyHtml: string | null;
   attachments: InboxAttachment[];
 }
 
@@ -82,6 +83,7 @@ export async function getInboxMessageDetail(workspaceId: string, provider: Inbox
       from: detail.from,
       receivedAt: detail.receivedAt,
       bodyText: detail.bodyText,
+      bodyHtml: null,
       attachments: detail.attachments.map((a) => ({ id: a.attachmentId, filename: a.filename, mimeType: a.mimeType, sizeBytes: a.sizeBytes, kind: "file" as const, url: null })),
     };
   }
@@ -93,6 +95,7 @@ export async function getInboxMessageDetail(workspaceId: string, provider: Inbox
     from: detail.senderName,
     receivedAt: detail.receivedAt,
     bodyText: detail.bodyText,
+    bodyHtml: detail.bodyHtml,
     attachments: detail.attachments.map((a) => ({ id: a.id, filename: a.name, mimeType: a.contentType, sizeBytes: a.sizeBytes, kind: a.kind, url: a.url })),
   };
 }

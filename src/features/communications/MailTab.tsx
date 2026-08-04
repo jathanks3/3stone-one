@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Link as LinkIcon, Mail, MessageCircle, Paperclip, Send } from "lucide-react";
+import { CalendarPlus, Link as LinkIcon, Mail, MessageCircle, NotebookPen, Paperclip, Send } from "lucide-react";
 import { EmptyState } from "@/ui/EmptyState";
 import { Button } from "@/ui/Button";
 import { DetailPanel } from "@/ui/DetailPanel";
@@ -32,10 +32,11 @@ function extractEmailAddress(raw: string): string {
   return match ? match[1] : raw;
 }
 
-function previewable(mimeType: string): "image" | "pdf" | null {
+function previewable(mimeType: string): "image" | "audio" | "video" | "iframe" {
   if (mimeType.startsWith("image/")) return "image";
-  if (mimeType === "application/pdf") return "pdf";
-  return null;
+  if (mimeType.startsWith("audio/")) return "audio";
+  if (mimeType.startsWith("video/")) return "video";
+  return "iframe";
 }
 
 interface Row {
@@ -83,7 +84,7 @@ export function MailTab({
   const [draft, setDraft] = useState("");
   const [savingAttachmentId, setSavingAttachmentId] = useState<string | null>(null);
   const [composing, setComposing] = useState(false);
-  const [previewAttachment, setPreviewAttachment] = useState<{ filename: string; url: string; kind: "image" | "pdf" } | null>(null);
+  const [previewAttachment, setPreviewAttachment] = useState<{ filename: string; url: string; kind: "image" | "audio" | "video" | "iframe" } | null>(null);
   const [isPending, startTransition] = useTransition();
   const { showToast } = useToast();
 
@@ -173,17 +174,14 @@ export function MailTab({
       const result = await saveAttachmentAction({}, form);
       setSavingAttachmentId(null);
       if (result.error) return showToast({ title: "Couldn't save attachment", description: result.error });
-      showToast({ title: result.success ?? "Saved to Documents" });
+      const destination = a.mimeType.startsWith("image/") || a.mimeType.startsWith("audio/") || a.mimeType.startsWith("video/") ? "Knowledge Center" : "Documents";
+      showToast({ title: `Saved to ${destination}` });
     });
   }
 
   function previewAttachmentFile(a: { id: string; filename: string; mimeType: string }) {
     if (!active) return;
     const kind = previewable(a.mimeType);
-    if (!kind) {
-      showToast({ title: "No preview available", description: "Save it to Documents to download instead." });
-      return;
-    }
     const url = `/api/inbox/attachment?${new URLSearchParams({
       provider,
       messageId: active.id,
@@ -213,6 +211,16 @@ export function MailTab({
   function askAiAboutThis() {
     if (!active) return;
     askAssistant(`Help me with this email - "${active.subject}" from ${active.from}: ${detail?.bodyText?.slice(0, 500) ?? ""}`);
+  }
+
+  function askToAddToCalendar() {
+    if (!active) return;
+    askAssistant(`Review this email and help me add any real date or meeting it contains to Calendar: "${active.subject}" from ${active.from}. Email text: ${detail?.bodyText?.slice(0, 1200) ?? active.preview}. Do not guess a missing date or time; ask me for it.`);
+  }
+
+  function askToMakeNotes() {
+    if (!active) return;
+    askAssistant(`Help me make a note from this email: "${active.subject}" from ${active.from}. Email text: ${detail?.bodyText?.slice(0, 1200) ?? active.preview}. Suggest a concise title and capture decisions, follow-ups, and anything I should remember, then ask before saving.`);
   }
 
   if (rows.length === 0) {
@@ -279,11 +287,15 @@ export function MailTab({
                   <p className="text-[13.5px] text-ink-3">Loading…</p>
                 ) : detail ? (
                   <>
-                    <p className="whitespace-pre-wrap text-[13.5px] leading-relaxed text-ink-1">{detail.bodyText || "(no body text)"}</p>
+                    {detail.bodyHtml ? (
+                      <div className="email-body max-w-none overflow-x-auto text-[13.5px] leading-relaxed text-ink-1 [&_a]:font-medium [&_a]:text-accent [&_a]:underline [&_img]:my-2 [&_img]:max-w-full [&_img]:rounded-md [&_table]:max-w-full" dangerouslySetInnerHTML={{ __html: detail.bodyHtml }} />
+                    ) : <p className="whitespace-pre-wrap text-[13.5px] leading-relaxed text-ink-1">{detail.bodyText || "(no body text)"}</p>}
 
-                    <Button variant="secondary" onClick={askAiAboutThis} className="w-fit">
-                      <MessageCircle size={14} /> Ask AI about this
-                    </Button>
+                    <div className="flex flex-wrap gap-2">
+                      <Button variant="secondary" onClick={askAiAboutThis}><MessageCircle size={14} /> Ask AI</Button>
+                      <Button variant="secondary" onClick={askToAddToCalendar}><CalendarPlus size={14} /> Add date to Calendar</Button>
+                      <Button variant="secondary" onClick={askToMakeNotes}><NotebookPen size={14} /> Make notes</Button>
+                    </div>
 
                     {detail.attachments.length > 0 ? (
                       <div>
@@ -291,19 +303,17 @@ export function MailTab({
                         <div className="flex flex-col gap-2">
                           {detail.attachments.map((a) =>
                             a.kind === "link" ? (
-                              <a
+                              <button
                                 key={a.id}
-                                href={a.url ?? "#"}
-                                target="_blank"
-                                rel="noreferrer"
+                                onClick={() => a.url && setPreviewAttachment({ filename: a.filename, url: a.url, kind: "iframe" })}
                                 className="flex items-center justify-between gap-3 rounded-[10px] border border-line bg-bg px-3.5 py-2.5 hover:bg-surface-raised"
                               >
                                 <div className="flex min-w-0 items-center gap-2">
                                   <LinkIcon size={14} className="flex-shrink-0 text-ink-3" />
                                   <p className="truncate text-[13px] font-medium text-ink-1">{a.filename}</p>
                                 </div>
-                                <span className="flex-shrink-0 text-[12.5px] font-semibold text-accent">Open link</span>
-                              </a>
+                                <span className="flex-shrink-0 text-[12.5px] font-semibold text-accent">Preview</span>
+                              </button>
                             ) : (
                               <div key={a.id} className="flex items-center justify-between gap-3 rounded-[10px] border border-line bg-bg px-3.5 py-2.5">
                                 <div className="flex min-w-0 items-center gap-2">
@@ -314,17 +324,13 @@ export function MailTab({
                                   </div>
                                 </div>
                                 <div className="flex flex-shrink-0 gap-2">
-                                  {previewable(a.mimeType) ? (
-                                    <Button variant="secondary" onClick={() => previewAttachmentFile(a)}>
-                                      Preview
-                                    </Button>
-                                  ) : null}
+                                  <Button variant="secondary" onClick={() => previewAttachmentFile(a)}>Preview</Button>
                                   <Button
                                     variant="secondary"
                                     disabled={isPending && savingAttachmentId === a.id}
                                     onClick={() => saveAttachment(a)}
                                   >
-                                    {isPending && savingAttachmentId === a.id ? "Saving…" : "Save to Documents"}
+                                    {isPending && savingAttachmentId === a.id ? "Saving…" : a.mimeType.startsWith("image/") || a.mimeType.startsWith("audio/") || a.mimeType.startsWith("video/") ? "Save to Knowledge" : "Save to Documents"}
                                   </Button>
                                 </div>
                               </div>
@@ -367,6 +373,10 @@ export function MailTab({
           previewAttachment.kind === "image" ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={previewAttachment.url} alt={previewAttachment.filename} className="w-full rounded-[10px] border border-line" />
+          ) : previewAttachment.kind === "audio" ? (
+            <audio controls src={previewAttachment.url} className="w-full" />
+          ) : previewAttachment.kind === "video" ? (
+            <video controls src={previewAttachment.url} className="max-h-[70vh] w-full rounded-[10px] border border-line" />
           ) : (
             <iframe src={previewAttachment.url} title={previewAttachment.filename} className="h-[70vh] w-full rounded-[10px] border border-line" />
           )

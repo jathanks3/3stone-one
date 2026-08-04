@@ -6,8 +6,10 @@ import { getActiveWorkspaceIdForUser } from "@/server/services/onboardingService
 import { db } from "@/server/db";
 import { isGoogleIntegrationConfigured, getUpcomingGoogleCalendarEvents } from "@/server/services/googleIntegrationService";
 import { isMicrosoftIntegrationConfigured, getUpcomingOutlookEvents } from "@/server/services/microsoftIntegrationService";
-import { isSlackIntegrationConfigured } from "@/server/services/slackIntegrationService";
-import { isBasecampIntegrationConfigured } from "@/server/services/basecampIntegrationService";
+import { isSlackIntegrationConfigured, listSlackChannels } from "@/server/services/slackIntegrationService";
+import { isBasecampIntegrationConfigured, listBasecampProjects } from "@/server/services/basecampIntegrationService";
+import { listCanvasAssignments } from "@/server/services/canvasIntegrationService";
+import { listWildApricotContacts } from "@/server/services/wildApricotIntegrationService";
 
 export const metadata: Metadata = { title: "Integrations — 3Stone One" };
 
@@ -33,31 +35,35 @@ export default async function IntegrationsPage() {
     db.integration.findUnique({ where: { workspaceId_provider: { workspaceId, provider: "ai_anthropic" } } }),
   ]);
   const workspace = await db.workspace.findUnique({ where: { id: workspaceId }, select: { editionKey: true } });
-  const [googleEvents, microsoftEvents] = await Promise.all([
+  const [googleEvents, microsoftEvents, slackProbe, canvasProbe, wildApricotProbe, basecampProbe] = await Promise.all([
     google?.status === "connected" ? getUpcomingGoogleCalendarEvents(workspaceId).catch(() => null) : Promise.resolve(null),
     microsoft?.status === "connected" ? getUpcomingOutlookEvents(workspaceId).catch(() => null) : Promise.resolve(null),
+    slack?.status === "connected" ? listSlackChannels(workspaceId).then(() => true).catch(() => false) : Promise.resolve(null),
+    canvas?.status === "connected" ? listCanvasAssignments(workspaceId).then(() => true).catch(() => false) : Promise.resolve(null),
+    wildApricot?.status === "connected" ? listWildApricotContacts(workspaceId).then(() => true).catch(() => false) : Promise.resolve(null),
+    basecamp?.status === "connected" ? listBasecampProjects(workspaceId).then(() => true).catch(() => false) : Promise.resolve(null),
   ]);
 
   return (
     <RealIntegrationsClient
       googleConfigured={isGoogleIntegrationConfigured()}
-      googleStatus={google?.status ?? "not_connected"}
+      googleStatus={google?.status === "connected" && googleEvents === null ? "error" : google?.status ?? "not_connected"}
       googleConnectedAt={google?.connectedAt?.toISOString() ?? null}
       googleEvents={googleEvents}
       microsoftConfigured={isMicrosoftIntegrationConfigured()}
-      microsoftStatus={microsoft?.status ?? "not_connected"}
+      microsoftStatus={microsoft?.status === "connected" && microsoftEvents === null ? "error" : microsoft?.status ?? "not_connected"}
       microsoftConnectedAt={microsoft?.connectedAt?.toISOString() ?? null}
       microsoftEvents={microsoftEvents}
       editionKey={workspace?.editionKey ?? "business"}
       slackConfigured={isSlackIntegrationConfigured()}
-      slackStatus={slack?.status ?? "not_connected"}
+      slackStatus={slack?.status === "connected" && slackProbe === false ? "error" : slack?.status ?? "not_connected"}
       slackConnectedAt={slack?.connectedAt?.toISOString() ?? null}
-      canvasStatus={canvas?.status ?? "not_connected"}
+      canvasStatus={canvas?.status === "connected" && canvasProbe === false ? "error" : canvas?.status ?? "not_connected"}
       canvasConnectedAt={canvas?.connectedAt?.toISOString() ?? null}
-      wildApricotStatus={wildApricot?.status ?? "not_connected"}
+      wildApricotStatus={wildApricot?.status === "connected" && wildApricotProbe === false ? "error" : wildApricot?.status ?? "not_connected"}
       wildApricotConnectedAt={wildApricot?.connectedAt?.toISOString() ?? null}
       basecampConfigured={isBasecampIntegrationConfigured()}
-      basecampStatus={basecamp?.status ?? "not_connected"}
+      basecampStatus={basecamp?.status === "connected" && basecampProbe === false ? "error" : basecamp?.status ?? "not_connected"}
       basecampConnectedAt={basecamp?.connectedAt?.toISOString() ?? null}
       openaiStatus={openai?.status ?? "not_connected"}
       openaiConnectedAt={openai?.connectedAt?.toISOString() ?? null}

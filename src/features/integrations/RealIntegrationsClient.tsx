@@ -260,7 +260,7 @@ export function RealIntegrationsClient({
         ) : null}
         <IntegrationCard
           name={editionKey === "student" ? "Microsoft 365 for Students" : "Microsoft 365"}
-          blurb={editionKey === "student" ? "Connect Outlook Mail and OneDrive files without requesting Calendar or Teams permissions." : "Outlook Mail, Calendar, OneDrive and Teams populate their Workplace destinations."}
+          blurb={editionKey === "student" ? "Connect Outlook Mail, Calendar and OneDrive files without requesting Teams creation or mail-send permissions." : "Outlook Mail, Calendar, OneDrive and Teams populate Calendar, Meetings, Documents and Knowledge."}
           status={microsoftStatus}
           connectedAt={microsoftConnectedAt}
           configured={microsoftConfigured}
@@ -399,7 +399,7 @@ export function RealIntegrationsClient({
         ) : null}
       </div>
 
-      <p className="mt-8 mb-2 text-[12px] font-semibold uppercase tracking-wide text-ink-3">Available for this edition</p>
+      <p className="mt-8 mb-2 text-[12px] font-semibold uppercase tracking-wide text-ink-3">Connector status for this edition</p>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         {catalog.map((item) => (
           <Card key={`${item.key}-${item.name}`} className="p-4">
@@ -425,6 +425,6 @@ export function RealIntegrationsClient({
 function readinessLabel(readiness: IntegrationReadiness): string {
   if (readiness === "live") return "Live path";
   if (readiness === "configured") return "App configured";
-  if (readiness === "approval_required") return "Vendor approval";
-  return "In build";
+  if (readiness === "approval_required") return "Vendor access required";
+  return "Planned — not connectable yet";
 }

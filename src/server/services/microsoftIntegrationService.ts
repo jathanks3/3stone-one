@@ -1,5 +1,6 @@
 import { db } from "@/server/db";
 import { encryptToken, decryptToken } from "@/lib/tokenEncryption";
+import sanitizeHtml from "sanitize-html";
 
 // Request only scopes backed by live product features: Outlook mailbox reading
 // and sending, Calendar changes, selected OneDrive files, and Teams meetings.
@@ -24,7 +25,7 @@ const FULL_MICROSOFT_SCOPES = [
 function microsoftScopesForEdition(editionKey: string): string {
   // Mail.Read (not the write/send scopes above) is enough for Student's
   // read-through Emails module without Calendar, Teams, or send access.
-  if (editionKey === "student") return ["Files.Read", "Mail.Read", "User.Read", "offline_access", "openid", "email"].join(" ");
+  if (editionKey === "student") return ["Calendars.Read", "Mail.Read", "Files.Read", "MailboxSettings.Read", "User.Read", "offline_access", "openid", "email"].join(" ");
   return FULL_MICROSOFT_SCOPES;
 }
 const AUTHORITY = "https://login.microsoftonline.com/common/oauth2/v2.0";
@@ -210,6 +211,10 @@ export interface UpcomingOutlookEvent {
   id: string;
   summary: string;
   start: string;
+  end: string;
+  attendees: string[];
+  joinUrl: string | null;
+  preview: string;
 }
 
 // Graph always returns event times in UTC unless told otherwise via this
@@ -232,7 +237,7 @@ export async function getUpcomingOutlookEvents(workspaceId: string, limit = 5): 
     endDateTime: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
     $top: String(limit),
     $orderby: "start/dateTime",
-    $select: "id,subject,start",
+    $select: "id,subject,start,end,attendees,onlineMeeting,onlineMeetingUrl,bodyPreview",
   });
   const res = await fetch(`https://graph.microsoft.com/v1.0/me/calendarView?${params.toString()}`, {
     headers: { Authorization: `Bearer ${accessToken}`, Prefer: `outlook.timezone="${timeZone}"` },
@@ -243,10 +248,14 @@ export async function getUpcomingOutlookEvents(workspaceId: string, limit = 5): 
   }
   const data = await res.json();
   const items = Array.isArray(data.value) ? data.value : [];
-  return items.slice(0, limit).map((item: { id?: string; subject?: string; start?: { dateTime?: string } }) => ({
+  return items.slice(0, limit).map((item: { id?: string; subject?: string; start?: { dateTime?: string }; end?: { dateTime?: string }; attendees?: { emailAddress?: { name?: string; address?: string } }[]; onlineMeeting?: { joinUrl?: string }; onlineMeetingUrl?: string; bodyPreview?: string }) => ({
     id: item.id ?? "",
     summary: item.subject ?? "(no title)",
     start: item.start?.dateTime ?? "",
+    end: item.end?.dateTime ?? "",
+    attendees: (item.attendees ?? []).map((attendee) => attendee.emailAddress?.name || attendee.emailAddress?.address || "").filter(Boolean),
+    joinUrl: item.onlineMeeting?.joinUrl ?? item.onlineMeetingUrl ?? null,
+    preview: item.bodyPreview?.trim() ?? "",
   }));
 }
 
@@ -369,6 +378,7 @@ export interface OutlookMessageDetail {
   senderAddress: string;
   receivedAt: string;
   bodyText: string;
+  bodyHtml: string | null;
   attachments: OutlookAttachment[];
 }
 
@@ -408,9 +418,11 @@ export async function getOutlookMessageDetail(workspaceId: string, messageId: st
     contentType?: string;
     size?: number;
     isInline?: boolean;
+    contentId?: string;
     sourceUrl?: string;
   };
-  const attachments: OutlookAttachment[] = (Array.isArray(attachmentsData.value) ? (attachmentsData.value as RawAttachment[]) : [])
+  const rawAttachments = Array.isArray(attachmentsData.value) ? (attachmentsData.value as RawAttachment[]) : [];
+  const attachments: OutlookAttachment[] = rawAttachments
     // Inline attachments (isInline: true) are the images/logos embedded in
     // the HTML body itself, referenced by Content-ID - not something a
     // person ever meant to attach.
@@ -434,6 +446,29 @@ export async function getOutlookMessageDetail(workspaceId: string, messageId: st
 
   const bodyRaw: string = data.body?.content ?? "";
   const bodyText = data.body?.contentType === "html" ? stripHtml(bodyRaw) : bodyRaw;
+  let bodyHtml: string | null = null;
+  if (data.body?.contentType === "html") {
+    let withInlineImages = bodyRaw;
+    for (const attachment of rawAttachments.filter((item) => item.isInline && item.id && item.contentId)) {
+      const contentId = attachment.contentId!.replace(/^<|>$/g, "");
+      const escaped = contentId.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const inlineUrl = `/api/inbox/attachment?${new URLSearchParams({ provider: "microsoft", messageId, attachmentId: attachment.id!, mimeType: attachment.contentType ?? "image/*", filename: attachment.name ?? "inline-image" }).toString()}`;
+      withInlineImages = withInlineImages.replace(new RegExp(`cid:${escaped}`, "gi"), inlineUrl);
+    }
+    bodyHtml = sanitizeHtml(withInlineImages, {
+      allowedTags: [...sanitizeHtml.defaults.allowedTags, "img", "table", "thead", "tbody", "tfoot", "tr", "th", "td"],
+      allowedAttributes: {
+        a: ["href", "title", "target", "rel"],
+        img: ["src", "alt", "title", "width", "height"],
+        table: ["cellpadding", "cellspacing", "border"],
+        td: ["colspan", "rowspan"],
+        th: ["colspan", "rowspan"],
+      },
+      allowedSchemes: ["http", "https", "mailto"],
+      allowProtocolRelative: false,
+      transformTags: { a: sanitizeHtml.simpleTransform("a", { target: "_blank", rel: "noopener noreferrer" }) },
+    });
+  }
 
   return {
     id: messageId,
@@ -442,6 +477,7 @@ export async function getOutlookMessageDetail(workspaceId: string, messageId: st
     senderAddress: data.from?.emailAddress?.address ?? "",
     receivedAt: data.receivedDateTime ?? "",
     bodyText,
+    bodyHtml,
     attachments,
   };
 }

@@ -1,7 +1,7 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
-import { BookOpen, Plus, ExternalLink, GraduationCap } from "lucide-react";
+import { useMemo, useRef, useState, useTransition } from "react";
+import { AudioLines, BookOpen, FileText, ImageIcon, Library, Plus, Upload } from "lucide-react";
 import { SearchInput } from "@/ui/SearchInput";
 import { Card } from "@/ui/Card";
 import { Badge } from "@/ui/Badge";
@@ -17,6 +17,11 @@ import {
 } from "@/app/(app)/knowledge/actions";
 import type { KnowledgeArticleRow } from "@/server/services/knowledgeService";
 import type { CanvasCourseMaterial } from "@/server/services/canvasIntegrationService";
+import type { DocumentRow } from "@/server/services/documentService";
+import type { OneDriveFile } from "@/server/services/microsoftIntegrationService";
+import type { GoogleDriveFile } from "@/server/services/googleIntegrationService";
+import { createDocumentAction, getOneDrivePreviewUrlAction } from "@/app/(app)/documents/actions";
+import { askAssistant } from "@/lib/assistantBus";
 
 const KNOWLEDGE_CATEGORY_LABEL: Record<string, string> = {
   policy: "Policy",
@@ -27,19 +32,50 @@ const KNOWLEDGE_CATEGORY_LABEL: Record<string, string> = {
 };
 
 const CATEGORIES = ["all", "policy", "training", "process", "sop", "video"] as const;
+const ASSET_FILTERS = ["all", "files", "photos", "audio"] as const;
+type AssetFilter = (typeof ASSET_FILTERS)[number];
+type AssetKind = Exclude<AssetFilter, "all">;
+type KnowledgeAsset = {
+  id: string;
+  name: string;
+  mimeType: string;
+  detail: string;
+  source: string;
+  kind: AssetKind;
+  preview: "direct" | "onedrive" | "google" | "canvas";
+  url: string;
+  itemId?: string;
+};
+
+function assetKind(mimeType: string): AssetKind {
+  if (mimeType.startsWith("image/")) return "photos";
+  if (mimeType.startsWith("audio/")) return "audio";
+  return "files";
+}
 
 export function RealKnowledgeClient({
   initialArticles,
-  canvasConnected = false,
+  documents = [],
+  oneDriveFiles = [],
+  googleDriveFiles = [],
   canvasMaterials = [],
 }: {
   initialArticles: KnowledgeArticleRow[];
-  canvasConnected?: boolean;
+  documents?: DocumentRow[];
+  oneDriveFiles?: OneDriveFile[];
+  googleDriveFiles?: GoogleDriveFile[];
   canvasMaterials?: CanvasCourseMaterial[];
 }) {
   const [articles, setArticles] = useState<KnowledgeArticleRow[]>(initialArticles);
+  const [libraryDocuments, setLibraryDocuments] = useState<DocumentRow[]>(documents);
   const [category, setCategory] = useState<(typeof CATEGORIES)[number]>("all");
   const [query, setQuery] = useState("");
+  const [assetFilter, setAssetFilter] = useState<AssetFilter>("all");
+  const [assetPreview, setAssetPreview] = useState<KnowledgeAsset | null>(null);
+  const [previewSrc, setPreviewSrc] = useState("");
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [selected, setSelected] = useState<KnowledgeArticleRow | null>(null);
   const [editing, setEditing] = useState<"new" | KnowledgeArticleRow | null>(null);
   const [form, setForm] = useState({ title: "", body: "", category: "process" as string });
@@ -53,6 +89,65 @@ export function RealKnowledgeClient({
         .filter((a) => `${a.title} ${a.body}`.toLowerCase().includes(query.toLowerCase())),
     [articles, category, query]
   );
+
+  const assets = useMemo<KnowledgeAsset[]>(() => [
+    ...libraryDocuments.map((file) => ({ id: `upload:${file.id}`, name: file.name, mimeType: file.mimeType, detail: `${Math.max(1, Math.round(file.sizeBytes / 1024))} KB`, source: "3Stone Knowledge", kind: assetKind(file.mimeType), preview: "direct" as const, url: `/api/uploads/${file.uploadedFileId}/download` })),
+    ...oneDriveFiles.map((file) => ({ id: `onedrive:${file.id}`, name: file.name, mimeType: file.mimeType, detail: file.modifiedAt ? `Updated ${new Date(file.modifiedAt).toLocaleDateString()}` : "Microsoft file", source: "Microsoft OneDrive", kind: assetKind(file.mimeType), preview: "onedrive" as const, url: file.webUrl, itemId: file.id })),
+    ...googleDriveFiles.map((file) => ({ id: `google:${file.id}`, name: file.name, mimeType: file.mimeType, detail: file.modifiedAt ? `Updated ${new Date(file.modifiedAt).toLocaleDateString()}` : "Selected Google file", source: "Google Drive", kind: assetKind(file.mimeType), preview: "google" as const, url: `https://drive.google.com/file/d/${file.id}/preview` })),
+    ...canvasMaterials.map((file) => ({ id: `canvas:${file.courseId}:${file.fileId}`, name: file.displayName, mimeType: file.contentType, detail: file.courseName, source: "Canvas", kind: assetKind(file.contentType), preview: "canvas" as const, url: file.url })),
+  ], [libraryDocuments, oneDriveFiles, googleDriveFiles, canvasMaterials]);
+
+  const filteredAssets = useMemo(() => assets.filter((asset) => (assetFilter === "all" || asset.kind === assetFilter) && `${asset.name} ${asset.source} ${asset.detail}`.toLowerCase().includes(query.toLowerCase())), [assets, assetFilter, query]);
+
+  function openAsset(asset: KnowledgeAsset) {
+    setAssetPreview(asset);
+    setPreviewSrc(asset.preview === "onedrive" ? "" : asset.url);
+    if (asset.preview !== "onedrive" || !asset.itemId) return;
+    setPreviewLoading(true);
+    startTransition(async () => {
+      const form = new FormData();
+      form.set("itemId", asset.itemId!);
+      const result = await getOneDrivePreviewUrlAction({}, form);
+      setPreviewLoading(false);
+      if (!result.url) {
+        showToast({ title: "Preview unavailable", description: result.error ?? "Microsoft did not return a preview." });
+        setAssetPreview(null);
+        return;
+      }
+      setPreviewSrc(result.url);
+    });
+  }
+
+  async function uploadKnowledgeFile(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    setUploading(true);
+    try {
+      const signResponse = await fetch("/api/uploads/sign", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ kind: "document", filename: file.name, sizeBytes: file.size }) });
+      const signed = await signResponse.json();
+      if (!signResponse.ok) throw new Error(signed.error ?? "Could not start upload.");
+      const uploadResponse = await fetch(signed.uploadUrl, { method: "PUT", body: file, headers: { "Content-Type": file.type || "application/octet-stream" } });
+      if (!uploadResponse.ok) throw new Error("Upload failed.");
+      const confirmResponse = await fetch("/api/uploads/confirm", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ kind: "document", storagePath: signed.storagePath, originalFilename: file.name, mimeType: file.type || "application/octet-stream", sizeBytes: file.size }) });
+      const confirmed = await confirmResponse.json();
+      if (!confirmResponse.ok) throw new Error(confirmed.error ?? "Could not record upload.");
+      const formData = new FormData();
+      formData.set("name", file.name);
+      formData.set("uploadedFileId", confirmed.id);
+      formData.set("mimeType", file.type || "application/octet-stream");
+      formData.set("sizeBytes", String(file.size));
+      formData.set("visibility", "internal");
+      const result = await createDocumentAction({}, formData);
+      if (!result.id || result.error) throw new Error(result.error ?? "Could not add the file.");
+      setLibraryDocuments((current) => [{ id: result.id!, uploadedFileId: confirmed.id, name: file.name, mimeType: file.type || "application/octet-stream", sizeBytes: file.size, uploadedById: null, uploadedByName: "You", visibility: "internal", createdAt: new Date() }, ...current]);
+      showToast({ title: "Added to Knowledge", description: `${file.name} is ready to preview.` });
+    } catch (error) {
+      showToast({ title: "Upload failed", description: error instanceof Error ? error.message : "Something went wrong." });
+    } finally {
+      setUploading(false);
+    }
+  }
 
   function openNew() {
     setForm({ title: "", body: "", category: "process" });
@@ -109,38 +204,29 @@ export function RealKnowledgeClient({
           <h1 className="text-[22px] font-bold text-ink-1">Knowledge Center</h1>
           <p className="mt-1 text-[14px] text-ink-2">Policies, training, processes, and SOPs — your team&apos;s own knowledge base.</p>
         </div>
-        <Button variant="primary" onClick={openNew}>
-          <Plus size={14} /> New article
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="secondary" disabled={uploading} onClick={() => fileInputRef.current?.click()}><Upload size={14} /> {uploading ? "Uploading…" : "Upload file, photo, or audio"}</Button>
+          <input ref={fileInputRef} type="file" className="hidden" onChange={uploadKnowledgeFile} />
+          <Button variant="primary" onClick={openNew}><Plus size={14} /> New article</Button>
+        </div>
       </div>
 
       <div className="mt-6 flex flex-col gap-4">
-        {canvasConnected ? (
-          <section className="rounded-2xl border border-line bg-surface p-4 sm:p-5">
+        <section className="rounded-2xl border border-line bg-surface p-4 sm:p-5">
             <div className="flex items-start gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-accent/10 text-accent"><GraduationCap size={18} /></div>
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-accent/10 text-accent"><Library size={18} /></div>
               <div>
-                <h2 className="text-[15px] font-semibold text-ink-1">Canvas course knowledge</h2>
-                <p className="mt-0.5 text-[12.5px] text-ink-3">Read-only course files from Canvas. They stay with your school and open there.</p>
+                <h2 className="text-[15px] font-semibold text-ink-1">Connected knowledge</h2>
+                <p className="mt-0.5 text-[12.5px] text-ink-3">Preview workspace uploads, OneDrive, selected Google Drive files, and Canvas materials here without being sent to a separate app.</p>
               </div>
             </div>
-            {canvasMaterials.length ? (
-              <div className="mt-4 grid gap-2 sm:grid-cols-2">
-                {canvasMaterials.slice(0, 40).map((material) => (
-                  <a key={`${material.courseId}-${material.fileId}`} href={material.url} target="_blank" rel="noreferrer" className="group rounded-xl border border-line bg-bg p-3 hover:bg-surface-raised">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0">
-                        <p className="truncate text-[13px] font-semibold text-ink-1">{material.displayName}</p>
-                        <p className="mt-1 truncate text-[11.5px] text-ink-3">{material.courseName}</p>
-                      </div>
-                      <ExternalLink size={14} className="mt-0.5 flex-none text-ink-3 group-hover:text-accent" />
-                    </div>
-                  </a>
-                ))}
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+              <div className="flex flex-wrap gap-1.5">
+                {ASSET_FILTERS.map((filter) => <button key={filter} onClick={() => setAssetFilter(filter)} className={cn("rounded-full border px-3 py-1.5 text-[12.5px] font-medium capitalize", assetFilter === filter ? "border-accent bg-accent text-on-accent" : "border-line bg-bg text-ink-2 hover:bg-surface-raised")}>{filter === "all" ? "Everything" : filter}</button>)}
               </div>
-            ) : <p className="mt-4 text-[13px] text-ink-3">Canvas is connected, but no files were returned from active courses. Some schools or instructors disable course-file API access.</p>}
+            </div>
+            {filteredAssets.length ? <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">{filteredAssets.slice(0, 60).map((asset) => <button key={asset.id} onClick={() => openAsset(asset)} className="rounded-xl border border-line bg-bg p-3 text-left hover:bg-surface-raised"><div className="flex items-start gap-2.5">{asset.kind === "photos" ? <ImageIcon size={16} className="mt-0.5 text-accent" /> : asset.kind === "audio" ? <AudioLines size={16} className="mt-0.5 text-accent" /> : <FileText size={16} className="mt-0.5 text-accent" />}<div className="min-w-0"><p className="truncate text-[13px] font-semibold text-ink-1">{asset.name}</p><p className="mt-1 truncate text-[11.5px] text-ink-3">{asset.source} · {asset.detail}</p></div></div></button>)}</div> : <p className="mt-4 text-[13px] text-ink-3">No items match this filter yet.</p>}
           </section>
-        ) : null}
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex flex-wrap gap-1.5">
             {CATEGORIES.map((c) => (
@@ -156,7 +242,7 @@ export function RealKnowledgeClient({
               </button>
             ))}
           </div>
-          <SearchInput value={query} onChange={setQuery} placeholder="Search articles…" />
+          <SearchInput value={query} onChange={setQuery} placeholder="Search knowledge and files…" />
         </div>
 
         {filtered.length === 0 ? (
@@ -192,6 +278,13 @@ export function RealKnowledgeClient({
             </div>
           </div>
         ) : null}
+      </DetailPanel>
+
+      <DetailPanel open={!!assetPreview} onClose={() => { setAssetPreview(null); setPreviewSrc(""); }} title={assetPreview?.name ?? ""} subtitle={assetPreview ? `${assetPreview.source} · ${assetPreview.mimeType}` : ""}>
+        {previewLoading ? <p className="text-[13.5px] text-ink-3">Loading preview…</p> : assetPreview && previewSrc ? <div className="flex flex-col gap-4">
+          {assetPreview.kind === "photos" && assetPreview.preview !== "onedrive" ? <img src={previewSrc} alt={assetPreview.name} className="max-h-[70vh] w-full rounded-xl border border-line object-contain" /> : assetPreview.kind === "audio" && assetPreview.preview !== "onedrive" ? <audio controls src={previewSrc} className="w-full" /> : <iframe src={previewSrc} title={assetPreview.name} className="h-[70vh] w-full rounded-xl border border-line" />}
+          <Button variant="secondary" className="w-fit" onClick={() => askAssistant(`Help me work with "${assetPreview.name}" from ${assetPreview.source}. Use any content or metadata available in Knowledge Center, tell me clearly if you cannot read part of it, and ask what notes or next actions I want to make.`)}>Ask 3Stone AI</Button>
+        </div> : null}
       </DetailPanel>
 
       <DetailPanel open={editing !== null} onClose={() => setEditing(null)} title={editing === "new" ? "New article" : "Edit article"}>

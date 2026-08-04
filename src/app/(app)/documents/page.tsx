@@ -16,7 +16,7 @@ export default async function DocumentsPage() {
   const session = await getSession();
   if (session && !session.isDemo) {
     const workspaceId = await getActiveWorkspaceIdForUser(session.userId);
-    const docs = workspaceId ? await listDocuments(workspaceId) : [];
+    const docs = workspaceId ? (await listDocuments(workspaceId)).filter((file) => !file.mimeType.startsWith("image/") && !file.mimeType.startsWith("audio/") && !file.mimeType.startsWith("video/")) : [];
     const microsoft = workspaceId ? await db.integration.findUnique({ where: { workspaceId_provider: { workspaceId, provider: "microsoft" } } }) : null;
     const google = workspaceId ? await db.integration.findUnique({ where: { workspaceId_provider: { workspaceId, provider: "google" } } }) : null;
     const canvas = workspaceId ? await db.integration.findUnique({ where: { workspaceId_provider: { workspaceId, provider: "canvas" } } }) : null;

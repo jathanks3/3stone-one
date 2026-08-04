@@ -89,5 +89,13 @@ export async function sendSlackMessage(workspaceId: string, channelId: string, b
 }
 
 export async function disconnectSlack(workspaceId: string): Promise<void> {
+  const integration = await db.integration.findUnique({ where: { workspaceId_provider: { workspaceId, provider: "slack" } } });
+  if (integration?.accessTokenEncrypted) {
+    try {
+      await fetch("https://slack.com/api/auth.revoke", { method: "POST", headers: { Authorization: `Bearer ${decryptToken(integration.accessTokenEncrypted)}` } });
+    } catch {
+      // Local token deletion below is still authoritative for 3Stone One.
+    }
+  }
   await db.integration.upsert({ where: { workspaceId_provider: { workspaceId, provider: "slack" } }, update: { status: "not_connected", connectedAt: null, connectedByUserId: null, accessTokenEncrypted: null, refreshTokenEncrypted: null, tokenExpiresAt: null, scope: null, config: {} }, create: { workspaceId, provider: "slack", status: "not_connected" } });
 }

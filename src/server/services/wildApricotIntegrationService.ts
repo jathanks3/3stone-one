@@ -93,7 +93,7 @@ export async function listWildApricotContacts(workspaceId: string): Promise<Wild
   const res = await fetch(`https://api.wildapricot.org/v2.1/accounts/${wa.accountId}/contacts?$async=false`, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
-  if (!res.ok) return [];
+  if (!res.ok) throw new Error(`Wild Apricot contact sync failed (${res.status}).`);
   const data = await res.json();
   const contacts = Array.isArray(data?.Contacts) ? (data.Contacts as Record<string, unknown>[]) : [];
   return contacts.slice(0, 100).map((c) => {

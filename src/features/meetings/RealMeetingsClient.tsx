@@ -17,6 +17,7 @@ import {
   toggleActionItemAction,
 } from "@/app/(app)/meetings/actions";
 import type { MeetingRow } from "@/server/services/meetingService";
+import { askAssistant } from "@/lib/assistantBus";
 
 function formatWhen(d: Date): string {
   return new Date(d).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
@@ -214,6 +215,10 @@ function MeetingDetail({ meeting, onChange, onDelete }: { meeting: MeetingRow; o
 
   return (
     <div className="flex flex-col gap-5">
+      <div className="flex flex-wrap gap-2">
+        <Button variant="secondary" onClick={() => askAssistant(`Help me prepare for the meeting "${meeting.title}" at ${formatWhen(meeting.scheduledAt)}. Use its agenda, attendees, related emails, calendar context, and available files. Ask me what outcome I want if it is not clear.`)}>Prep with 3Stone AI</Button>
+        <Button variant="secondary" onClick={() => askAssistant(`Help me make notes for "${meeting.title}". Start a clean meeting-note structure for agenda notes, decisions, follow-ups, and action items, then ask me what I want to capture.`)}>Make meeting notes</Button>
+      </div>
       {meeting.attendees.length > 0 ? (
         <div>
           <p className="mb-2 text-[12px] font-semibold uppercase tracking-wide text-ink-3">Attendees</p>
@@ -234,7 +239,7 @@ function MeetingDetail({ meeting, onChange, onDelete }: { meeting: MeetingRow; o
 
       {meeting.externalJoinUrl ? <a href={meeting.externalJoinUrl} target="_blank" rel="noreferrer" className="inline-flex h-9 items-center justify-center rounded-[9px] bg-accent px-4 text-[13px] font-semibold text-on-accent">Join {meeting.externalProvider === "zoom" ? "Zoom" : "Microsoft Teams"}</a> : null}
 
-      <div>
+      {!meeting.isSynced ? <div>
         <p className="mb-2 text-[12px] font-semibold uppercase tracking-wide text-ink-3">Action items</p>
         <div className="flex flex-col gap-1.5">
           {meeting.actionItems.map((a) => (
@@ -254,9 +259,9 @@ function MeetingDetail({ meeting, onChange, onDelete }: { meeting: MeetingRow; o
           <input value={actionTitle} onChange={(e) => setActionTitle(e.target.value)} placeholder="Add an action item…" className="h-9 flex-1 rounded-[8px] border border-line-strong bg-bg px-3 text-[13px] text-ink-1 outline-none focus:border-accent" />
           <button type="submit" disabled={isPending} className="h-9 rounded-[8px] bg-accent px-3.5 text-[13px] font-semibold text-on-accent hover:opacity-90 disabled:opacity-60">Add</button>
         </form>
-      </div>
+      </div> : null}
 
-      <div>
+      {!meeting.isSynced ? <div>
         <p className="mb-2 text-[12px] font-semibold uppercase tracking-wide text-ink-3">Decisions</p>
         <ul className="flex flex-col gap-1.5">
           {meeting.decisions.map((d) => (
@@ -268,9 +273,9 @@ function MeetingDetail({ meeting, onChange, onDelete }: { meeting: MeetingRow; o
           <input value={decisionSummary} onChange={(e) => setDecisionSummary(e.target.value)} placeholder="Record a decision…" className="h-9 flex-1 rounded-[8px] border border-line-strong bg-bg px-3 text-[13px] text-ink-1 outline-none focus:border-accent" />
           <button type="submit" disabled={isPending} className="h-9 rounded-[8px] bg-accent px-3.5 text-[13px] font-semibold text-on-accent hover:opacity-90 disabled:opacity-60">Add</button>
         </form>
-      </div>
+      </div> : null}
 
-      <Button variant="secondary" disabled={isPending} onClick={onDelete}>Delete meeting</Button>
+      {meeting.isSynced ? <p className="text-[12.5px] text-ink-3">Synced live from Microsoft. Manage the original event in Outlook; prep and notes stay available through 3Stone AI.</p> : <Button variant="secondary" disabled={isPending} onClick={onDelete}>Delete meeting</Button>}
     </div>
   );
 }
