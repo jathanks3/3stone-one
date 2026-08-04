@@ -1,11 +1,13 @@
 import { db } from "@/server/db";
 import { encryptToken, decryptToken } from "@/lib/tokenEncryption";
 
-// Request only scopes backed by live product features: calendar plus Outlook
-// mailbox reading and sending. Files and Teams remain out until implemented.
+// Request only scopes backed by live product features: Outlook mailbox reading
+// and sending, Calendar changes, selected OneDrive files, and Teams meetings.
 const FULL_MICROSOFT_SCOPES = [
   "Calendars.ReadWrite",
-  "Mail.ReadWrite",
+  // Reading and sending are separate Graph permissions. The app does not edit,
+  // move, or delete mailbox messages, so Mail.ReadWrite is unnecessary.
+  "Mail.Read",
   "Mail.Send",
   "Files.Read",
   "OnlineMeetings.ReadWrite",
