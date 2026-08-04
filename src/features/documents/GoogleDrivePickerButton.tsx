@@ -8,7 +8,6 @@ import { useToast } from "@/lib/toast";
 
 type PickerDocument = { id?: string };
 type PickerData = { action?: string; docs?: PickerDocument[] };
-type TokenResponse = { access_token?: string; error?: string };
 
 interface GooglePickerBuilder {
   addView(view: unknown): GooglePickerBuilder;
@@ -22,7 +21,6 @@ interface GooglePickerBuilder {
 }
 
 interface GoogleBrowserApi {
-  accounts: { oauth2: { initTokenClient(config: { client_id: string; scope: string; callback: (response: TokenResponse) => void }): { requestAccessToken(options?: { prompt?: string }): void } } };
   picker: {
     DocsView: new () => { setIncludeFolders(value: boolean): unknown };
     PickerBuilder: new () => GooglePickerBuilder;
@@ -39,21 +37,15 @@ declare global {
 
 let scriptsPromise: Promise<void> | null = null;
 function loadGooglePickerScripts(): Promise<void> {
-  if (window.google?.accounts && window.gapi) return Promise.resolve();
+  if (window.gapi) return Promise.resolve();
   if (scriptsPromise) return scriptsPromise;
   scriptsPromise = new Promise((resolve, reject) => {
-    let loaded = 0;
-    const done = () => { loaded += 1; if (loaded === 2) resolve(); };
-    const add = (src: string) => {
-      const script = document.createElement("script");
-      script.src = src;
-      script.async = true;
-      script.onload = done;
-      script.onerror = () => reject(new Error("Google's file picker couldn't load."));
-      document.head.appendChild(script);
-    };
-    add("https://accounts.google.com/gsi/client");
-    add("https://apis.google.com/js/api.js");
+    const script = document.createElement("script");
+    script.src = "https://apis.google.com/js/api.js";
+    script.async = true;
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error("Google's file picker couldn't load."));
+    document.head.appendChild(script);
   });
   return scriptsPromise;
 }
@@ -65,7 +57,7 @@ function loadPickerLibrary(): Promise<void> {
   });
 }
 
-export function GoogleDrivePickerButton({ clientId, apiKey, appId }: { clientId: string; apiKey: string; appId: string }) {
+export function GoogleDrivePickerButton({ apiKey, appId }: { clientId: string; apiKey: string; appId: string }) {
   const [pending, setPending] = useState(false);
   const [ready, setReady] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -90,24 +82,16 @@ export function GoogleDrivePickerButton({ clientId, apiKey, appId }: { clientId:
       if (!ready) throw new Error("Google Picker is still loading. Try again in a moment.");
       const google = window.google;
       if (!google) throw new Error("Google Picker isn't available.");
-      const token = await new Promise<string>((resolve, reject) => {
-        const timeout = window.setTimeout(() => reject(new Error("Google authorization didn't open. Check that pop-ups are allowed, then try again.")), 15_000);
-        const client = google.accounts.oauth2.initTokenClient({
-          client_id: clientId,
-          scope: "https://www.googleapis.com/auth/drive.file",
-          callback: (response) => {
-            window.clearTimeout(timeout);
-            if (response.access_token) resolve(response.access_token);
-            else reject(new Error(response.error ?? "Google authorization was cancelled."));
-          },
-        });
-        client.requestAccessToken({ prompt: "" });
-      });
+      const tokenResponse = await fetch("/api/integrations/google/picker-token");
+      const tokenResult = await tokenResponse.json().catch(() => ({})) as { accessToken?: string; error?: string };
+      if (!tokenResponse.ok || !tokenResult.accessToken) {
+        throw new Error(tokenResult.error ?? "Reconnect Google in Integrations, then try again.");
+      }
       const view = new google.picker.DocsView();
       view.setIncludeFolders(false);
       const picker = new google.picker.PickerBuilder()
         .addView(view)
-        .setOAuthToken(token)
+        .setOAuthToken(tokenResult.accessToken)
         .setDeveloperKey(apiKey)
         .setAppId(appId)
         .setOrigin(window.location.origin)
