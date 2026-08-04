@@ -92,7 +92,7 @@ export async function listCanvasAssignments(workspaceId: string): Promise<Canvas
       };
     }).filter((assignment): assignment is CanvasAssignment => assignment !== null);
   }));
-  return assignments.flat().sort((a, b) => new Date(b.dueAt).getTime() - new Date(a.dueAt).getTime()).slice(0, 100);
+  return assignments.flat().sort((a, b) => new Date(b.dueAt).getTime() - new Date(a.dueAt).getTime()).slice(0, 500);
 }
 
 export interface CanvasCourseGrade {

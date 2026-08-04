@@ -230,11 +230,15 @@ async function getMailboxTimeZone(accessToken: string): Promise<string> {
 }
 
 export async function getUpcomingOutlookEvents(workspaceId: string, limit = 5): Promise<UpcomingOutlookEvent[]> {
+  return getOutlookEventsInRange(workspaceId, new Date(), new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), limit);
+}
+
+export async function getOutlookEventsInRange(workspaceId: string, start: Date, end: Date, limit = 250): Promise<UpcomingOutlookEvent[]> {
   const accessToken = await getValidMicrosoftAccessToken(workspaceId);
   const timeZone = await getMailboxTimeZone(accessToken);
   const params = new URLSearchParams({
-    startDateTime: new Date().toISOString(),
-    endDateTime: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+    startDateTime: start.toISOString(),
+    endDateTime: end.toISOString(),
     $top: String(limit),
     $orderby: "start/dateTime",
     $select: "id,subject,start,end,attendees,onlineMeeting,onlineMeetingUrl,bodyPreview",

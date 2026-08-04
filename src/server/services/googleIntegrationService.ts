@@ -232,9 +232,14 @@ export interface UpcomingCalendarEvent {
 /** The real "proof it works" call - next few real Calendar events, not a
  * mock. Used on the Integrations page right after connecting. */
 export async function getUpcomingGoogleCalendarEvents(workspaceId: string, limit = 5): Promise<UpcomingCalendarEvent[]> {
+  return getGoogleCalendarEventsInRange(workspaceId, new Date(), new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), limit);
+}
+
+export async function getGoogleCalendarEventsInRange(workspaceId: string, start: Date, end: Date, limit = 250): Promise<UpcomingCalendarEvent[]> {
   const accessToken = await getValidGoogleAccessToken(workspaceId);
   const params = new URLSearchParams({
-    timeMin: new Date().toISOString(),
+    timeMin: start.toISOString(),
+    timeMax: end.toISOString(),
     maxResults: String(limit),
     singleEvents: "true",
     orderBy: "startTime",
