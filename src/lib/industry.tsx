@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useMemo, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
 import type { IndustryProfile, IndustryProfileKey } from "@/types";
 import { getIndustryProfile } from "@/config/industry-profiles";
 import { getBusinessById } from "@/server/mock-data/businesses";
@@ -33,6 +33,8 @@ interface IndustryContextValue {
   // preference so a prospect's demo shows up already colored for them,
   // not whatever the founder last picked on their own device.
   demoAccentColor: string | null;
+  demoEnabledModuleKeys: string[] | null;
+  demoAiEnabled: boolean;
 }
 
 const IndustryContext = createContext<IndustryContextValue | null>(null);
@@ -44,6 +46,8 @@ export function IndustryProvider({
   workspaceName,
   editionKey,
   demoAccentColor = null,
+  demoEnabledModuleKeys = null,
+  demoAiEnabled = true,
   children,
 }: {
   initialKey: IndustryProfileKey;
@@ -52,13 +56,15 @@ export function IndustryProvider({
   workspaceName: string;
   editionKey: string;
   demoAccentColor?: string | null;
+  demoEnabledModuleKeys?: string[] | null;
+  demoAiEnabled?: boolean;
   children: ReactNode;
 }) {
   const [key, setKey] = useState<IndustryProfileKey>(initialKey);
   const [currentBusinessId, setCurrentBusinessId] = useState<string>(initialBusinessId);
   const profile = useMemo(() => getIndustryProfile(key), [key]);
 
-  function setBusinessId(id: string) {
+  const setBusinessId = useCallback((id: string) => {
     // Switching between mock businesses is a demo-only feature (Portfolio
     // isn't converted yet) — a real session has exactly one workspace,
     // so there's nothing to look up or switch to.
@@ -66,7 +72,7 @@ export function IndustryProvider({
     const business = getBusinessById(id);
     setCurrentBusinessId(id);
     setKey(business.industryProfileKey);
-  }
+  }, [isDemo]);
 
   const value = useMemo(
     () => ({
@@ -78,8 +84,10 @@ export function IndustryProvider({
       workspaceName,
       editionKey,
       demoAccentColor,
+      demoEnabledModuleKeys,
+      demoAiEnabled,
     }),
-    [profile, currentBusinessId, isDemo, workspaceName, editionKey, demoAccentColor]
+    [profile, currentBusinessId, setBusinessId, isDemo, workspaceName, editionKey, demoAccentColor, demoEnabledModuleKeys, demoAiEnabled]
   );
 
   return <IndustryContext.Provider value={value}>{children}</IndustryContext.Provider>;

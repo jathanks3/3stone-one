@@ -41,8 +41,14 @@ function PaletteDialog({ onClose }: { onClose: () => void }) {
   const [query, setQuery] = useState("");
   const [activeIndex, setActiveIndex] = useState(0);
   const router = useRouter();
-  const { profile, editionKey } = useIndustry();
-  const items = useMemo(() => getAllNavItems(profile, getAllowedModuleKeys(editionKey)), [profile, editionKey]);
+  const { profile, editionKey, demoEnabledModuleKeys } = useIndustry();
+  const items = useMemo(() => {
+    const editionKeys = getAllowedModuleKeys(editionKey);
+    const allowedKeys = demoEnabledModuleKeys
+      ? new Set(demoEnabledModuleKeys.filter((key) => !editionKeys || editionKeys.has(key)))
+      : editionKeys;
+    return getAllNavItems(profile, allowedKeys);
+  }, [profile, editionKey, demoEnabledModuleKeys]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();

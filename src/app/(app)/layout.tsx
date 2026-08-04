@@ -28,6 +28,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   let workspace: { id: string; name: string; industryProfileKey: IndustryProfileKey; editionKey: string };
   let user: SessionUser;
   let demoAccentColor: string | null = null;
+  let demoEnabledModuleKeys: string[] | null = null;
+  let demoAiEnabled = true;
 
   if (!session || session.isDemo) {
     // Mostly unchanged from the mock-only era - demo still never touches
@@ -64,6 +66,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       editionKey: demoEditionKey,
     };
     demoAccentColor = demoProfile?.accentColor ?? null;
+    demoEnabledModuleKeys = demoProfile?.enabledModuleKeys ?? null;
+    demoAiEnabled = demoProfile?.aiEnabled ?? true;
     user = DEMO_USER;
   } else {
     const membership = await db.workspaceMember.findFirst({
@@ -128,7 +132,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   // a REAL module key (e.g. "finance") - routes with no nav entry at all
   // (like /profile) are never gated, since they're not business modules
   // this system knows how to restrict.
-  const allowedModuleKeys = getAllowedModuleKeys(workspace.editionKey);
+  const editionModuleKeys = getAllowedModuleKeys(workspace.editionKey);
+  const allowedModuleKeys = demoEnabledModuleKeys
+    ? new Set(demoEnabledModuleKeys.filter((key) => !editionModuleKeys || editionModuleKeys.has(key)))
+    : editionModuleKeys;
   if (allowedModuleKeys) {
     const pathname = (await headers()).get("x-pathname") ?? "";
     const moduleKey = pathname.split("/")[1] ?? "";
@@ -146,6 +153,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       workspaceName={workspace.name}
       editionKey={workspace.editionKey}
       demoAccentColor={demoAccentColor}
+      demoEnabledModuleKeys={demoEnabledModuleKeys}
+      demoAiEnabled={demoAiEnabled}
     >
       <AppShell user={user}>{children}</AppShell>
     </IndustryProvider>

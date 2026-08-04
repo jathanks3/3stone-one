@@ -9,9 +9,13 @@ import { NAV_ICONS } from "@/lib/icons";
 import { cn } from "@/lib/utils";
 
 export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
-  const { profile, editionKey } = useIndustry();
+  const { profile, editionKey, demoEnabledModuleKeys } = useIndustry();
   const pathname = usePathname();
-  const sections = getNavSections(profile, getAllowedModuleKeys(editionKey));
+  const editionKeys = getAllowedModuleKeys(editionKey);
+  const allowedKeys = demoEnabledModuleKeys
+    ? new Set(demoEnabledModuleKeys.filter((key) => !editionKeys || editionKeys.has(key)))
+    : editionKeys;
+  const sections = getNavSections(profile, allowedKeys);
 
   return (
     <nav className="flex h-full flex-col gap-5 overflow-y-auto px-3 py-4">

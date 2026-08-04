@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useState, type CSSProperties, type ReactNode } from "react";
 import Image from "next/image";
 import { TopBar } from "./TopBar";
 import { Sidebar } from "./Sidebar";
@@ -43,7 +43,7 @@ export function AppShell({
 }) {
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
-  const { editionKey, demoAccentColor } = useIndustry();
+  const { editionKey, demoAccentColor, demoAiEnabled } = useIndustry();
   const { accentColor } = useAccentColor();
   const brand = EDITION_BRAND[editionKey];
   const Mark = brand?.Mark;
@@ -51,11 +51,13 @@ export function AppShell({
   // always wins over the viewer's own personal preference - a prospect's
   // demo should show up already colored for them, not whatever the
   // founder last picked for themselves on this same browser.
+  const customHexAccent = demoAccentColor?.match(/^#[0-9a-f]{6}$/i) ? demoAccentColor : null;
   const effectiveAccentColor = demoAccentColor && demoAccentColor in ACCENT_CLASS ? (demoAccentColor as keyof typeof ACCENT_CLASS) : accentColor;
   const accentClass = effectiveAccentColor === "default" ? EDITION_CLASS[editionKey] : ACCENT_CLASS[effectiveAccentColor];
+  const customAccentStyle = customHexAccent ? ({ "--accent": customHexAccent, "--accent-strong": customHexAccent, "--accent-wash": `color-mix(in srgb, ${customHexAccent} 10%, transparent)`, "--accent-wash-strong": `color-mix(in srgb, ${customHexAccent} 18%, transparent)` } as CSSProperties) : undefined;
 
   return (
-    <div className={cn("flex h-screen flex-col", accentClass)}>
+    <div className={cn("flex h-screen flex-col", accentClass)} style={customAccentStyle}>
       <DemoBanner />
       <TopBar
         user={user}
@@ -81,7 +83,7 @@ export function AppShell({
       </div>
       <MobileNav open={mobileNavOpen} onClose={() => setMobileNavOpen(false)} />
       <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} />
-      <AiAssistant />
+      {demoAiEnabled ? <AiAssistant /> : null}
     </div>
   );
 }
