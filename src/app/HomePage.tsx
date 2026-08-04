@@ -34,7 +34,7 @@ const EDITIONS = [
     id: "business",
     name: "3Stone One",
     tagline: "The full operating system - CRM, projects, finance, inventory, automation, and analytics.",
-    fromPrice: 99,
+    fromPrice: 80,
     accent: "#6e93d6",
     demoHref: "/demo?edition=business",
     learnMoreHref: null,
@@ -43,7 +43,7 @@ const EDITIONS = [
     id: "workspace",
     name: "3Stone One Workspace",
     tagline: "For day-to-day workers, CEOs, and managers - documents, projects, meetings, and time off requests, without the back office.",
-    fromPrice: 69,
+    fromPrice: 60,
     accent: "#5cbf99",
     demoHref: "/demo?edition=workspace",
     learnMoreHref: "/workspace",
@@ -51,8 +51,8 @@ const EDITIONS = [
   {
     id: "student",
     name: "3Stone One Student",
-    tagline: "Documents, projects, a calendar, notes, a GPA calculator, and a job tracker for coursework - AI available as a paid add-on.",
-    fromPrice: 55,
+    tagline: "Documents, projects, a calendar, notes, a GPA calculator, and a job tracker for coursework - AI included.",
+    fromPrice: 40,
     accent: "#a594f5",
     demoHref: "/demo?edition=student",
     learnMoreHref: "/student",
@@ -213,7 +213,7 @@ export default function HomePage() {
                 </span>
                 <p className="mt-2.5 text-[14.5px] font-semibold text-ink-1">{edition.name}</p>
                 <p className="mt-1 text-[13px] text-ink-3">
-                  <span className="text-[18px] font-bold text-ink-1">${edition.fromPrice}</span>/mo to start
+                  <span className="text-[18px] font-bold text-ink-1">${edition.fromPrice}</span>/mo Plug-In
                 </p>
                 <p className="mt-1.5 flex-1 text-[13px] leading-relaxed text-ink-2">{edition.tagline}</p>
                 <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1.5">

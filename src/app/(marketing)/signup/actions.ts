@@ -1,6 +1,7 @@
 "use server";
 
 import { startSignup } from "@/server/services/onboardingService";
+import { cookies } from "next/headers";
 
 export interface SignupFormState {
   error?: string;
@@ -23,6 +24,15 @@ export async function signupAction(_prevState: SignupFormState, formData: FormDa
 
   try {
     const { verificationToken, delivered } = await startSignup(email);
+    const desiredEdition = String(formData.get("desiredEdition") ?? "");
+    const billingMode = String(formData.get("billingMode") ?? "");
+    const cookieStore = await cookies();
+    if (["business", "workspace", "student"].includes(desiredEdition)) {
+      cookieStore.set("signup_edition", desiredEdition, { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", maxAge: 60 * 30, path: "/signup" });
+    }
+    if (billingMode === "wholesale-annual") {
+      cookieStore.set("signup_billing", billingMode, { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", maxAge: 60 * 30, path: "/signup" });
+    }
     return { submittedEmail: email, devVerifyToken: delivered ? undefined : verificationToken };
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Something went wrong. Try again." };

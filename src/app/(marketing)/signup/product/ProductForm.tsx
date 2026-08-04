@@ -20,13 +20,15 @@ const OPTIONS = [
   {
     key: "student",
     label: "3Stone One Student",
-    detail: "Documents, projects, and meetings for coursework and group work - AI available as a paid add-on.",
+    detail: "Documents, projects, and study tools for coursework and group work - AI included.",
   },
 ] as const;
 
-export function ProductForm() {
+export function ProductForm({ initialEdition }: { initialEdition?: string }) {
   const [state, formAction, pending] = useActionState(selectEditionAction, initialState);
-  const [selected, setSelected] = useState<string>("business");
+  const [selected, setSelected] = useState<string>(
+    initialEdition === "workspace" || initialEdition === "student" ? initialEdition : "business"
+  );
   const [isNonprofit, setIsNonprofit] = useState(false);
 
   return (

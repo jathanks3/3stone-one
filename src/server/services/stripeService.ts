@@ -1,6 +1,6 @@
 import Stripe from "stripe";
 import { db } from "@/server/db";
-import { getPlanTier, type PlanTier } from "@/config/pricing";
+import { getPlanTier, monthlyPriceForSeats, wholesaleAnnualPrice, type PlanTier } from "@/config/pricing";
 import { createNotification } from "@/server/services/notificationService";
 import {
   AI_OVERAGE_PACK_ACTIONS,
@@ -64,18 +64,28 @@ async function ensureCustomer(workspaceId: string): Promise<string> {
 // same way) and creates it if genuinely missing. The point: once
 // STRIPE_SECRET_KEY exists, the founder never has to hand-create
 // Products/Prices in the Stripe dashboard themselves.
-async function ensurePriceForPlan(tier: PlanTier): Promise<string> {
+export type BillingMode = "monthly" | "wholesale-annual";
+
+async function ensurePriceForPlan(tier: PlanTier, billingMode: BillingMode, seatCount: number): Promise<string> {
   const stripe = getStripeClient();
   const envPriceId = process.env[tier.stripePriceEnvVar];
-  if (envPriceId) return envPriceId;
+  const interval = billingMode === "wholesale-annual" ? "year" : "month";
+  const unitAmount = billingMode === "wholesale-annual" ? wholesaleAnnualPrice(tier, seatCount) * 100 : monthlyPriceForSeats(tier, seatCount) * 100;
+  if (envPriceId && billingMode === "monthly" && seatCount === 1) {
+    const configuredPrice = await stripe.prices.retrieve(envPriceId);
+    if (configuredPrice.active && configuredPrice.recurring?.interval === interval && configuredPrice.unit_amount === unitAmount) {
+      return configuredPrice.id;
+    }
+  }
 
   const existingProducts = await stripe.products.search({
     query: `metadata['app']:'3stone-one' AND metadata['planKey']:'${tier.key}'`,
   });
   const existingProduct = existingProducts.data[0];
   if (existingProduct) {
-    const prices = await stripe.prices.list({ product: existingProduct.id, active: true, limit: 1 });
-    if (prices.data[0]) return prices.data[0].id;
+    const prices = await stripe.prices.list({ product: existingProduct.id, active: true, limit: 100 });
+    const matchingPrice = prices.data.find((price) => price.recurring?.interval === interval && price.unit_amount === unitAmount && Number(price.metadata.seatCount ?? "1") === seatCount);
+    if (matchingPrice) return matchingPrice.id;
   }
 
   const product =
@@ -87,9 +97,9 @@ async function ensurePriceForPlan(tier: PlanTier): Promise<string> {
   const price = await stripe.prices.create({
     product: product.id,
     currency: "usd",
-    unit_amount: tier.priceMonthly * 100,
-    recurring: { interval: "month" },
-    metadata: { app: "3stone-one", planKey: tier.key },
+    unit_amount: unitAmount,
+    recurring: { interval },
+    metadata: { app: "3stone-one", planKey: tier.key, billingMode, seatCount: String(seatCount) },
   });
   return price.id;
 }
@@ -98,10 +108,12 @@ export async function createCheckoutSession(
   workspaceId: string,
   planKey: Exclude<WorkspacePlan, "free" | "enterprise">,
   urls: { successUrl: string; cancelUrl: string },
-  options?: { trialDays?: number }
+  options?: { trialDays?: number; billingMode?: BillingMode; seatCount?: number }
 ): Promise<{ url: string }> {
   const tier = getPlanTier(planKey);
   if (!tier) throw new Error(`Unknown plan "${planKey}".`);
+  const billingMode = options?.billingMode ?? "monthly";
+  const seatCount = Math.max(1, Math.min(tier.maxEmployees, Math.trunc(options?.seatCount ?? 1)));
 
   const stripe = getStripeClient();
   const customerId = await ensureCustomer(workspaceId);
@@ -117,7 +129,7 @@ export async function createCheckoutSession(
   // normal shared Price, so a founder-negotiated rate never touches the
   // public Price object other customers check out against.
   const lineItem =
-    subscription?.isFounderPricing && subscription.priceOverrideCents
+    billingMode === "monthly" && subscription?.isFounderPricing && subscription.priceOverrideCents
       ? {
           price_data: {
             currency: "usd",
@@ -127,7 +139,7 @@ export async function createCheckoutSession(
           },
           quantity: 1,
         }
-      : { price: await ensurePriceForPlan(tier), quantity: 1 };
+      : { price: await ensurePriceForPlan(tier, billingMode, seatCount), quantity: 1 };
 
   const session = await stripe.checkout.sessions.create({
     mode: "subscription",
@@ -135,9 +147,9 @@ export async function createCheckoutSession(
     line_items: [lineItem],
     success_url: urls.successUrl,
     cancel_url: urls.cancelUrl,
-    metadata: { workspaceId, planKey },
+    metadata: { workspaceId, planKey, billingMode, seatCount: String(seatCount) },
     subscription_data: {
-      metadata: { workspaceId, planKey },
+      metadata: { workspaceId, planKey, billingMode, seatCount: String(seatCount) },
       ...(options?.trialDays ? { trial_period_days: options.trialDays } : {}),
     },
   });

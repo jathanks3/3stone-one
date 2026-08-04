@@ -35,6 +35,9 @@ export async function acceptTermsAction(_prevState: TermsFormState, formData: Fo
   const workspace = await db.workspace.findUniqueOrThrow({ where: { id: workspaceId }, select: { editionKey: true } });
   const cookieStore = await cookies();
   const selectedPlan = (cookieStore.get("signup_plan")?.value ?? "free") as WorkspacePlan;
+  const billingMode = cookieStore.get("signup_billing")?.value === "wholesale-annual" ? "wholesale-annual" : "monthly";
+  const selectedTier = getPlanTiersForEdition(workspace.editionKey).find((tier) => tier.key === selectedPlan);
+  const seatCount = Math.max(1, Math.min(selectedTier?.maxEmployees ?? 1, Number(cookieStore.get("signup_seats")?.value) || 1));
   const allowedPlans = new Set<WorkspacePlan>([
     "free",
     ...getPlanTiersForEdition(workspace.editionKey).map((tier) => tier.key),
@@ -51,10 +54,17 @@ export async function acceptTermsAction(_prevState: TermsFormState, formData: Fo
       workspaceId,
       selectedPlan as Exclude<WorkspacePlan, "free" | "enterprise">,
       { successUrl: `${origin}/dashboard?billing=success`, cancelUrl: `${origin}/signup/plan?checkout=cancelled` },
-      { trialDays: 14 }
+      { trialDays: billingMode === "monthly" ? 14 : undefined, billingMode, seatCount }
     );
+    cookieStore.delete("signup_plan");
+    cookieStore.delete("signup_billing");
+    cookieStore.delete("signup_edition");
+    cookieStore.delete("signup_seats");
     redirect(url);
   }
   cookieStore.delete("signup_plan");
+  cookieStore.delete("signup_billing");
+  cookieStore.delete("signup_edition");
+  cookieStore.delete("signup_seats");
   redirect("/dashboard");
 }

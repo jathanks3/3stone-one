@@ -6,7 +6,7 @@ import { signupAction, type SignupFormState } from "./actions";
 
 const initialState: SignupFormState = {};
 
-export function SignupForm() {
+export function SignupForm({ desiredEdition, billingMode }: { desiredEdition?: string; billingMode?: string }) {
   const [state, formAction, pending] = useActionState(signupAction, initialState);
 
   if (state.submittedEmail) {
@@ -36,6 +36,8 @@ export function SignupForm() {
 
   return (
     <form action={formAction} className="flex flex-col gap-4">
+      <input type="hidden" name="desiredEdition" value={desiredEdition ?? ""} />
+      <input type="hidden" name="billingMode" value={billingMode ?? ""} />
       <div className="flex flex-col gap-1.5">
         <label htmlFor="email" className="text-[13px] font-medium text-ink-2">
           Email

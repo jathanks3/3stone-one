@@ -21,15 +21,33 @@ export interface PlanTier {
   stripePriceEnvVar: string;
 }
 
+export const WHOLESALE_DISCOUNT = 0.25;
+export const ADDITIONAL_SEAT_PRICE = 5;
+
+export function monthlyPriceForSeats(tier: PlanTier, seatCount: number): number {
+  const seats = Math.max(1, Math.min(tier.maxEmployees, Math.trunc(seatCount) || 1));
+  return tier.priceMonthly + (seats - 1) * ADDITIONAL_SEAT_PRICE;
+}
+
+export function wholesaleAnnualPrice(tier: PlanTier, seatCount = 1): number {
+  return Math.round(monthlyPriceForSeats(tier, seatCount) * (1 - WHOLESALE_DISCOUNT) * 12);
+}
+
 export const PLAN_TIERS: PlanTier[] = [
   {
     key: "hub",
-    label: "Hub",
-    priceMonthly: 99,
-    maxEmployees: 16,
-    blurb: "One place to see the business. Keep every tool you have — 3Stone One connects them, adds your client portal, documents, and scheduling.",
+    label: "Plug-In",
+    priceMonthly: 80,
+    maxEmployees: 5,
+    blurb: "Standard self-serve access with automated login and connections to the apps your business already uses.",
     stripePriceEnvVar: "STRIPE_PRICE_HUB",
   },
+];
+
+// Retained for existing subscriptions and stored workspace records. New
+// customers choose Plug-In above; personalized configurations are priced
+// through Build Your Stack instead of these retired fixed bundles.
+const LEGACY_BUSINESS_PLAN_TIERS: PlanTier[] = [
   {
     key: "growth",
     label: "Growth",
@@ -58,12 +76,15 @@ export const PLAN_TIERS: PlanTier[] = [
 export const WORKSPACE_PLAN_TIERS: PlanTier[] = [
   {
     key: "workspace_starter",
-    label: "Starter",
-    priceMonthly: 69,
+    label: "Plug-In",
+    priceMonthly: 60,
     maxEmployees: 9,
-    blurb: "Documents and shared scheduling - the basics, without the back office.",
+    blurb: "Standard self-serve access with automated login and connections for everyday workplace tools.",
     stripePriceEnvVar: "STRIPE_PRICE_WORKSPACE_STARTER",
   },
+];
+
+const LEGACY_WORKSPACE_PLAN_TIERS: PlanTier[] = [
   {
     key: "workspace_team",
     label: "Team",
@@ -89,12 +110,15 @@ export const WORKSPACE_PLAN_TIERS: PlanTier[] = [
 export const STUDENT_PLAN_TIERS: PlanTier[] = [
   {
     key: "student_starter",
-    label: "Starter",
-    priceMonthly: 55,
+    label: "Plug-In",
+    priceMonthly: 40,
     maxEmployees: 2,
-    blurb: "Documents and a shared calendar - built for one person or a small study group.",
+    blurb: "Standard self-serve access with automated login and connections for school and study tools.",
     stripePriceEnvVar: "STRIPE_PRICE_STUDENT_STARTER",
   },
+];
+
+const LEGACY_STUDENT_PLAN_TIERS: PlanTier[] = [
   {
     key: "student_plus",
     label: "Plus",
@@ -119,7 +143,14 @@ export const STUDENT_PLAN_TIERS: PlanTier[] = [
 // must never run for it. Applies to every edition, not just Original.
 export const ENTERPRISE_LABEL = "Enterprise";
 
-const ALL_PLAN_TIERS: PlanTier[] = [...PLAN_TIERS, ...WORKSPACE_PLAN_TIERS, ...STUDENT_PLAN_TIERS];
+const ALL_PLAN_TIERS: PlanTier[] = [
+  ...PLAN_TIERS,
+  ...WORKSPACE_PLAN_TIERS,
+  ...STUDENT_PLAN_TIERS,
+  ...LEGACY_BUSINESS_PLAN_TIERS,
+  ...LEGACY_WORKSPACE_PLAN_TIERS,
+  ...LEGACY_STUDENT_PLAN_TIERS,
+];
 
 export function getPlanTier(key: string): PlanTier | undefined {
   return ALL_PLAN_TIERS.find((t) => t.key === key);

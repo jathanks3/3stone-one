@@ -7,9 +7,9 @@ export const metadata: Metadata = { title: "Sign up — 3Stone One" };
 export default async function SignupPage({
   searchParams,
 }: {
-  searchParams: Promise<{ verifyError?: string }>;
+  searchParams: Promise<{ verifyError?: string; edition?: string; billing?: string }>;
 }) {
-  const { verifyError } = await searchParams;
+  const { verifyError, edition, billing } = await searchParams;
   const errorMessage =
     verifyError === "invalid"
       ? "That verification link is invalid or has expired. Enter your email to get a new one."
@@ -24,7 +24,7 @@ export default async function SignupPage({
           {errorMessage}
         </p>
       ) : null}
-      <SignupForm />
+      <SignupForm desiredEdition={edition} billingMode={billing} />
     </SignupShell>
   );
 }

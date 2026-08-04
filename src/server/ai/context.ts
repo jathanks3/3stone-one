@@ -12,6 +12,9 @@ import { listKnowledgeArticles } from "@/server/services/knowledgeService";
 import { listAllGrades } from "@/server/services/gradesService";
 import { listCanvasCourseMaterials } from "@/server/services/canvasIntegrationService";
 import { listInboxMessages } from "@/server/services/inboxService";
+import { listDirectory } from "@/server/services/peopleService";
+import { listActivity } from "@/server/services/activityService";
+import { db } from "@/server/db";
 
 // Real, current data from this workspace, assembled fresh on every
 // message so the assistant can actually answer "what's on my calendar"
@@ -168,6 +171,36 @@ export async function buildWorkspaceContext(workspaceId: string, editionKey: str
               .join("\n\n")
           );
         }
+      })
+    );
+  }
+
+  if (allowed(modules, "people")) {
+    tasks.push(
+      listDirectory(workspaceId).then((people) => {
+        if (!people.length) return;
+        const lines = people.slice(0, 30).map((person) => `- ${person.name} — ${person.roleName}${person.departmentName ? `, ${person.departmentName}` : ""}`);
+        sections.push(`People directory:\n${lines.join("\n")}`);
+      })
+    );
+  }
+
+  if (allowed(modules, "activity")) {
+    tasks.push(
+      listActivity(workspaceId, 20).then((entries) => {
+        if (!entries.length) return;
+        const lines = entries.map((entry) => `- ${entry.actorName ?? "System"}: ${entry.action} ${entry.entityType} (${fmtDate(entry.createdAt)})`);
+        sections.push(`Recent workspace activity:\n${lines.join("\n")}`);
+      })
+    );
+  }
+
+  if (allowed(modules, "integrations")) {
+    tasks.push(
+      db.integration.findMany({ where: { workspaceId }, orderBy: { provider: "asc" } }).then((integrations) => {
+        if (!integrations.length) return;
+        const lines = integrations.map((integration) => `- ${integration.provider}: ${integration.status}`);
+        sections.push(`Connected app status:\n${lines.join("\n")}`);
       })
     );
   }

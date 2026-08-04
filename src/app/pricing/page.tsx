@@ -119,8 +119,8 @@ export default function PricingPage() {
         <div className="text-center">
           <h1 className="text-[38px] font-extrabold tracking-tight text-ink-1">Three products, one platform</h1>
           <p className="mx-auto mt-3 max-w-[560px] text-[15px] leading-relaxed text-ink-2">
-            Every tier is priced from real cost-to-serve, not a made-up number. Pick the product that fits who&rsquo;s
-            using it, then the tier that fits your team size.
+            Each edition has one standard self-serve Plug-In price. Choose the product that fits who&rsquo;s using it,
+            then use Build Your Stack when you need a more personal configuration.
           </p>
         </div>
 
@@ -152,14 +152,14 @@ export default function PricingPage() {
                   </a>
                 </div>
               </div>
-              <TierGrid tiers={edition.tiers} signupHref="/signup" />
+              <TierGrid tiers={edition.tiers} signupHref="/signup" editionKey={edition.id} />
               <div className="mt-5 flex flex-col rounded-[16px] border border-line bg-surface p-6">
                 <div className="flex flex-wrap items-center justify-between gap-4">
                   <div>
                     <h3 className="text-[18px] font-bold text-ink-1">Nonprofit &amp; Education Pricing</h3>
                     <p className="mt-1 max-w-[480px] text-[13.5px] text-ink-2">
-                      Qualifying nonprofits and schools get 25% off every tier above, billed annually per
-                      seat - starting at{" "}
+                      Qualifying nonprofits and schools get 25% off Plug-In, billed annually per
+                      seat -{" "}
                       <span className="font-semibold text-ink-1">
                         ${Math.round(edition.tiers[0].priceMonthly * (1 - WHOLESALE_DISCOUNT))}/seat/month
                       </span>

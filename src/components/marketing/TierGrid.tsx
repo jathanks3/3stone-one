@@ -1,14 +1,14 @@
 import Link from "next/link";
-import type { PlanTier } from "@/config/pricing";
+import { wholesaleAnnualPrice, type PlanTier } from "@/config/pricing";
 
 // Shared by /pricing (all three editions) and the dedicated /workspace
 // and /student marketing pages — same tier card markup, just a different
 // signupHref per edition so "Get started" can preselect the right
 // product on the signup flow's product step (see
 // (marketing)/signup/product/ProductForm.tsx).
-export function TierGrid({ tiers, signupHref }: { tiers: PlanTier[]; signupHref: string }) {
+export function TierGrid({ tiers, signupHref, editionKey = "business" }: { tiers: PlanTier[]; signupHref: string; editionKey?: string }) {
   return (
-    <div className="grid gap-5 sm:grid-cols-3">
+    <div className="grid gap-5">
       {tiers.map((tier, idx) => (
         <div
           key={tier.key}
@@ -22,16 +22,29 @@ export function TierGrid({ tiers, signupHref }: { tiers: PlanTier[]; signupHref:
             <span className="text-[13px] text-ink-3">/month</span>
           </p>
           <p className="mt-1 text-[12.5px] text-ink-3">Up to {tier.maxEmployees} seats</p>
+          <p className="mt-1 text-[12.5px] font-medium text-accent">+$5/month for each additional seat</p>
           <p className="mt-4 flex-1 text-[13.5px] leading-relaxed text-ink-2">{tier.blurb}</p>
           <Link
-            href={signupHref}
+            href={`${signupHref}?edition=${editionKey}`}
             className={`mt-6 inline-flex h-10 items-center justify-center rounded-[10px] text-[13.5px] font-semibold ${
               idx === 1
                 ? "bg-accent text-on-accent hover:opacity-90"
                 : "border border-line-strong text-ink-1 hover:bg-surface-raised"
             }`}
           >
-            Get started
+            Choose base plan
+          </Link>
+          <a
+            href={`https://www.3stoneai.com/workspace/pricing?edition=${editionKey}`}
+            className="mt-2 inline-flex h-10 items-center justify-center rounded-[10px] border border-line-strong text-[13.5px] font-semibold text-ink-1 hover:bg-surface-raised"
+          >
+            Custom Build
+          </a>
+          <Link
+            href={`${signupHref}?edition=${editionKey}&billing=wholesale-annual`}
+            className="mt-2 inline-flex min-h-10 items-center justify-center rounded-[10px] border border-line-strong px-3 text-center text-[13px] font-semibold text-ink-1 hover:bg-surface-raised"
+          >
+            Wholesale · ${wholesaleAnnualPrice(tier)}/year
           </Link>
         </div>
       ))}

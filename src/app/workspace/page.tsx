@@ -140,7 +140,7 @@ export default function WorkspaceMarketingPage() {
             Try the live demo
           </a>
         </div>
-        <p className="mt-6 text-[13px] text-ink-3">From $69/mo · self-serve signup, no call required</p>
+        <p className="mt-6 text-[13px] text-ink-3">Plug-In $60/mo · self-serve login and connections</p>
 
         <div className="mt-20 grid gap-4 text-left sm:grid-cols-2 lg:grid-cols-3">
           {FEATURES.map((f) => (
@@ -160,7 +160,7 @@ export default function WorkspaceMarketingPage() {
         <div className="mt-24 text-left">
           <h2 className="text-center text-[26px] font-bold tracking-tight text-ink-1">Pricing</h2>
           <p className="mx-auto mt-2 max-w-[440px] text-center text-[14px] text-ink-2">
-            Priced from real cost-to-serve, same as every 3Stone One edition. Prefer to pick modules yourself?{" "}
+            Standard Plug-In is $60/month. Need a setup curated around your workplace?{" "}
             <a
               href="https://www.3stoneai.com/workspace/pricing"
               className="font-semibold text-accent hover:underline"
@@ -170,7 +170,7 @@ export default function WorkspaceMarketingPage() {
             .
           </p>
           <div className="mt-8">
-            <TierGrid tiers={WORKSPACE_PLAN_TIERS} signupHref="/signup" />
+            <TierGrid tiers={WORKSPACE_PLAN_TIERS} signupHref="/signup" editionKey="workspace" />
           </div>
           <p className="mt-5 text-center text-[13px] text-ink-3">
             See the{" "}

@@ -131,7 +131,7 @@ export default function StudentMarketingPage() {
         </h1>
         <p className="mx-auto mt-5 max-w-[560px] text-[16.5px] leading-relaxed text-ink-2">
           Built for college and grad school - documents, projects, a real calendar, notes, and a GPA
-          calculator for a semester or a whole program, with real AI help available as an add-on.
+          calculator for a semester or a whole program, with real AI help included.
         </p>
         <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
           <Link
@@ -150,7 +150,7 @@ export default function StudentMarketingPage() {
             Try the live demo
           </a>
         </div>
-        <p className="mt-6 text-[13px] text-ink-3">From $55/mo · self-serve signup, no call required</p>
+        <p className="mt-6 text-[13px] text-ink-3">Plug-In $40/mo · self-serve login and connections</p>
 
         <div className="mt-20 grid gap-4 text-left sm:grid-cols-2 lg:grid-cols-3">
           {FEATURES.map((f) => (
@@ -170,7 +170,7 @@ export default function StudentMarketingPage() {
         <div className="mt-24 text-left">
           <h2 className="text-center text-[26px] font-bold tracking-tight text-ink-1">Pricing</h2>
           <p className="mx-auto mt-2 max-w-[440px] text-center text-[14px] text-ink-2">
-            Priced from real cost-to-serve, same as every 3Stone One edition. Prefer to pick modules yourself?{" "}
+            Standard Plug-In is $40/month. Need a setup curated around your coursework?{" "}
             <a
               href="https://www.3stoneai.com/workspace/pricing"
               className="font-semibold text-accent hover:underline"
@@ -180,7 +180,7 @@ export default function StudentMarketingPage() {
             .
           </p>
           <div className="mt-8">
-            <TierGrid tiers={STUDENT_PLAN_TIERS} signupHref="/signup" />
+            <TierGrid tiers={STUDENT_PLAN_TIERS} signupHref="/signup" editionKey="student" />
           </div>
           <p className="mt-5 text-center text-[13px] text-ink-3">
             See the{" "}
