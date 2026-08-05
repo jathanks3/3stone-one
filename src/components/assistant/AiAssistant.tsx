@@ -555,7 +555,7 @@ function AssistantPanel({
             e.preventDefault();
             ask(input);
           }}
-          className="flex flex-shrink-0 items-center gap-2 border-t border-line p-3 lg:pb-5 lg:pr-5"
+          className="flex min-w-0 flex-shrink-0 items-center gap-2 border-t border-line p-3 lg:pb-5 lg:pr-5"
         >
           <input ref={attachmentInputRef} type="file" className="hidden" accept=".pdf,.docx,.txt,.csv,image/*" onChange={(event) => { const file = event.target.files?.[0]; if (file) void attachReadableFile(file); }} />
           <button type="button" onClick={() => attachmentInputRef.current?.click()} disabled={loading || readingAttachment || isDemo} aria-label="Attach a readable file" title={isDemo ? "File import is available after sign in" : "Attach PDF, Word, text, or image"} className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-[10px] border border-line text-ink-2 hover:bg-surface-raised disabled:opacity-40">
@@ -565,14 +565,14 @@ function AssistantPanel({
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder={!isDemo ? "Ask anything…" : editionKey === "student" ? "Ask about your coursework…" : "Ask about your business…"}
-            className="flex-1 rounded-[10px] border border-line bg-bg px-3 py-2 text-[13.5px] text-ink-1 outline-none placeholder:text-ink-3 focus:border-line-strong"
+            className="min-w-0 flex-1 rounded-[10px] border border-line bg-bg px-3 py-2 text-[13.5px] text-ink-1 outline-none placeholder:text-ink-3 focus:border-line-strong"
           />
-          <VoiceCaptureButton label="Speak to AI" onTranscript={(text) => setInput((current) => [current.trim(), text].filter(Boolean).join(current.trim() ? " " : ""))} className="px-2.5" />
+          <VoiceCaptureButton label="Speak to AI" onTranscript={(text) => setInput((current) => [current.trim(), text].filter(Boolean).join(current.trim() ? " " : ""))} className="shrink-0 whitespace-nowrap px-2.5" />
           <button
             type="submit"
             disabled={loading || !input.trim()}
             aria-label="Send"
-            className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-[10px] bg-accent text-on-accent disabled:cursor-not-allowed disabled:opacity-50"
+            className="mb-1 mr-1 flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-[10px] bg-accent text-on-accent disabled:cursor-not-allowed disabled:opacity-50"
           >
             <ArrowUp size={16} />
           </button>
