@@ -43,7 +43,7 @@ export function AppShell({
 }) {
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
-  const { editionKey, demoAccentColor, demoSecondaryColor, demoLogoUrl, demoAiEnabled } = useIndustry();
+  const { editionKey, demoAccentColor, demoSecondaryColor, demoLogoUrl } = useIndustry();
   const { accentColor } = useAccentColor();
   const brand = EDITION_BRAND[editionKey];
   const Mark = brand?.Mark;
@@ -115,7 +115,7 @@ export function AppShell({
       </div>
       <MobileNav open={mobileNavOpen} onClose={() => setMobileNavOpen(false)} />
       <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} />
-      {demoAiEnabled ? <AiAssistant /> : null}
+      <AiAssistant />
     </div>
   );
 }

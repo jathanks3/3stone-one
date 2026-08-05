@@ -79,7 +79,9 @@ async function getExternalDemoProfile(slug: string): Promise<DemoProfileRow | nu
       industryLabel: data.industryLabel ?? data.industry,
       createdAt: new Date(),
       enabledModuleKeys,
-      aiEnabled: selected.includes("AI Assistant"),
+      // The assistant is a core product surface, not an optional module. Old
+      // custom profiles that omitted the former checkbox must still show it.
+      aiEnabled: true,
     };
   } catch {
     return null;
