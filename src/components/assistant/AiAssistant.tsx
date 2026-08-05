@@ -555,7 +555,7 @@ function AssistantPanel({
             e.preventDefault();
             ask(input);
           }}
-          className="flex flex-shrink-0 items-center gap-2 border-t border-line p-3"
+          className="flex flex-shrink-0 items-center gap-2 border-t border-line p-3 lg:pb-5 lg:pr-5"
         >
           <input ref={attachmentInputRef} type="file" className="hidden" accept=".pdf,.docx,.txt,.csv,image/*" onChange={(event) => { const file = event.target.files?.[0]; if (file) void attachReadableFile(file); }} />
           <button type="button" onClick={() => attachmentInputRef.current?.click()} disabled={loading || readingAttachment || isDemo} aria-label="Attach a readable file" title={isDemo ? "File import is available after sign in" : "Attach PDF, Word, text, or image"} className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-[10px] border border-line text-ink-2 hover:bg-surface-raised disabled:opacity-40">
