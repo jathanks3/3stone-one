@@ -672,11 +672,6 @@ html[data-reduced-motion="true"] *::after {
   --universe-y: 0px;
 }
 
-.app-universe-shell > * {
-  position: relative;
-  z-index: 1;
-}
-
 .app-universe-field {
   position: fixed;
   z-index: 0;
