@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Mail, Send } from "lucide-react";
+import { Mail, Reply, Send } from "lucide-react";
 import { Tabs } from "@/ui/Tabs";
 import { Avatar } from "@/ui/Avatar";
 import { DataTable, type Column } from "@/ui/DataTable";
@@ -50,6 +50,7 @@ function InboxTab({ seed }: { seed: EmailThread[] }) {
   const [activeId, setActiveId] = useState(threads[0]?.id);
   const [draft, setDraft] = useState("");
   const active = threads.find((t) => t.id === activeId) ?? threads[0];
+  const displayedMessage = active?.messages[active.messages.length - 1];
 
   function send() {
     if (!draft.trim() || !active) return;
@@ -92,47 +93,49 @@ function InboxTab({ seed }: { seed: EmailThread[] }) {
       <div className="flex min-h-[420px] flex-col rounded-2xl border border-line bg-surface">
         {active ? (
           <>
-            <div className="border-b border-line px-5 py-4">
-              <p className="text-[15px] font-semibold text-ink-1">{active.subject}</p>
-              <p className="text-[12.5px] text-ink-3">with {active.participant}</p>
-            </div>
-            <div className="flex-1 space-y-3 overflow-y-auto bg-bg/40 p-5">
-              {active.messages.map((m) => (
-                <article key={m.id} className="overflow-hidden rounded-[12px] border border-line bg-surface shadow-sm">
-                  <header className="flex items-start justify-between gap-4 border-b border-line px-4 py-3">
-                    <div className="flex min-w-0 items-center gap-2.5">
-                      <span className="grid h-8 w-8 flex-shrink-0 place-items-center rounded-full bg-accent-wash text-accent">
-                        <Mail size={14} />
-                      </span>
+            {displayedMessage ? (
+              <article className="flex flex-1 flex-col overflow-hidden">
+                <header className="border-b border-line px-5 py-4">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex min-w-0 items-center gap-3">
+                      <span className="grid h-10 w-10 flex-shrink-0 place-items-center rounded-full bg-accent-wash text-accent"><Mail size={17} /></span>
                       <div className="min-w-0">
-                        <p className="truncate text-[13px] font-semibold text-ink-1">{m.from}</p>
-                        <p className="truncate text-[11px] text-ink-3">to {m.from === "You" ? active.participant : "You"}</p>
+                        <h2 className="truncate text-[16px] font-semibold text-ink-1">{active.subject}</h2>
+                        <p className="mt-0.5 truncate text-[12px] text-ink-3">{displayedMessage.from}</p>
                       </div>
                     </div>
-                    <time className="flex-shrink-0 pt-0.5 text-[11px] text-ink-3">{m.at}</time>
-                  </header>
-                  <div className="whitespace-pre-wrap px-4 py-4 text-[13.5px] leading-6 text-ink-1">
-                    {m.body}
+                    <time className="flex-shrink-0 pt-1 text-[11px] text-ink-3">{displayedMessage.at}</time>
                   </div>
-                </article>
-              ))}
-            </div>
-            <div className="border-t border-line p-3">
-              <div className="flex items-center gap-2 rounded-[10px] border border-line bg-bg p-2 focus-within:border-accent">
-                <input
+                  <dl className="mt-4 grid grid-cols-[52px_1fr] gap-x-2 gap-y-1 border-t border-line pt-3 text-[12px]">
+                    <dt className="text-ink-3">From</dt><dd className="font-medium text-ink-1">{displayedMessage.from}</dd>
+                    <dt className="text-ink-3">To</dt><dd className="text-ink-2">{displayedMessage.from === "You" ? active.participant : "You"}</dd>
+                    <dt className="text-ink-3">Subject</dt><dd className="text-ink-2">{active.subject}</dd>
+                  </dl>
+                </header>
+                <div className="flex-1 overflow-y-auto px-6 py-7">
+                  <p className="max-w-3xl whitespace-pre-wrap text-[14px] leading-7 text-ink-1">{displayedMessage.body}</p>
+                </div>
+              </article>
+            ) : null}
+            <div className="border-t border-line bg-surface-raised/40 p-4">
+              <div className="rounded-[10px] border border-line bg-bg p-3 focus-within:border-accent">
+                <div className="mb-2 flex items-center gap-2 text-[12px] font-medium text-ink-2"><Reply size={13} />Reply to {active.participant}</div>
+                <textarea
                   value={draft}
                   onChange={(e) => setDraft(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && send()}
-                  placeholder={`Reply to ${active.participant}…`}
-                  className="h-9 flex-1 bg-transparent px-2 text-[13.5px] text-ink-1 outline-none placeholder:text-ink-3"
+                  placeholder="Write your email reply…"
+                  rows={4}
+                  className="w-full resize-y bg-transparent text-[13.5px] leading-6 text-ink-1 outline-none placeholder:text-ink-3"
                 />
+                <div className="mt-2 flex justify-end">
                 <button
                   onClick={send}
-                  className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-[9px] bg-accent text-on-accent hover:opacity-90"
+                  className="flex h-9 items-center gap-2 rounded-[9px] bg-accent px-4 text-[12px] font-semibold text-on-accent hover:opacity-90"
                   aria-label="Send"
                 >
-                  <Send size={15} />
+                  <Send size={14} /> Send email
                 </button>
+                </div>
               </div>
             </div>
           </>

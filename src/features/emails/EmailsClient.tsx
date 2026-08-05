@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Mail, MessageCircle, Paperclip } from "lucide-react";
+import { MessageCircle, Paperclip } from "lucide-react";
 import { Tabs } from "@/ui/Tabs";
 import { DetailPanel } from "@/ui/DetailPanel";
 import { Button } from "@/ui/Button";
@@ -76,7 +76,13 @@ export function EmailsClient() {
       <DetailPanel open={!!open} onClose={() => setOpen(null)} title={open?.subject ?? ""} subtitle={open?.from ?? ""}>
         {open ? (
           <div className="flex flex-col gap-5">
-            <p className="whitespace-pre-wrap text-[13.5px] leading-relaxed text-ink-1">{open.body}</p>
+            <dl className="grid grid-cols-[52px_1fr] gap-x-2 gap-y-1 border-b border-line pb-4 text-[12px]">
+              <dt className="text-ink-3">From</dt><dd className="font-medium text-ink-1">{open.from}</dd>
+              <dt className="text-ink-3">To</dt><dd className="text-ink-2">You</dd>
+              <dt className="text-ink-3">Subject</dt><dd className="text-ink-2">{open.subject}</dd>
+              <dt className="text-ink-3">Date</dt><dd className="text-ink-2">{open.receivedAt}</dd>
+            </dl>
+            <p className="whitespace-pre-wrap text-[14px] leading-7 text-ink-1">{open.body}</p>
 
             <Button variant="secondary" onClick={askAiAboutThis} className="w-fit">
               <MessageCircle size={14} /> Ask AI about this
