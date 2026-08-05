@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Send } from "lucide-react";
+import { Mail, Send } from "lucide-react";
 import { Tabs } from "@/ui/Tabs";
 import { Avatar } from "@/ui/Avatar";
 import { DataTable, type Column } from "@/ui/DataTable";
@@ -96,36 +96,44 @@ function InboxTab({ seed }: { seed: EmailThread[] }) {
               <p className="text-[15px] font-semibold text-ink-1">{active.subject}</p>
               <p className="text-[12.5px] text-ink-3">with {active.participant}</p>
             </div>
-            <div className="flex-1 space-y-3 overflow-y-auto p-5">
+            <div className="flex-1 space-y-3 overflow-y-auto bg-bg/40 p-5">
               {active.messages.map((m) => (
-                <div key={m.id} className={cn("flex flex-col gap-1", m.from === "You" ? "items-end" : "items-start")}>
-                  <div
-                    className={cn(
-                      "max-w-[80%] rounded-[12px] px-3.5 py-2.5 text-[13.5px] leading-relaxed",
-                      m.from === "You" ? "bg-accent text-on-accent" : "bg-surface-raised text-ink-1"
-                    )}
-                  >
+                <article key={m.id} className="overflow-hidden rounded-[12px] border border-line bg-surface shadow-sm">
+                  <header className="flex items-start justify-between gap-4 border-b border-line px-4 py-3">
+                    <div className="flex min-w-0 items-center gap-2.5">
+                      <span className="grid h-8 w-8 flex-shrink-0 place-items-center rounded-full bg-accent-wash text-accent">
+                        <Mail size={14} />
+                      </span>
+                      <div className="min-w-0">
+                        <p className="truncate text-[13px] font-semibold text-ink-1">{m.from}</p>
+                        <p className="truncate text-[11px] text-ink-3">to {m.from === "You" ? active.participant : "You"}</p>
+                      </div>
+                    </div>
+                    <time className="flex-shrink-0 pt-0.5 text-[11px] text-ink-3">{m.at}</time>
+                  </header>
+                  <div className="whitespace-pre-wrap px-4 py-4 text-[13.5px] leading-6 text-ink-1">
                     {m.body}
                   </div>
-                  <span className="text-[11px] text-ink-3">{m.from} · {m.at}</span>
-                </div>
+                </article>
               ))}
             </div>
-            <div className="flex items-center gap-2 border-t border-line p-3">
-              <input
-                value={draft}
-                onChange={(e) => setDraft(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && send()}
-                placeholder="Write a reply…"
-                className="h-10 flex-1 rounded-[9px] border border-line bg-bg px-3.5 text-[13.5px] text-ink-1 outline-none placeholder:text-ink-3 focus:border-accent"
-              />
-              <button
-                onClick={send}
-                className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-[9px] bg-accent text-on-accent hover:opacity-90"
-                aria-label="Send"
-              >
-                <Send size={15} />
-              </button>
+            <div className="border-t border-line p-3">
+              <div className="flex items-center gap-2 rounded-[10px] border border-line bg-bg p-2 focus-within:border-accent">
+                <input
+                  value={draft}
+                  onChange={(e) => setDraft(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && send()}
+                  placeholder={`Reply to ${active.participant}…`}
+                  className="h-9 flex-1 bg-transparent px-2 text-[13.5px] text-ink-1 outline-none placeholder:text-ink-3"
+                />
+                <button
+                  onClick={send}
+                  className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-[9px] bg-accent text-on-accent hover:opacity-90"
+                  aria-label="Send"
+                >
+                  <Send size={15} />
+                </button>
+              </div>
             </div>
           </>
         ) : null}
