@@ -7,6 +7,8 @@ export interface DemoProfileRow {
   orgName: string;
   industryProfileKey: string;
   accentColor: string | null;
+  secondaryColor?: string | null;
+  logoUrl?: string | null;
   industryLabel: string | null;
   createdAt: Date;
   enabledModuleKeys?: string[] | null;
@@ -61,7 +63,7 @@ async function getExternalDemoProfile(slug: string): Promise<DemoProfileRow | nu
   try {
     const response = await fetch(`${platformUrl}/api/v1/public/custom-demos/${encodeURIComponent(slug)}`, { cache: "no-store", signal: AbortSignal.timeout(5000) });
     if (!response.ok) return null;
-    const data = await response.json() as { organizationName?: string; edition?: string; industry?: string; industryLabel?: string; accentColor?: string; enabledFeatures?: string[] };
+    const data = await response.json() as { organizationName?: string; edition?: string; industry?: string; industryLabel?: string; accentColor?: string; secondaryColor?: string; logoUrl?: string | null; enabledFeatures?: string[] };
     if (!data.organizationName || !data.edition || !data.industry) return null;
     const selected = Array.isArray(data.enabledFeatures) ? data.enabledFeatures : [];
     const enabledModuleKeys = Array.from(new Set(["dashboard", "settings", ...selected.map((feature) => FEATURE_MODULES[feature]).filter((key): key is string => Boolean(key))]));
@@ -72,6 +74,8 @@ async function getExternalDemoProfile(slug: string): Promise<DemoProfileRow | nu
       orgName: data.organizationName,
       industryProfileKey: industryProfileFor(data.industry, data.edition),
       accentColor: data.accentColor ?? null,
+      secondaryColor: data.secondaryColor ?? null,
+      logoUrl: data.logoUrl ?? null,
       industryLabel: data.industryLabel ?? data.industry,
       createdAt: new Date(),
       enabledModuleKeys,

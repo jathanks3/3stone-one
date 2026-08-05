@@ -33,6 +33,8 @@ interface IndustryContextValue {
   // preference so a prospect's demo shows up already colored for them,
   // not whatever the founder last picked on their own device.
   demoAccentColor: string | null;
+  demoSecondaryColor: string | null;
+  demoLogoUrl: string | null;
   demoEnabledModuleKeys: string[] | null;
   demoAiEnabled: boolean;
 }
@@ -46,6 +48,8 @@ export function IndustryProvider({
   workspaceName,
   editionKey,
   demoAccentColor = null,
+  demoSecondaryColor = null,
+  demoLogoUrl = null,
   demoEnabledModuleKeys = null,
   demoAiEnabled = true,
   children,
@@ -56,6 +60,8 @@ export function IndustryProvider({
   workspaceName: string;
   editionKey: string;
   demoAccentColor?: string | null;
+  demoSecondaryColor?: string | null;
+  demoLogoUrl?: string | null;
   demoEnabledModuleKeys?: string[] | null;
   demoAiEnabled?: boolean;
   children: ReactNode;
@@ -84,10 +90,12 @@ export function IndustryProvider({
       workspaceName,
       editionKey,
       demoAccentColor,
+      demoSecondaryColor,
+      demoLogoUrl,
       demoEnabledModuleKeys,
       demoAiEnabled,
     }),
-    [profile, currentBusinessId, setBusinessId, isDemo, workspaceName, editionKey, demoAccentColor, demoEnabledModuleKeys, demoAiEnabled]
+    [profile, currentBusinessId, setBusinessId, isDemo, workspaceName, editionKey, demoAccentColor, demoSecondaryColor, demoLogoUrl, demoEnabledModuleKeys, demoAiEnabled]
   );
 
   return <IndustryContext.Provider value={value}>{children}</IndustryContext.Provider>;

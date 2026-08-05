@@ -28,6 +28,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   let workspace: { id: string; name: string; industryProfileKey: IndustryProfileKey; editionKey: string };
   let user: SessionUser;
   let demoAccentColor: string | null = null;
+  let demoSecondaryColor: string | null = null;
+  let demoLogoUrl: string | null = null;
   let demoEnabledModuleKeys: string[] | null = null;
   let demoAiEnabled = true;
 
@@ -66,6 +68,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       editionKey: demoEditionKey,
     };
     demoAccentColor = demoProfile?.accentColor ?? null;
+    demoSecondaryColor = demoProfile?.secondaryColor ?? null;
+    demoLogoUrl = demoProfile?.logoUrl ?? null;
     demoEnabledModuleKeys = demoProfile?.enabledModuleKeys ?? null;
     demoAiEnabled = demoProfile?.aiEnabled ?? true;
     user = DEMO_USER;
@@ -153,6 +157,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       workspaceName={workspace.name}
       editionKey={workspace.editionKey}
       demoAccentColor={demoAccentColor}
+      demoSecondaryColor={demoSecondaryColor}
+      demoLogoUrl={demoLogoUrl}
       demoEnabledModuleKeys={demoEnabledModuleKeys}
       demoAiEnabled={demoAiEnabled}
     >

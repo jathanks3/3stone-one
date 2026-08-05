@@ -43,7 +43,7 @@ export function AppShell({
 }) {
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
-  const { editionKey, demoAccentColor, demoAiEnabled } = useIndustry();
+  const { editionKey, demoAccentColor, demoSecondaryColor, demoLogoUrl, demoAiEnabled } = useIndustry();
   const { accentColor } = useAccentColor();
   const brand = EDITION_BRAND[editionKey];
   const Mark = brand?.Mark;
@@ -52,9 +52,10 @@ export function AppShell({
   // demo should show up already colored for them, not whatever the
   // founder last picked for themselves on this same browser.
   const customHexAccent = demoAccentColor?.match(/^#[0-9a-f]{6}$/i) ? demoAccentColor : null;
+  const customHexSecondary = demoSecondaryColor?.match(/^#[0-9a-f]{6}$/i) ? demoSecondaryColor : null;
   const effectiveAccentColor = demoAccentColor && demoAccentColor in ACCENT_CLASS ? (demoAccentColor as keyof typeof ACCENT_CLASS) : accentColor;
   const accentClass = effectiveAccentColor === "default" ? EDITION_CLASS[editionKey] : ACCENT_CLASS[effectiveAccentColor];
-  const customAccentStyle = customHexAccent ? ({ "--accent": customHexAccent, "--accent-strong": customHexAccent, "--accent-wash": `color-mix(in srgb, ${customHexAccent} 10%, transparent)`, "--accent-wash-strong": `color-mix(in srgb, ${customHexAccent} 18%, transparent)` } as CSSProperties) : undefined;
+  const customAccentStyle = customHexAccent ? ({ "--accent": customHexAccent, "--accent-strong": customHexSecondary ?? customHexAccent, "--accent-wash": `color-mix(in srgb, ${customHexAccent} 10%, transparent)`, "--accent-wash-strong": `color-mix(in srgb, ${customHexSecondary ?? customHexAccent} 18%, transparent)` } as CSSProperties) : undefined;
   const shellStyle = {
     ...customAccentStyle,
     "--universe-x": "0px",
@@ -95,7 +96,7 @@ export function AppShell({
           )}
         >
           <div className="flex h-14 flex-shrink-0 items-center gap-2 border-b border-line px-4">
-            {Mark ? <Mark size={24} /> : <Image src="/branding/monogram.svg" alt="" width={24} height={24} />}
+            {demoLogoUrl ? <span role="img" aria-label={`${brand?.label ?? "3Stone One"} custom logo`} className="h-7 w-7 flex-shrink-0 rounded-[7px] bg-contain bg-center bg-no-repeat" style={{ backgroundImage: `url(${JSON.stringify(demoLogoUrl)})` }} /> : Mark ? <Mark size={24} /> : <Image src="/branding/monogram.svg" alt="" width={24} height={24} />}
             <span className="truncate text-[14px] font-bold text-ink-1">{brand?.label ?? "3Stone One"}</span>
           </div>
           <div className="flex-1 overflow-y-auto">

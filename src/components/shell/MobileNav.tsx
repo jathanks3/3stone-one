@@ -7,7 +7,7 @@ import { EDITION_BRAND } from "./EditionMark";
 import { useIndustry } from "@/lib/industry";
 
 export function MobileNav({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const { editionKey } = useIndustry();
+  const { editionKey, demoLogoUrl } = useIndustry();
   const brand = EDITION_BRAND[editionKey];
   const Mark = brand?.Mark;
 
@@ -19,7 +19,7 @@ export function MobileNav({ open, onClose }: { open: boolean; onClose: () => voi
       <div className="relative flex h-full w-[280px] flex-col border-r border-line bg-surface">
         <div className="flex h-14 flex-shrink-0 items-center justify-between border-b border-line px-4">
           <div className="flex items-center gap-2">
-            {Mark ? <Mark size={24} /> : <Image src="/branding/monogram.svg" alt="" width={24} height={24} />}
+            {demoLogoUrl ? <span role="img" aria-label={`${brand?.label ?? "3Stone One"} custom logo`} className="h-7 w-7 flex-shrink-0 rounded-[7px] bg-contain bg-center bg-no-repeat" style={{ backgroundImage: `url(${JSON.stringify(demoLogoUrl)})` }} /> : Mark ? <Mark size={24} /> : <Image src="/branding/monogram.svg" alt="" width={24} height={24} />}
             <span className="truncate text-[14px] font-bold text-ink-1">{brand?.label ?? "3Stone One"}</span>
           </div>
           <button
