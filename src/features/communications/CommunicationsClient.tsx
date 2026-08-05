@@ -10,6 +10,7 @@ import { useIndustry } from "@/lib/industry";
 import {
   DEMO_CALL_NOTES,
   DEMO_EMAIL_THREADS,
+  STUDENT_EMAIL_THREADS,
   WORKSPACE_CALL_NOTES,
   WORKSPACE_EMAIL_THREADS,
   WORKSPACE_EMPLOYEES,
@@ -24,6 +25,8 @@ function callAuthorName(id: string): string {
 export function CommunicationsClient() {
   const { editionKey } = useIndustry();
   const isWorkspace = editionKey === "workspace";
+  const isStudent = editionKey === "student";
+  const emailThreads = isStudent ? STUDENT_EMAIL_THREADS : isWorkspace ? WORKSPACE_EMAIL_THREADS : DEMO_EMAIL_THREADS;
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-8">
@@ -33,8 +36,8 @@ export function CommunicationsClient() {
       <div className="mt-6">
         <Tabs
           tabs={[
-            { key: "inbox", label: "Inbox", content: <InboxTab seed={isWorkspace ? WORKSPACE_EMAIL_THREADS : DEMO_EMAIL_THREADS} /> },
-            { key: "calls", label: "Call Notes", content: <CallNotesTab rows={isWorkspace ? WORKSPACE_CALL_NOTES : DEMO_CALL_NOTES} /> },
+            { key: "inbox", label: "Inbox", content: <InboxTab seed={emailThreads} /> },
+            ...(isStudent ? [] : [{ key: "calls", label: "Call Notes", content: <CallNotesTab rows={isWorkspace ? WORKSPACE_CALL_NOTES : DEMO_CALL_NOTES} /> }]),
           ]}
         />
       </div>

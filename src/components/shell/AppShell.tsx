@@ -55,9 +55,32 @@ export function AppShell({
   const effectiveAccentColor = demoAccentColor && demoAccentColor in ACCENT_CLASS ? (demoAccentColor as keyof typeof ACCENT_CLASS) : accentColor;
   const accentClass = effectiveAccentColor === "default" ? EDITION_CLASS[editionKey] : ACCENT_CLASS[effectiveAccentColor];
   const customAccentStyle = customHexAccent ? ({ "--accent": customHexAccent, "--accent-strong": customHexAccent, "--accent-wash": `color-mix(in srgb, ${customHexAccent} 10%, transparent)`, "--accent-wash-strong": `color-mix(in srgb, ${customHexAccent} 18%, transparent)` } as CSSProperties) : undefined;
+  const shellStyle = {
+    ...customAccentStyle,
+    "--universe-x": "0px",
+    "--universe-y": "0px",
+  } as CSSProperties;
 
   return (
-    <div className={cn("flex h-screen flex-col", accentClass)} style={customAccentStyle}>
+    <div
+      className={cn("app-universe-shell flex h-screen flex-col", accentClass)}
+      style={shellStyle}
+      onPointerMove={(event) => {
+        const rect = event.currentTarget.getBoundingClientRect();
+        event.currentTarget.style.setProperty(
+          "--universe-x",
+          `${((event.clientX - rect.left) / rect.width - 0.5) * 28}px`,
+        );
+        event.currentTarget.style.setProperty(
+          "--universe-y",
+          `${((event.clientY - rect.top) / rect.height - 0.5) * 22}px`,
+        );
+      }}
+      onPointerLeave={(event) => {
+        event.currentTarget.style.setProperty("--universe-x", "0px");
+        event.currentTarget.style.setProperty("--universe-y", "0px");
+      }}
+    >
       <DemoBanner />
       <TopBar
         user={user}
@@ -67,7 +90,7 @@ export function AppShell({
       <div className="flex flex-1 overflow-hidden">
         <aside
           className={cn(
-            "hidden w-64 flex-shrink-0 border-r border-line lg:flex lg:flex-col",
+            "app-universe-sidebar hidden w-64 flex-shrink-0 border-r border-line lg:flex lg:flex-col",
             brand ? "bg-[linear-gradient(180deg,var(--surface)_0%,var(--bg)_140%)]" : "bg-surface"
           )}
         >
@@ -79,7 +102,15 @@ export function AppShell({
             <Sidebar />
           </div>
         </aside>
-        <main className="flex-1 overflow-y-auto bg-bg pb-24 lg:pb-6">{children}</main>
+        <main className="app-universe-main flex-1 overflow-y-auto bg-bg pb-24 lg:pb-6">
+          <div className="app-universe-field" aria-hidden="true">
+            <span className="app-universe-orbit app-universe-orbit-outer"><i /></span>
+            <span className="app-universe-orbit app-universe-orbit-middle"><i /></span>
+            <span className="app-universe-orbit app-universe-orbit-inner"><i /></span>
+            <span className="app-universe-core" />
+          </div>
+          <div className="app-universe-content">{children}</div>
+        </main>
       </div>
       <MobileNav open={mobileNavOpen} onClose={() => setMobileNavOpen(false)} />
       <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} />

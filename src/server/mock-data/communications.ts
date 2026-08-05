@@ -78,6 +78,45 @@ export const DEMO_CALL_NOTES: CallNote[] = [
   { id: "call_6", contactName: "Rachel Whitfield", organizationId: "org_whitfield", authorId: "emp_priya", summary: "Discussed final design tweaks ahead of contract signing — requested one more walkthrough.", at: "Today" },
 ];
 
+// Student walkthroughs need school-life communication, not the Business
+// construction pipeline used by the flagship demo. Keep this separate so a
+// custom Student link always remains convincing even when its industry is
+// customized by the founder.
+export const STUDENT_EMAIL_THREADS: EmailThread[] = [
+  {
+    id: "sthread_1",
+    subject: "Biology 210 — study guide and review session",
+    withOrganizationId: "student_biology_210",
+    participant: "Prof. Maya Thompson",
+    unread: true,
+    messages: [
+      { id: "sm1", from: "Prof. Maya Thompson", body: "I posted the midterm study guide. Our review session is Thursday at 4:00 PM in Science Hall 204.", at: "Yesterday" },
+      { id: "sm2", from: "You", body: "Thank you! I will bring my questions from chapters 5 and 6.", at: "Yesterday" },
+    ],
+  },
+  {
+    id: "sthread_2",
+    subject: "Group presentation — final slide assignments",
+    withOrganizationId: "student_group_project",
+    participant: "Jordan Lee",
+    unread: true,
+    messages: [
+      { id: "sm3", from: "Jordan Lee", body: "I finished the research slides. Can you handle the conclusion and upload the final deck before Tuesday?", at: "Today" },
+    ],
+  },
+  {
+    id: "sthread_3",
+    subject: "Summer internship application update",
+    withOrganizationId: "student_career_center",
+    participant: "Career Services",
+    unread: false,
+    messages: [
+      { id: "sm4", from: "Career Services", body: "Your resume review is complete. We added comments before you submit the Northline Analytics application on Friday.", at: "2 days ago" },
+      { id: "sm5", from: "You", body: "Got it — I will make the edits and send the updated version tomorrow.", at: "2 days ago" },
+    ],
+  },
+];
+
 // Workspace edition's own communications (Harper & Voss Consulting) -
 // see jobs.ts's WORKSPACE_JOBS, organizations.ts's WORKSPACE_ORGANIZATIONS,
 // and people.ts's WORKSPACE_EMPLOYEES.
