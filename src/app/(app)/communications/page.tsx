@@ -16,7 +16,7 @@ export default async function CommunicationsPage() {
   const session = await getSession();
   if (session && !session.isDemo) {
     const workspaceId = await getActiveWorkspaceIdForUser(session.userId);
-    if (!workspaceId) return <RealCommunicationsClient editionKey="business" initialCallNotes={[]} people={[]} outlookConnected={false} outlookMessages={[]} slackConnected={false} slackChannels={[]} slackMessages={[]} />;
+    if (!workspaceId) return <RealCommunicationsClient editionKey="business" initialCallNotes={[]} people={[]} googleConnected={false} outlookConnected={false} outlookMessages={[]} slackConnected={false} slackChannels={[]} slackMessages={[]} />;
     const workspace = await db.workspace.findUnique({ where: { id: workspaceId }, select: { editionKey: true } });
     const editionKey = workspace?.editionKey ?? "business";
     // Student has neither CRM (Call Notes needs a contact to log against)
@@ -24,7 +24,10 @@ export default async function CommunicationsPage() {
     // those queries entirely rather than run them for data the client
     // won't render (see RealCommunicationsClient's isStudent gating).
     const isStudent = editionKey === "student";
-    const microsoft = await db.integration.findUnique({ where: { workspaceId_provider: { workspaceId, provider: "microsoft" } } });
+    const [google, microsoft] = await Promise.all([
+      db.integration.findUnique({ where: { workspaceId_provider: { workspaceId, provider: "google" } } }),
+      db.integration.findUnique({ where: { workspaceId_provider: { workspaceId, provider: "microsoft" } } }),
+    ]);
     const slack = isStudent ? null : await db.integration.findUnique({ where: { workspaceId_provider: { workspaceId, provider: "slack" } } });
     const outlookConnected = microsoft?.status === "connected";
     const slackConnected = slack?.status === "connected";
@@ -40,6 +43,7 @@ export default async function CommunicationsPage() {
         editionKey={editionKey}
         initialCallNotes={callNotes}
         people={people}
+        googleConnected={editionKey === "business" && google?.status === "connected"}
         outlookConnected={outlookConnected}
         outlookMessages={outlookMessages}
         slackConnected={slackConnected}

@@ -25,6 +25,7 @@ export function RealCommunicationsClient({
   editionKey,
   initialCallNotes,
   people,
+  googleConnected,
   outlookConnected,
   outlookMessages,
   slackConnected,
@@ -34,6 +35,7 @@ export function RealCommunicationsClient({
   editionKey: string;
   initialCallNotes: CallNoteRow[];
   people: PersonRow[];
+  googleConnected: boolean;
   outlookConnected: boolean;
   outlookMessages: OutlookMessage[] | null;
   slackConnected: boolean;
@@ -48,12 +50,17 @@ export function RealCommunicationsClient({
       <p className="mt-1 text-[14px] text-ink-2">
         {isStudent
           ? "Your connected Outlook inbox, read live from Microsoft — nothing here is copied or stored unless you save an attachment."
-          : "Outlook email, Slack, and call notes — one searchable hub."}
+          : editionKey === "business"
+            ? "Send user-authored Gmail messages, work with Outlook email, and keep Slack and call notes in one hub."
+            : "Outlook email, Slack, and call notes — one searchable hub."}
       </p>
 
       <div className="mt-6">
         <Tabs
           tabs={[
+            ...(editionKey === "business"
+              ? [{ key: "gmail", label: "Gmail Send", content: <MailTab provider="google" connected={googleConnected} messages={[]} /> }]
+              : []),
             { key: "email", label: "Outlook Mail", content: <MailTab provider="microsoft" connected={outlookConnected} messages={outlookMessages} /> },
             ...(isStudent
               ? []

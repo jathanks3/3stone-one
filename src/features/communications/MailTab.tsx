@@ -224,12 +224,13 @@ export function MailTab({
   }
 
   if (rows.length === 0) {
+    const sendOnly = provider === "google";
     return (
       <>
         <EmptyState
           icon={Mail}
-          title="Inbox is empty"
-          description={`New ${providerName} messages will appear here.`}
+          title={sendOnly ? "Send with Gmail" : "Inbox is empty"}
+          description={sendOnly ? "3Stone One can send only messages you explicitly compose here. It cannot read your Gmail inbox." : `New ${providerName} messages will appear here.`}
           action={
             <button onClick={() => setComposing(true)} className="flex h-9 items-center gap-1.5 rounded-[10px] bg-accent px-3.5 text-[13px] font-semibold text-on-accent hover:opacity-90">
               <Mail size={14} /> Compose
